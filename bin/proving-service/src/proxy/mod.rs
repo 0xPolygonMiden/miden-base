@@ -124,7 +124,7 @@ impl LoadBalancerState {
     ///
     /// If the worker is not in the list, it won't be added.
     /// The worker is moved to the end of the list to avoid overloading since the selection of the
-    /// worker is done in order, causing the workers at the beggining of the list to be selected
+    /// worker is done in order, causing the workers at the beginning of the list to be selected
     /// more often.
     pub async fn add_available_worker(&self, worker: Worker) {
         let mut workers = self.workers.write().await;
