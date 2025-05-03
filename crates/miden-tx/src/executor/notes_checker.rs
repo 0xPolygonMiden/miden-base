@@ -66,8 +66,10 @@ impl<'a> NoteConsumptionChecker<'a> {
                             error: None,
                         });
                     },
-                    // we need to execute the transaction if compatibility is unclear
-                    NoteAccountCompatibility::Maybe => break,
+                    // this branch is unreachable, since we are handling the SWAP note separately,
+                    // but as an extra precaution continue iterating over the notes and run the
+                    // transaction to make sure the note which returned "Maybe" could be consumed
+                    NoteAccountCompatibility::Maybe => continue,
                     NoteAccountCompatibility::Yes => {
                         // put the successfully checked `P2ID` or `P2IDR` note to the vector
                         successful_notes.push(note.id());

@@ -155,7 +155,9 @@ impl WellKnownNote {
     /// - for `P2ID` note: assertion that the account ID provided by the note inputs is equal to the
     ///   target account ID.
     /// - for `P2IDR` note: assertion that the account ID provided by the note inputs is equal to
-    ///   the target or sender account IDs.
+    ///   the target account ID (which means that the note is going to be consumed by the target
+    ///   account) or that the target account ID is equal to the sender account ID (which means that
+    ///   the note is going to be consumed by the sender account)
     pub fn check_note_inputs(
         &self,
         note: &Note,
@@ -169,7 +171,17 @@ impl WellKnownNote {
                     return NoteAccountCompatibility::No;
                 }
 
-                Self::check_input_account_id(note_inputs, &[target_account_id])
+                // Return `No` if the note input values used to construct the account ID are invalid
+                let Some(input_account_id) = try_read_account_id_from_inputs(note_inputs) else {
+                    return NoteAccountCompatibility::No;
+                };
+
+                // check that the account ID in the note inputs equal to the target account ID
+                if input_account_id == target_account_id {
+                    NoteAccountCompatibility::Yes
+                } else {
+                    NoteAccountCompatibility::No
+                }
             },
             WellKnownNote::P2IDR => {
                 let note_inputs = note.inputs().values();
@@ -178,20 +190,35 @@ impl WellKnownNote {
                 }
 
                 let recall_height: Result<u32, _> = note_inputs[2].try_into();
+                // Return `No` if the note input value which represents the recall height is invalid
                 let Ok(recall_height) = recall_height else {
+                    return NoteAccountCompatibility::No;
+                };
+
+                // Return `No` if the note input values used to construct the account ID are invalid
+                let Some(input_account_id) = try_read_account_id_from_inputs(note_inputs) else {
                     return NoteAccountCompatibility::No;
                 };
 
                 if block_ref.as_u32() >= recall_height {
                     let sender_account_id = note.metadata().sender();
-                    // if the sender can already reclaim the assets back, provide it as a
-                    // valid account alongside with the target account
-                    Self::check_input_account_id(
-                        note_inputs,
-                        &[target_account_id, sender_account_id],
-                    )
+                    // if the sender can already reclaim the assets back, then:
+                    // - target account ID could be equal to the inputs account ID if the note is
+                    //   going to be consumed by the target account
+                    // - target account ID could be equal to the sender account ID if the note is
+                    //   going to be consumed by the sender account
+                    if [input_account_id, sender_account_id].contains(&target_account_id) {
+                        NoteAccountCompatibility::Yes
+                    } else {
+                        NoteAccountCompatibility::No
+                    }
                 } else {
-                    Self::check_input_account_id(note_inputs, &[target_account_id])
+                    // in this case note could be consumed only by the target account
+                    if input_account_id == target_account_id {
+                        NoteAccountCompatibility::Yes
+                    } else {
+                        NoteAccountCompatibility::No
+                    }
                 }
             },
             WellKnownNote::SWAP => {
@@ -203,28 +230,18 @@ impl WellKnownNote {
             },
         }
     }
+}
 
-    /// Checks that the account ID, created from the first two values of the note inputs, matches at
-    /// least one account from the list of valid accounts. This list contains accounts which are
-    /// allowed to consume the note.
-    fn check_input_account_id(
-        note_inputs: &[Felt],
-        valid_accounts: &[AccountId],
-    ) -> NoteAccountCompatibility {
-        let account_id_felts: [Felt; 2] = note_inputs[0..2].try_into().expect(
-            "Should be able to convert the first two note inputs to an array of two Felt elements",
-        );
+// HELPER FUNCTIONS
+// ================================================================================================
 
-        let Ok(inputs_account_id) = AccountId::try_from([account_id_felts[1], account_id_felts[0]])
-        else {
-            // return No if the account ID felts are invalid
-            return NoteAccountCompatibility::No;
-        };
+/// Reads the account ID from the note inputs.
+///
+/// Returns None if the note input values used to construct the account ID are invalid.
+fn try_read_account_id_from_inputs(note_inputs: &[Felt]) -> Option<AccountId> {
+    let account_id_felts: [Felt; 2] = note_inputs[0..2].try_into().expect(
+        "Should be able to convert the first two note inputs to an array of two Felt elements",
+    );
 
-        if valid_accounts.contains(&inputs_account_id) {
-            NoteAccountCompatibility::Yes
-        } else {
-            NoteAccountCompatibility::No
-        }
-    }
+    AccountId::try_from([account_id_felts[1], account_id_felts[0]]).ok()
 }
