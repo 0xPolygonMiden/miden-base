@@ -78,6 +78,21 @@ pub enum WellKnownNote {
 }
 
 impl WellKnownNote {
+    // CONSTANTS
+    // --------------------------------------------------------------------------------------------
+
+    /// Expected number of inputs of the P2ID note.
+    const P2ID_NUM_INPUTS: usize = 2;
+
+    /// Expected number of inputs of the P2IDR note.
+    const P2IDR_NUM_INPUTS: usize = 3;
+
+    /// Expected number of inputs of the SWAP note.
+    const SWAP_NUM_INPUTS: usize = 10;
+
+    // CONSTRUCTOR
+    // --------------------------------------------------------------------------------------------
+
     /// Returns a [WellKnownNote] instance based on the note script of the provided [Note]. Returns
     /// `None` if the provided note is not a basic well-known note.
     pub fn from_note(note: &Note) -> Option<Self> {
@@ -94,6 +109,18 @@ impl WellKnownNote {
         }
 
         None
+    }
+
+    // PUBLIC ACCESSORS
+    // --------------------------------------------------------------------------------------------
+
+    /// Returns the expected inputs number of the current note.
+    pub fn num_expected_inputs(&self) -> usize {
+        match self {
+            Self::P2ID => Self::P2ID_NUM_INPUTS,
+            Self::P2IDR => Self::P2IDR_NUM_INPUTS,
+            Self::SWAP => Self::SWAP_NUM_INPUTS,
+        }
     }
 
     /// Returns the note script of the current [WellKnownNote] instance.
@@ -167,7 +194,7 @@ impl WellKnownNote {
         match self {
             WellKnownNote::P2ID => {
                 let note_inputs = note.inputs().values();
-                if note_inputs.len() != 2 {
+                if note_inputs.len() != self.num_expected_inputs() {
                     return NoteAccountCompatibility::No;
                 }
 
@@ -185,7 +212,7 @@ impl WellKnownNote {
             },
             WellKnownNote::P2IDR => {
                 let note_inputs = note.inputs().values();
-                if note_inputs.len() != 3 {
+                if note_inputs.len() != self.num_expected_inputs() {
                     return NoteAccountCompatibility::No;
                 }
 
@@ -222,7 +249,7 @@ impl WellKnownNote {
                 }
             },
             WellKnownNote::SWAP => {
-                if note.inputs().values().len() != 10 {
+                if note.inputs().values().len() != self.num_expected_inputs() {
                     return NoteAccountCompatibility::No;
                 }
 
@@ -235,7 +262,7 @@ impl WellKnownNote {
 // HELPER FUNCTIONS
 // ================================================================================================
 
-/// Reads the account ID from the note inputs.
+/// Reads the account ID from the first two note input values.
 ///
 /// Returns None if the note input values used to construct the account ID are invalid.
 fn try_read_account_id_from_inputs(note_inputs: &[Felt]) -> Option<AccountId> {
