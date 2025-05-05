@@ -2,16 +2,16 @@ use alloc::vec::Vec;
 
 use crate::{
     ChainMmrError,
-    block::{BlockChain, BlockHeader},
+    block::{BlockHeader, Blockchain},
     transaction::ChainMmr,
 };
 
 impl ChainMmr {
-    /// Converts the [`BlockChain`] into a [`ChainMmr`] by selectively copying all leaves that are
+    /// Converts the [`Blockchain`] into a [`ChainMmr`] by selectively copying all leaves that are
     /// in the given `blocks` iterator.
     ///
     /// This tracks all blocks in the given iterator in the [`ChainMmr`] except for the block whose
-    /// block number equals [`BlockChain::chain_tip`], which is the current chain tip.
+    /// block number equals [`Blockchain::chain_tip`], which is the current chain tip.
     ///
     /// # Panics
     ///
@@ -19,7 +19,7 @@ impl ChainMmr {
     /// blocks does not exist in the provided chain or if the chain does not contain at least the
     /// genesis block.
     pub fn from_blockchain(
-        chain: &BlockChain,
+        chain: &Blockchain,
         blocks: impl IntoIterator<Item = BlockHeader>,
     ) -> Result<ChainMmr, ChainMmrError> {
         let block_headers: Vec<_> = blocks.into_iter().collect();
