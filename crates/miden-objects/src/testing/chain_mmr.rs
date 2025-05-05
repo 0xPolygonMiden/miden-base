@@ -1,46 +1,43 @@
-use miden_crypto::merkle::{Mmr, PartialMmr};
+use alloc::vec::Vec;
 
-use crate::{ChainMmrError, block::BlockHeader, transaction::ChainMmr};
+use crate::{
+    ChainMmrError,
+    block::{BlockHeader, Blockchain},
+    transaction::ChainMmr,
+};
 
 impl ChainMmr {
-    /// Converts the [`Mmr`] into a [`ChainMmr`] by selectively copying all leaves that are in the
-    /// given `blocks` iterator.
+    /// Converts the [`Blockchain`] into a [`ChainMmr`] by selectively copying all leaves that are
+    /// in the given `blocks` iterator.
     ///
     /// This tracks all blocks in the given iterator in the [`ChainMmr`] except for the block whose
-    /// block number equals [`Mmr::forest`], which is the current chain length.
+    /// block number equals [`Blockchain::chain_tip`], which is the current chain tip.
     ///
     /// # Panics
     ///
     /// Due to being only available in test scenarios, this function panics when one of the given
-    /// blocks does not exist in the provided mmr.
-    pub fn from_mmr<I>(
-        mmr: &Mmr,
-        blocks: impl IntoIterator<Item = BlockHeader, IntoIter = I> + Clone,
-    ) -> Result<ChainMmr, ChainMmrError>
-    where
-        I: Iterator<Item = BlockHeader>,
-    {
-        // We do not include the latest block as it is used as the reference block and is added to
-        // the MMR by the transaction or batch kernel.
+    /// blocks does not exist in the provided chain or if the chain does not contain at least the
+    /// genesis block.
+    pub fn from_blockchain(
+        chain: &Blockchain,
+        blocks: impl IntoIterator<Item = BlockHeader>,
+    ) -> Result<ChainMmr, ChainMmrError> {
+        let block_headers: Vec<_> = blocks.into_iter().collect();
 
-        let target_forest = mmr.forest() - 1;
-        let peaks = mmr
-            .peaks_at(target_forest)
-            .expect("target_forest should be smaller than forest of the mmr");
-        let mut partial_mmr = PartialMmr::from_peaks(peaks);
+        // We take the state at the latest block which will be used as the reference block by
+        // transaction or batch kernels. That way, the returned partial mmr's hash peaks will match
+        // the chain commitment of the reference block.
+        let latest_block = chain
+            .chain_tip()
+            .expect("block chain should contain at least the genesis block");
 
-        for block_num in blocks
-            .clone()
-            .into_iter()
-            .map(|header| header.block_num().as_usize())
-            .filter(|block_num| *block_num < target_forest)
-        {
-            let leaf = mmr.get(block_num).expect("error: block num does not exist");
-            let path =
-                mmr.open_at(block_num, target_forest).expect("error: block proof").merkle_path;
-            partial_mmr.track(block_num, leaf, &path).expect("error: partial mmr track");
-        }
+        let partial_mmr = chain
+            .partial_mmr_from_blocks(
+                &block_headers.iter().map(BlockHeader::block_num).collect(),
+                latest_block,
+            )
+            .expect("latest block should be in the chain and set of blocks should be valid");
 
-        ChainMmr::new(partial_mmr, blocks)
+        ChainMmr::new(partial_mmr, block_headers)
     }
 }
