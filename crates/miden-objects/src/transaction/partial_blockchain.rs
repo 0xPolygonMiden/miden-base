@@ -186,7 +186,7 @@ mod tests {
     };
 
     #[test]
-    fn test_partial_block_chain_add() {
+    fn test_partial_blockchain_add() {
         // create partial blockchain with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
@@ -194,44 +194,44 @@ mod tests {
             mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
-        let mut partial_block_chain = PartialBlockchain::new(partial_mmr, Vec::new()).unwrap();
+        let mut partial_blockchain = PartialBlockchain::new(partial_mmr, Vec::new()).unwrap();
 
         // add a new block to the partial blockchain, this reduces the number of peaks to 1
         let block_num = 3;
         let bock_header = int_to_block_header(block_num);
         mmr.add(bock_header.commitment());
-        partial_block_chain.add_block(bock_header, true);
+        partial_blockchain.add_block(bock_header, true);
 
         assert_eq!(
             mmr.open(block_num as usize).unwrap(),
-            partial_block_chain.mmr.open(block_num as usize).unwrap().unwrap()
+            partial_blockchain.mmr.open(block_num as usize).unwrap().unwrap()
         );
 
         // add one more block to the partial blockchain, the number of peaks is again 2
         let block_num = 4;
         let bock_header = int_to_block_header(block_num);
         mmr.add(bock_header.commitment());
-        partial_block_chain.add_block(bock_header, true);
+        partial_blockchain.add_block(bock_header, true);
 
         assert_eq!(
             mmr.open(block_num as usize).unwrap(),
-            partial_block_chain.mmr.open(block_num as usize).unwrap().unwrap()
+            partial_blockchain.mmr.open(block_num as usize).unwrap().unwrap()
         );
 
         // add one more block to the partial blockchain, the number of peaks is still 2
         let block_num = 5;
         let bock_header = int_to_block_header(block_num);
         mmr.add(bock_header.commitment());
-        partial_block_chain.add_block(bock_header, true);
+        partial_blockchain.add_block(bock_header, true);
 
         assert_eq!(
             mmr.open(block_num as usize).unwrap(),
-            partial_block_chain.mmr.open(block_num as usize).unwrap().unwrap()
+            partial_blockchain.mmr.open(block_num as usize).unwrap().unwrap()
         );
     }
 
     #[test]
-    fn tst_partial_block_chain_serialization() {
+    fn tst_partial_blockchain_serialization() {
         // create partial blockchain with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
@@ -239,12 +239,12 @@ mod tests {
             mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
-        let partial_block_chain = PartialBlockchain::new(partial_mmr, Vec::new()).unwrap();
+        let partial_blockchain = PartialBlockchain::new(partial_mmr, Vec::new()).unwrap();
 
-        let bytes = partial_block_chain.to_bytes();
+        let bytes = partial_blockchain.to_bytes();
         let deserialized = PartialBlockchain::read_from_bytes(&bytes).unwrap();
 
-        assert_eq!(partial_block_chain, deserialized);
+        assert_eq!(partial_blockchain, deserialized);
     }
 
     fn int_to_block_header(block_num: impl Into<BlockNumber>) -> BlockHeader {

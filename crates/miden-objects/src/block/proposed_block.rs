@@ -50,7 +50,7 @@ pub struct ProposedBlock {
     /// The [`PartialBlockchain`] at the state of the previous block header. It is used to:
     /// - authenticate unauthenticated notes whose note inclusion proof references a block.
     /// - authenticate all reference blocks of the batches in this block.
-    partial_block_chain: PartialBlockchain,
+    partial_blockchain: PartialBlockchain,
     /// The previous block's header which this block builds on top of.
     ///
     /// As part of proving the block, this header will be added to the next partial blockchain.
@@ -149,8 +149,8 @@ impl ProposedBlock {
         // Check for consistency between the partial blockchain and the referenced previous block.
         // --------------------------------------------------------------------------------------------
 
-        check_reference_block_partial_block_chain_consistency(
-            block_inputs.partial_block_chain(),
+        check_reference_block_partial_blockchain_consistency(
+            block_inputs.partial_blockchain(),
             block_inputs.prev_block_header(),
         )?;
 
@@ -158,7 +158,7 @@ impl ProposedBlock {
         // --------------------------------------------------------------------------------------------
 
         check_batch_reference_blocks(
-            block_inputs.partial_block_chain(),
+            block_inputs.partial_blockchain(),
             block_inputs.prev_block_header(),
             &batches,
         )?;
@@ -172,7 +172,7 @@ impl ProposedBlock {
             InputOutputNoteTracker::from_batches(
                 batches.iter(),
                 block_inputs.unauthenticated_note_proofs(),
-                block_inputs.partial_block_chain(),
+                block_inputs.partial_blockchain(),
                 block_inputs.prev_block_header(),
             )?;
 
@@ -187,7 +187,7 @@ impl ProposedBlock {
         // Check for nullifiers proofs and unspent nullifiers.
         // --------------------------------------------------------------------------------------------
 
-        let (prev_block_header, partial_block_chain, account_witnesses, mut nullifier_witnesses, _) =
+        let (prev_block_header, partial_blockchain, account_witnesses, mut nullifier_witnesses, _) =
             block_inputs.into_parts();
 
         // Remove nullifiers of erased notes, so we only add the nullifiers of actual input notes to
@@ -221,7 +221,7 @@ impl ProposedBlock {
             account_updated_witnesses,
             output_note_batches,
             created_nullifiers: nullifier_witnesses,
-            partial_block_chain,
+            partial_blockchain,
             prev_block_header,
         })
     }
@@ -265,7 +265,7 @@ impl ProposedBlock {
     pub fn block_num(&self) -> BlockNumber {
         // The chain length is the length at the state of the previous block header, so we have to
         // add one.
-        self.partial_block_chain().chain_length() + 1
+        self.partial_blockchain().chain_length() + 1
     }
 
     /// Returns a reference to the slice of batches in this block.
@@ -284,8 +284,8 @@ impl ProposedBlock {
     }
 
     /// Returns the [`PartialBlockchain`] that this block contains.
-    pub fn partial_block_chain(&self) -> &PartialBlockchain {
-        &self.partial_block_chain
+    pub fn partial_blockchain(&self) -> &PartialBlockchain {
+        &self.partial_blockchain
     }
 
     /// Returns a reference to the slice of accounts updated in this block.
@@ -323,7 +323,7 @@ impl ProposedBlock {
             self.account_updated_witnesses,
             self.output_note_batches,
             self.created_nullifiers,
-            self.partial_block_chain,
+            self.partial_blockchain,
             self.prev_block_header,
         )
     }
@@ -339,7 +339,7 @@ impl Serializable for ProposedBlock {
         self.account_updated_witnesses.write_into(target);
         self.output_note_batches.write_into(target);
         self.created_nullifiers.write_into(target);
-        self.partial_block_chain.write_into(target);
+        self.partial_blockchain.write_into(target);
         self.prev_block_header.write_into(target);
     }
 }
@@ -352,7 +352,7 @@ impl Deserializable for ProposedBlock {
             account_updated_witnesses: <Vec<(AccountId, AccountUpdateWitness)>>::read_from(source)?,
             output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
             created_nullifiers: <BTreeMap<Nullifier, NullifierWitness>>::read_from(source)?,
-            partial_block_chain: PartialBlockchain::read_from(source)?,
+            partial_blockchain: PartialBlockchain::read_from(source)?,
             prev_block_header: BlockHeader::read_from(source)?,
         };
 
@@ -458,20 +458,20 @@ fn remove_erased_nullifiers(
 ///   current block.
 /// - the root of the partial blockchain is equivalent to the chain commitment of the previous block
 ///   header.
-fn check_reference_block_partial_block_chain_consistency(
-    partial_block_chain: &PartialBlockchain,
+fn check_reference_block_partial_blockchain_consistency(
+    partial_blockchain: &PartialBlockchain,
     prev_block_header: &BlockHeader,
 ) -> Result<(), ProposedBlockError> {
     // Make sure that the current partial blockchain has blocks up to prev_block_header - 1, i.e.
     // its chain length is equal to the block number of the previous block header.
-    if partial_block_chain.chain_length() != prev_block_header.block_num() {
+    if partial_blockchain.chain_length() != prev_block_header.block_num() {
         return Err(ProposedBlockError::ChainLengthNotEqualToPreviousBlockNumber {
-            chain_length: partial_block_chain.chain_length(),
+            chain_length: partial_blockchain.chain_length(),
             prev_block_num: prev_block_header.block_num(),
         });
     }
 
-    let chain_commitment = partial_block_chain.peaks().hash_peaks();
+    let chain_commitment = partial_blockchain.peaks().hash_peaks();
     if chain_commitment != prev_block_header.chain_commitment() {
         return Err(ProposedBlockError::ChainRootNotEqualToPreviousBlockChainCommitment {
             chain_commitment,
@@ -486,14 +486,14 @@ fn check_reference_block_partial_block_chain_consistency(
 /// Check that each block referenced by a batch in the block has an entry in the partial blockchain,
 /// except if the referenced block is the same as the previous block, referenced by the block.
 fn check_batch_reference_blocks(
-    partial_block_chain: &PartialBlockchain,
+    partial_blockchain: &PartialBlockchain,
     prev_block_header: &BlockHeader,
     batches: &[ProvenBatch],
 ) -> Result<(), ProposedBlockError> {
     for batch in batches {
         let batch_reference_block_num = batch.reference_block_num();
         if batch_reference_block_num != prev_block_header.block_num()
-            && !partial_block_chain.contains_block(batch.reference_block_num())
+            && !partial_blockchain.contains_block(batch.reference_block_num())
         {
             return Err(ProposedBlockError::BatchReferenceBlockMissingFromChain {
                 reference_block_num: batch.reference_block_num(),

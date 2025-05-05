@@ -32,7 +32,7 @@ pub(super) fn extend_advice_inputs(
 
     // build the advice map and Merkle store for relevant components
     add_kernel_commitments_to_advice_inputs(advice_inputs, kernel_version);
-    add_partial_block_chain_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
+    add_partial_blockchain_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs)?;
     for foreign_account in tx_args.foreign_accounts() {
@@ -52,7 +52,7 @@ pub(super) fn extend_advice_inputs(
 ///
 /// [
 ///     PARENT_BLOCK_COMMITMENT,
-///     PARTIAL_BLOCK_CHAIN_HASH,
+///     PARTIAL_BLOCKCHAIN_HASH,
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
 ///     TX_COMMITMENT,
@@ -133,7 +133,7 @@ fn build_advice_stack(
 /// - MMR_ROOT, is the sequential hash of the padded MMR peaks
 /// - num_blocks, is the number of blocks in the MMR.
 /// - PEAK_1 .. PEAK_N, are the MMR peaks.
-fn add_partial_block_chain_to_advice_inputs(mmr: &PartialBlockchain, inputs: &mut AdviceInputs) {
+fn add_partial_blockchain_to_advice_inputs(mmr: &PartialBlockchain, inputs: &mut AdviceInputs) {
     // NOTE: keep this code in sync with the `process_chain_data` kernel procedure
 
     // add authentication paths from the MMR to the Merkle store

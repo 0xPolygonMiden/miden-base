@@ -369,12 +369,12 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     assert_ne!(latest_block_header.account_root(), AccountTree::new().root());
     assert_ne!(latest_block_header.nullifier_root(), Smt::new().root());
 
-    let (_, empty_partial_block_chain) = chain.latest_selective_partial_block_chain([]);
-    assert_eq!(empty_partial_block_chain.block_headers().count(), 0);
+    let (_, empty_partial_blockchain) = chain.latest_selective_partial_blockchain([]);
+    assert_eq!(empty_partial_blockchain.block_headers().count(), 0);
 
     let block_inputs = BlockInputs::new(
         latest_block_header.clone(),
-        empty_partial_block_chain.clone(),
+        empty_partial_blockchain.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),

@@ -440,7 +440,7 @@ impl MockChain {
     {
         let transactions: Vec<_> = txs.into_iter().map(alloc::sync::Arc::new).collect();
 
-        let (batch_reference_block, partial_block_chain) =
+        let (batch_reference_block, partial_blockchain) =
             self.get_batch_inputs(transactions.iter().map(|tx| tx.ref_block_num()));
 
         // TODO: Get the actual proofs as part of get_batch_inputs.
@@ -449,7 +449,7 @@ impl MockChain {
         ProposedBatch::new(
             transactions,
             batch_reference_block,
-            partial_block_chain,
+            partial_blockchain,
             unauthenticated_note_proofs,
         )
     }
@@ -461,7 +461,7 @@ impl MockChain {
         let (
             transactions,
             block_header,
-            _partial_block_chain,
+            _partial_blockchain,
             _unauthenticated_note_proofs,
             id,
             account_updates,
@@ -753,10 +753,10 @@ impl MockChain {
         &self,
         tx_reference_blocks: impl IntoIterator<Item = BlockNumber>,
     ) -> (BlockHeader, PartialBlockchain) {
-        let (batch_reference_block, partial_block_chain) =
-            self.latest_selective_partial_block_chain(tx_reference_blocks);
+        let (batch_reference_block, partial_blockchain) =
+            self.latest_selective_partial_blockchain(tx_reference_blocks);
 
-        (batch_reference_block, partial_block_chain)
+        (batch_reference_block, partial_blockchain)
     }
 
     /// Gets foreign account inputs to execute FPI transactions.
@@ -799,12 +799,11 @@ impl MockChain {
                 batch.input_notes().iter().filter_map(|note| note.header().map(NoteHeader::id))
             }));
 
-        let (block_reference_block, partial_block_chain) = self
-            .latest_selective_partial_block_chain(
-                batch_iterator.clone().map(ProvenBatch::reference_block_num).chain(
-                    unauthenticated_note_proofs.values().map(|proof| proof.location().block_num()),
-                ),
-            );
+        let (block_reference_block, partial_blockchain) = self.latest_selective_partial_blockchain(
+            batch_iterator.clone().map(ProvenBatch::reference_block_num).chain(
+                unauthenticated_note_proofs.values().map(|proof| proof.location().block_num()),
+            ),
+        );
 
         let account_witnesses =
             self.account_witnesses(batch_iterator.clone().flat_map(ProvenBatch::updated_accounts));
@@ -814,7 +813,7 @@ impl MockChain {
 
         BlockInputs::new(
             block_reference_block,
-            partial_block_chain,
+            partial_blockchain,
             account_witnesses,
             nullifier_proofs,
             unauthenticated_note_proofs,
@@ -998,7 +997,7 @@ impl MockChain {
     }
 
     /// Gets the latest [PartialBlockchain].
-    pub fn latest_partial_block_chain(&self) -> PartialBlockchain {
+    pub fn latest_partial_blockchain(&self) -> PartialBlockchain {
         // We have to exclude the latest block because we need to fetch the state of the chain at
         // that latest block, which does not include itself.
         let block_headers =
@@ -1012,7 +1011,7 @@ impl MockChain {
     ///
     /// The intended use is for the latest block header to become the reference block of a new
     /// transaction batch or block.
-    pub fn latest_selective_partial_block_chain(
+    pub fn latest_selective_partial_blockchain(
         &self,
         reference_blocks: impl IntoIterator<Item = BlockNumber>,
     ) -> (BlockHeader, PartialBlockchain) {
@@ -1028,10 +1027,10 @@ impl MockChain {
             .filter(|block_header| block_header.commitment() != latest_block_header.commitment())
             .collect();
 
-        let partial_block_chain =
+        let partial_blockchain =
             PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap();
 
-        (latest_block_header, partial_block_chain)
+        (latest_block_header, partial_blockchain)
     }
 
     /// Returns the witnesses for the provided account IDs of the current account tree.

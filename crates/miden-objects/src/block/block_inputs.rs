@@ -19,7 +19,7 @@ pub struct BlockInputs {
     /// The chain state at the previous block with authentication paths for:
     /// - each block referenced by a batch in the block,
     /// - each block referenced by a note inclusion proof for an unauthenticated note.
-    partial_block_chain: PartialBlockchain,
+    partial_blockchain: PartialBlockchain,
 
     /// The state commitments of the accounts in the block and their authentication paths.
     account_witnesses: BTreeMap<AccountId, AccountWitness>,
@@ -36,14 +36,14 @@ impl BlockInputs {
     /// Creates new [`BlockInputs`] from the provided parts.
     pub fn new(
         prev_block_header: BlockHeader,
-        partial_block_chain: PartialBlockchain,
+        partial_blockchain: PartialBlockchain,
         account_witnesses: BTreeMap<AccountId, AccountWitness>,
         nullifier_witnesses: BTreeMap<Nullifier, NullifierWitness>,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Self {
         Self {
             prev_block_header,
-            partial_block_chain,
+            partial_blockchain,
             account_witnesses,
             nullifier_witnesses,
             unauthenticated_note_proofs,
@@ -56,8 +56,8 @@ impl BlockInputs {
     }
 
     /// Returns a reference to the [`PartialBlockchain`].
-    pub fn partial_block_chain(&self) -> &PartialBlockchain {
-        &self.partial_block_chain
+    pub fn partial_blockchain(&self) -> &PartialBlockchain {
+        &self.partial_blockchain
     }
 
     /// Returns a reference to the account witnesses.
@@ -88,7 +88,7 @@ impl BlockInputs {
     ) {
         (
             self.prev_block_header,
-            self.partial_block_chain,
+            self.partial_blockchain,
             self.account_witnesses,
             self.nullifier_witnesses,
             self.unauthenticated_note_proofs,
@@ -102,8 +102,8 @@ impl BlockInputs {
     ///
     /// Allows mutating the inner partial blockchain for testing purposes.
     #[cfg(any(feature = "testing", test))]
-    pub fn partial_block_chain_mut(&mut self) -> &mut PartialBlockchain {
-        &mut self.partial_block_chain
+    pub fn partial_blockchain_mut(&mut self) -> &mut PartialBlockchain {
+        &mut self.partial_blockchain
     }
 
     /// Returns a mutable reference to the note inclusion proofs.
