@@ -6,7 +6,7 @@ use miden_objects::{
     account::AccountId,
     block::{BlockHeader, BlockNumber},
     transaction::{
-        ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes, TransactionArgs,
+        AccountInputs, ExecutedTransaction, InputNote, InputNotes, TransactionArgs,
         TransactionInputs, TransactionScript,
     },
     vm::StackOutputs,
@@ -140,12 +140,15 @@ impl TransactionExecutor {
 
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
+        let mut code_commitments = tx_args.foreign_account_code_commitments();
+        code_commitments.insert(tx_inputs.account().code().commitment());
+
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
             advice_recorder,
             self.data_store.clone(),
             self.authenticator.clone(),
-            tx_args.foreign_account_code_commitments(),
+            code_commitments,
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
@@ -179,7 +182,7 @@ impl TransactionExecutor {
         block_ref: BlockNumber,
         tx_script: TransactionScript,
         advice_inputs: AdviceInputs,
-        foreign_account_inputs: Vec<ForeignAccountInputs>,
+        foreign_account_inputs: Vec<AccountInputs>,
     ) -> Result<[Felt; 16], TransactionExecutorError> {
         let ref_blocks = [block_ref].into_iter().collect();
         let (account, seed, ref_block, mmr) =
@@ -202,12 +205,14 @@ impl TransactionExecutor {
                 .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
+        let account_code_commitments = tx_args.foreign_account_code_commitments();
+
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
             advice_recorder,
             self.data_store.clone(),
             self.authenticator.clone(),
-            tx_args.foreign_account_code_commitments(),
+            account_code_commitments,
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
@@ -289,7 +294,7 @@ fn validate_account_inputs(
     ref_block: &BlockHeader,
 ) -> Result<(), TransactionExecutorError> {
     // Validate that foreign account inputs are anchored in the reference block
-    for foreign_account in tx_args.foreign_accounts() {
+    for foreign_account in tx_args.foreign_account_inputs() {
         let computed_account_root = foreign_account.compute_account_root().map_err(|err| {
             TransactionExecutorError::InvalidAccountWitness(foreign_account.id(), err)
         })?;

@@ -11,8 +11,8 @@ use miden_lib::{
 use miden_objects::{
     AccountError, NoteError, ProposedBatchError, ProposedBlockError,
     account::{
-        Account, AccountBuilder, AccountComponent, AccountDelta, AccountHeader, AccountId,
-        AccountIdAnchor, AccountType, AuthSecretKey, StorageSlot, delta::AccountUpdateDetails,
+        Account, AccountBuilder, AccountComponent, AccountDelta, AccountId, AccountIdAnchor,
+        AccountType, AuthSecretKey, PartialAccount, StorageSlot, delta::AccountUpdateDetails,
     },
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
@@ -25,10 +25,9 @@ use miden_objects::{
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
-        ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes,
-        OrderedTransactionHeaders, OutputNote, PartialBlockchain, ProvenTransaction,
-        ToInputNoteCommitments, TransactionHeader, TransactionId, TransactionInputs,
-        TransactionScript,
+        AccountInputs, ExecutedTransaction, InputNote, InputNotes, OrderedTransactionHeaders,
+        OutputNote, PartialBlockchain, ProvenTransaction, ToInputNoteCommitments,
+        TransactionHeader, TransactionId, TransactionInputs, TransactionScript,
     },
 };
 use rand::{Rng, SeedableRng};
@@ -760,7 +759,7 @@ impl MockChain {
     }
 
     /// Gets foreign account inputs to execute FPI transactions.
-    pub fn get_foreign_account_inputs(&self, account_id: AccountId) -> ForeignAccountInputs {
+    pub fn get_foreign_account_inputs(&self, account_id: AccountId) -> AccountInputs {
         let account = self.available_account(account_id);
 
         let account_witness = self.accounts().open(account_id);
@@ -775,13 +774,7 @@ impl MockChain {
             }
         }
 
-        ForeignAccountInputs::new(
-            AccountHeader::from(account),
-            account.storage().get_header(),
-            account.code().clone(),
-            account_witness,
-            storage_map_proofs,
-        )
+        AccountInputs::new(PartialAccount::from(account.clone()), account_witness)
     }
 
     /// Gets the inputs for a block for the provided batches.
