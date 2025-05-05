@@ -1,4 +1,4 @@
-use alloc::collections::BTreeMap;
+use alloc::{collections::BTreeMap, vec::Vec};
 
 use crate::{
     PartialBlockchainError,
@@ -233,6 +233,19 @@ impl Deserializable for PartialBlockchain {
         Ok(Self { mmr, blocks })
     }
 }
+
+impl Default for PartialBlockchain {
+    fn default() -> Self {
+        // TODO: Replace with PartialMmr::default after https://github.com/0xMiden/crypto/pull/409/files
+        // is available for use.
+        let empty_mmr = PartialMmr::from_peaks(
+            MmrPeaks::new(0, Vec::new()).expect("empty MmrPeaks should be valid"),
+        );
+
+        Self::new(empty_mmr, Vec::new()).expect("empty partial blockchain should be valid")
+    }
+}
+
 // TESTS
 // ================================================================================================
 
