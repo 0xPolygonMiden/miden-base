@@ -5,14 +5,14 @@ use miden_objects::{
     Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
     account::AccountId,
     block::{BlockHeader, BlockNumber},
+    note::NoteId,
     transaction::{
         ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes, TransactionArgs,
         TransactionInputs, TransactionScript,
     },
     vm::StackOutputs,
 };
-pub use vm_processor::MastForestStore;
-use vm_processor::{AdviceInputs, ExecutionOptions, Process, RecAdviceProvider};
+use vm_processor::{AdviceInputs, ExecutionOptions, MemAdviceProvider, Process, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{TransactionExecutorError, TransactionHost};
@@ -20,6 +20,9 @@ use crate::auth::TransactionAuthenticator;
 
 mod data_store;
 pub use data_store::DataStore;
+
+mod notes_checker;
+pub use notes_checker::{NoteConsumptionChecker, NoteInputsCheck};
 
 // TRANSACTION EXECUTOR
 // ================================================================================================
@@ -108,21 +111,7 @@ impl TransactionExecutor {
         notes: InputNotes<InputNote>,
         tx_args: TransactionArgs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        // Validate that notes were not created after the reference, and build the set of required
-        // block numbers
-        let mut ref_blocks: BTreeSet<BlockNumber> = BTreeSet::new();
-        for note in &notes {
-            if let Some(location) = note.location() {
-                if location.block_num() > block_ref {
-                    return Err(TransactionExecutorError::NoteBlockPastReferenceBlock(
-                        note.id(),
-                        block_ref,
-                    ));
-                }
-                ref_blocks.insert(location.block_num());
-            }
-        }
-
+        let mut ref_blocks = validate_input_notes(&notes, block_ref)?;
         ref_blocks.insert(block_ref);
 
         let (account, seed, ref_block, mmr) =
@@ -222,6 +211,92 @@ impl TransactionExecutor {
 
         Ok(*stack_outputs)
     }
+
+    // CHECK CONSUMABILITY
+    // ============================================================================================
+
+    /// Executes the transaction with specified notes, returning the [NoteAccountExecution::Success]
+    /// if all notes has been consumed successfully and [NoteAccountExecution::Failure] if some note
+    /// returned an error.
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - If required data can not be fetched from the [DataStore].
+    /// - If the transaction host can not be created from the provided values.
+    /// - If the execution of the provided program fails on the stage other than note execution.
+    #[maybe_async]
+    pub(crate) fn try_execute_notes(
+        &self,
+        account_id: AccountId,
+        block_ref: BlockNumber,
+        notes: InputNotes<InputNote>,
+        tx_args: TransactionArgs,
+    ) -> Result<NoteAccountExecution, TransactionExecutorError> {
+        let mut ref_blocks = validate_input_notes(&notes, block_ref)?;
+        ref_blocks.insert(block_ref);
+
+        let (account, seed, ref_block, mmr) =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, ref_blocks))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+
+        validate_account_inputs(&tx_args, &ref_block)?;
+
+        let tx_inputs = TransactionInputs::new(account, seed, ref_block, mmr, notes)
+            .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
+
+        let (stack_inputs, advice_inputs) =
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None)
+                .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
+
+        let advice_provider: MemAdviceProvider = advice_inputs.into();
+
+        let mut host = TransactionHost::new(
+            tx_inputs.account().into(),
+            advice_provider,
+            self.data_store.clone(),
+            self.authenticator.clone(),
+            tx_args.foreign_account_code_commitments(),
+        )
+        .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
+
+        // execute the transaction kernel
+        let result = vm_processor::execute(
+            &TransactionKernel::main(),
+            stack_inputs,
+            &mut host,
+            self.exec_options,
+        )
+        .map_err(TransactionExecutorError::TransactionProgramExecutionFailed);
+
+        match result {
+            Ok(_) => Ok(NoteAccountExecution::Success),
+            Err(tx_execution_error) => {
+                let notes = host.tx_progress().note_execution();
+
+                // empty notes vector means that we didn't process the notes, so an error
+                // occurred somewhere else
+                if notes.is_empty() {
+                    return Err(tx_execution_error);
+                }
+
+                let ((last_note, last_note_interval), success_notes) = notes
+                    .split_last()
+                    .expect("notes vector should not be empty because we just checked");
+
+                // if the interval end of the last note is specified, then an error occurred after
+                // notes processing
+                if last_note_interval.end().is_some() {
+                    return Err(tx_execution_error);
+                }
+
+                Ok(NoteAccountExecution::Failure {
+                    failed_note_id: *last_note,
+                    successful_notes: success_notes.iter().map(|(note, _)| *note).collect(),
+                    error: Some(tx_execution_error),
+                })
+            },
+        }
+    }
 }
 
 // HELPER FUNCTIONS
@@ -300,4 +375,47 @@ fn validate_account_inputs(
         }
     }
     Ok(())
+}
+
+/// Validates that input notes were not created after the reference block.
+///
+/// Returns the set of block numbers required to execute the provided notes.
+fn validate_input_notes(
+    notes: &InputNotes<InputNote>,
+    block_ref: BlockNumber,
+) -> Result<BTreeSet<BlockNumber>, TransactionExecutorError> {
+    // Validate that notes were not created after the reference, and build the set of required
+    // block numbers
+    let mut ref_blocks: BTreeSet<BlockNumber> = BTreeSet::new();
+    for note in notes.iter() {
+        if let Some(location) = note.location() {
+            if location.block_num() > block_ref {
+                return Err(TransactionExecutorError::NoteBlockPastReferenceBlock(
+                    note.id(),
+                    block_ref,
+                ));
+            }
+            ref_blocks.insert(location.block_num());
+        }
+    }
+
+    Ok(ref_blocks)
+}
+
+// HELPER ENUM
+// ================================================================================================
+
+/// Describes whether a transaction with a specified set of notes could be executed against target
+/// account.
+///
+/// [NoteAccountExecution::Failure] holds data for error handling: `failing_note_id` is an ID of a
+/// failing note and `successful_notes` is a vector of note IDs which were successfully executed.
+#[derive(Debug)]
+pub enum NoteAccountExecution {
+    Success,
+    Failure {
+        failed_note_id: NoteId,
+        successful_notes: Vec<NoteId>,
+        error: Option<TransactionExecutorError>,
+    },
 }
