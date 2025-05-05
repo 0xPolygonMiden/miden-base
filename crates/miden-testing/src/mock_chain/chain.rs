@@ -106,7 +106,7 @@ impl PendingObjects {
 ///
 /// ## Create mock objects and build a transaction context
 /// ```no_run
-/// # use miden_test::{Auth, MockChain, TransactionContextBuilder};
+/// # use miden_testing::{Auth, MockChain, TransactionContextBuilder};
 /// # use miden_objects::{asset::FungibleAsset, Felt, note::NoteType};
 /// let mut mock_chain = MockChain::new();
 /// let faucet = mock_chain.add_new_faucet(Auth::BasicAuth, "USDT", 100_000);  // Create a USDT faucet
@@ -133,7 +133,7 @@ impl PendingObjects {
 /// an authenticator.
 ///
 /// ```
-/// # use miden_test::{Auth, MockChain, TransactionContextBuilder};
+/// # use miden_testing::{Auth, MockChain, TransactionContextBuilder};
 /// # use miden_objects::{asset::FungibleAsset, Felt, transaction::TransactionScript};
 /// # use miden_lib::transaction::TransactionKernel;
 /// let mut mock_chain = MockChain::new();

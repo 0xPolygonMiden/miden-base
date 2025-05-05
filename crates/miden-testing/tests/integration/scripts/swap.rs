@@ -7,7 +7,7 @@ use miden_objects::{
     note::{Note, NoteDetails, NoteType},
     transaction::{OutputNote, TransactionScript},
 };
-use miden_test::{Auth, MockChain};
+use miden_testing::{Auth, MockChain};
 use miden_tx::utils::word_to_masm_push_string;
 
 use crate::prove_and_verify_transaction;

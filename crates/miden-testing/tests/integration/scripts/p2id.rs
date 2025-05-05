@@ -15,7 +15,7 @@ use miden_objects::{
     },
     transaction::{OutputNote, TransactionScript},
 };
-use miden_test::{Auth, MockChain};
+use miden_testing::{Auth, MockChain};
 use miden_tx::utils::word_to_masm_push_string;
 
 use crate::{assert_transaction_executor_error, prove_and_verify_transaction};
