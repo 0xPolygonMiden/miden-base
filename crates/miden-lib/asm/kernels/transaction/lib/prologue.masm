@@ -216,7 +216,7 @@ end
 #!   Operand stack: [block_num]
 #!   Advice stack: [
 #!     PREV_BLOCK_COMMITMENT,
-#!     PARTIAL_BLOCKCHAIN_HASH,
+#!     PARTIAL_BLOCKCHAIN_COMMITMENT,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
 #!     TX_COMMITMENT,
@@ -230,7 +230,7 @@ end
 #!
 #! Where:
 #! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
-#! - PARTIAL_BLOCKCHAIN_HASH is the sequential hash of the reference MMR.
+#! - PARTIAL_BLOCKCHAIN_COMMITMENT is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.
@@ -278,7 +278,7 @@ end
 # CHAIN DATA
 # =================================================================================================
 
-#! Saves the MMR peaks to memory and verifies that it matches the reference block's PARTIAL_BLOCKCHAIN_HASH.
+#! Saves the MMR peaks to memory and verifies that it matches the reference block's PARTIAL_BLOCKCHAIN_COMMITMENT.
 #!
 #! This procedure loads the MMR peaks from the advice provider, verifies their hash matches the
 #! reference block, and insert the reference block in the MMR. The reference block is added to the
@@ -289,13 +289,13 @@ end
 #! Inputs:
 #!   Operand stack: []
 #!   Advice map: {
-#!     PARTIAL_BLOCKCHAIN_HASH: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N]
+#!     PARTIAL_BLOCKCHAIN_COMMITMENT: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N]
 #!   }
 #! Outputs:
 #!   Operand stack: []
 #!
 #! Where:
-#! - PARTIAL_BLOCKCHAIN_HASH is the sequential hash of the padded MMR peaks.
+#! - PARTIAL_BLOCKCHAIN_COMMITMENT is the sequential hash of the padded MMR peaks.
 #! - num_blocks is the number of blocks in the MMR.
 #! - PEAK_1 .. PEAK_N are the MMR peaks.
 proc.process_chain_data
@@ -1103,7 +1103,7 @@ end
 #!   ]
 #!   Advice stack: [
 #!     PREV_BLOCK_COMMITMENT,
-#!     PARTIAL_BLOCKCHAIN_HASH,
+#!     PARTIAL_BLOCKCHAIN_COMMITMENT,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
 #!     TX_COMMITMENT,
@@ -1120,7 +1120,7 @@ end
 #!     TX_SCRIPT_ROOT,
 #!   ]
 #!   Advice map: {
-#!      PARTIAL_BLOCKCHAIN_HASH: [MMR_PEAKS],
+#!      PARTIAL_BLOCKCHAIN_COMMITMENT: [MMR_PEAKS],
 #!      INPUT_NOTES_COMMITMENT: [NOTE_DATA],
 #!      TX_KERNEL_COMMITMENT: [KERNEL_COMMITMENTS],
 #!      KERNEL_COMMITMENT: [KERNEL_PROCEDURE_ROOTS],
@@ -1140,7 +1140,7 @@ end
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel commitments.
 #! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
-#! - PARTIAL_BLOCKCHAIN_HASH is the sequential hash of the reference MMR.
+#! - PARTIAL_BLOCKCHAIN_COMMITMENT is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.

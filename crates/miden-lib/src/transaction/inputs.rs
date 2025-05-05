@@ -52,7 +52,7 @@ pub(super) fn extend_advice_inputs(
 ///
 /// [
 ///     PARENT_BLOCK_COMMITMENT,
-///     PARTIAL_BLOCKCHAIN_HASH,
+///     PARTIAL_BLOCKCHAIN_COMMITMENT,
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
 ///     TX_COMMITMENT,
