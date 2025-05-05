@@ -14,6 +14,7 @@
 - Added field identifier structs for component metadata (#1292).
 - Move `NullifierTree` and `BlockChain` from node to base (#1304).
 - Rename `ChainMmr` to `PartialBlockchain` (#1305).
+- Add safe `PartialBlockchain` constructor (#1308).
 
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 
