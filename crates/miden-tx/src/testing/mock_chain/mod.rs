@@ -26,7 +26,7 @@ use miden_objects::{
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
         ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes,
-        OrderedTransactionHeaders, OutputNote, PartialBlockChain, ProvenTransaction,
+        OrderedTransactionHeaders, OutputNote, PartialBlockchain, ProvenTransaction,
         ToInputNoteCommitments, TransactionHeader, TransactionId, TransactionInputs,
         TransactionScript,
     },
@@ -735,7 +735,7 @@ impl MockChain {
         }
 
         let block_headers = block_headers_map.values().cloned();
-        let mmr = PartialBlockChain::from_blockchain(&self.chain, block_headers).unwrap();
+        let mmr = PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap();
 
         TransactionInputs::new(
             account,
@@ -752,7 +752,7 @@ impl MockChain {
     pub fn get_batch_inputs(
         &self,
         tx_reference_blocks: impl IntoIterator<Item = BlockNumber>,
-    ) -> (BlockHeader, PartialBlockChain) {
+    ) -> (BlockHeader, PartialBlockchain) {
         let (batch_reference_block, partial_block_chain) =
             self.latest_selective_partial_block_chain(tx_reference_blocks);
 
@@ -997,17 +997,17 @@ impl MockChain {
         &self.chain
     }
 
-    /// Gets the latest [PartialBlockChain].
-    pub fn latest_partial_block_chain(&self) -> PartialBlockChain {
+    /// Gets the latest [PartialBlockchain].
+    pub fn latest_partial_block_chain(&self) -> PartialBlockchain {
         // We have to exclude the latest block because we need to fetch the state of the chain at
         // that latest block, which does not include itself.
         let block_headers =
             self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1).cloned();
 
-        PartialBlockChain::from_blockchain(&self.chain, block_headers).unwrap()
+        PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap()
     }
 
-    /// Creates a new [`PartialBlockChain`] with all reference blocks in the given iterator except
+    /// Creates a new [`PartialBlockchain`] with all reference blocks in the given iterator except
     /// for the latest block header in the chain and returns that latest block header.
     ///
     /// The intended use is for the latest block header to become the reference block of a new
@@ -1015,10 +1015,10 @@ impl MockChain {
     pub fn latest_selective_partial_block_chain(
         &self,
         reference_blocks: impl IntoIterator<Item = BlockNumber>,
-    ) -> (BlockHeader, PartialBlockChain) {
+    ) -> (BlockHeader, PartialBlockchain) {
         let latest_block_header = self.latest_block_header().clone();
         // Deduplicate block numbers so each header will be included just once. This is required so
-        // PartialBlockChain::from_blockchain does not panic.
+        // PartialBlockchain::from_blockchain does not panic.
         let reference_blocks: BTreeSet<_> = reference_blocks.into_iter().collect();
 
         // Include all block headers of the reference blocks except the latest block.
@@ -1029,7 +1029,7 @@ impl MockChain {
             .collect();
 
         let partial_block_chain =
-            PartialBlockChain::from_blockchain(&self.chain, block_headers).unwrap();
+            PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap();
 
         (latest_block_header, partial_block_chain)
     }

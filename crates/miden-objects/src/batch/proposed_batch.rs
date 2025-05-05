@@ -12,7 +12,7 @@ use crate::{
     errors::ProposedBatchError,
     note::{NoteId, NoteInclusionProof},
     transaction::{
-        InputNoteCommitment, InputNotes, OrderedTransactionHeaders, OutputNote, PartialBlockChain,
+        InputNoteCommitment, InputNotes, OrderedTransactionHeaders, OutputNote, PartialBlockchain,
         ProvenTransaction, TransactionHeader,
     },
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -32,7 +32,7 @@ pub struct ProposedBatch {
     /// The partial blockchain used to authenticate:
     /// - all unauthenticated notes that can be authenticated,
     /// - all block commitments referenced by the transactions in the batch.
-    partial_block_chain: PartialBlockChain,
+    partial_block_chain: PartialBlockchain,
     /// The note inclusion proofs for unauthenticated notes that were consumed in the batch which
     /// can be authenticated.
     unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
@@ -116,7 +116,7 @@ impl ProposedBatch {
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
         reference_block_header: BlockHeader,
-        partial_block_chain: PartialBlockChain,
+        partial_block_chain: PartialBlockchain,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Result<Self, ProposedBatchError> {
         // Check for empty or duplicate transactions.
@@ -168,7 +168,7 @@ impl ProposedBatch {
         //
         // Finally, note that we don't verify anything cryptographically here. We have previously
         // verified that the batch reference block's chain commitment matches the hashed peaks of
-        // the `PartialBlockChain`, and so we only have to check if the partial blockchain contains
+        // the `PartialBlockchain`, and so we only have to check if the partial blockchain contains
         // the block here.
         // --------------------------------------------------------------------------------------------
 
@@ -357,7 +357,7 @@ impl ProposedBatch {
     ) -> (
         Vec<Arc<ProvenTransaction>>,
         BlockHeader,
-        PartialBlockChain,
+        PartialBlockchain,
         BTreeMap<NoteId, NoteInclusionProof>,
         BatchId,
         BTreeMap<AccountId, BatchAccountUpdate>,
@@ -404,7 +404,7 @@ impl Deserializable for ProposedBatch {
             .collect::<Vec<Arc<ProvenTransaction>>>();
 
         let block_header = BlockHeader::read_from(source)?;
-        let partial_block_chain = PartialBlockChain::read_from(source)?;
+        let partial_block_chain = PartialBlockchain::read_from(source)?;
         let unauthenticated_note_proofs =
             BTreeMap::<NoteId, NoteInclusionProof>::read_from(source)?;
 
@@ -444,7 +444,7 @@ mod tests {
             mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
-        let partial_block_chain = PartialBlockChain::new(partial_mmr, Vec::new()).unwrap();
+        let partial_block_chain = PartialBlockchain::new(partial_mmr, Vec::new()).unwrap();
 
         let chain_commitment = partial_block_chain.peaks().hash_peaks();
         let note_root: Word = rand_array();

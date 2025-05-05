@@ -8,7 +8,7 @@ use crate::{
     errors::ProposedBatchError,
     note::{NoteHeader, NoteId, NoteInclusionProof, Nullifier},
     transaction::{
-        InputNoteCommitment, OutputNote, PartialBlockChain, ProvenTransaction, TransactionId,
+        InputNoteCommitment, OutputNote, PartialBlockchain, ProvenTransaction, TransactionId,
     },
 };
 
@@ -55,7 +55,7 @@ impl InputOutputNoteTracker<TransactionId> {
     pub fn from_transactions<'a>(
         txs: impl Iterator<Item = &'a ProvenTransaction> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
-        partial_block_chain: &PartialBlockChain,
+        partial_block_chain: &PartialBlockchain,
         batch_reference_block: &BlockHeader,
     ) -> Result<(BatchInputNotes, BatchOutputNotes), ProposedBatchError> {
         let input_notes_iter = txs.clone().flat_map(|tx| {
@@ -95,7 +95,7 @@ impl InputOutputNoteTracker<BatchId> {
     pub fn from_batches<'a>(
         batches: impl Iterator<Item = &'a ProvenBatch> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
-        partial_block_chain: &PartialBlockChain,
+        partial_block_chain: &PartialBlockchain,
         prev_block: &BlockHeader,
     ) -> Result<(BlockInputNotes, ErasedNotes, BlockOutputNotes), ProposedBlockError> {
         let input_notes_iter = batches.clone().flat_map(|batch| {
@@ -135,7 +135,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         input_notes_iter: impl Iterator<Item = (InputNoteCommitment, ContainerId)>,
         output_notes_iter: impl Iterator<Item = (OutputNote, ContainerId)>,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
-        partial_block_chain: &PartialBlockChain,
+        partial_block_chain: &PartialBlockchain,
         reference_block: &BlockHeader,
     ) -> Result<Self, InputOutputNoteTrackerError<ContainerId>> {
         let mut input_notes = BTreeMap::new();
@@ -272,7 +272,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         nullifier: Nullifier,
         note_header: &NoteHeader,
         proof: &NoteInclusionProof,
-        partial_block_chain: &PartialBlockChain,
+        partial_block_chain: &PartialBlockchain,
         reference_block: &BlockHeader,
     ) -> Result<InputNoteCommitment, InputOutputNoteTrackerError<ContainerId>> {
         let proof_reference_block = proof.location().block_num();
@@ -280,7 +280,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
             reference_block
         } else {
             partial_block_chain.get_block(proof.location().block_num()).ok_or_else(|| {
-                InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInPartialBlockChain {
+                InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
                     block_number: proof.location().block_num(),
                     note_id: note_header.id(),
                 }
@@ -326,7 +326,7 @@ enum InputOutputNoteTrackerError<ContainerId: Copy> {
         input_commitment: Digest,
         output_commitment: Digest,
     },
-    UnauthenticatedInputNoteBlockNotInPartialBlockChain {
+    UnauthenticatedInputNoteBlockNotInPartialBlockchain {
         block_number: BlockNumber,
         note_id: NoteId,
     },
@@ -367,10 +367,10 @@ impl From<InputOutputNoteTrackerError<BatchId>> for ProposedBlockError {
                 input_commitment,
                 output_commitment,
             },
-            InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInPartialBlockChain {
+            InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
                 block_number,
                 note_id,
-            } => ProposedBlockError::UnauthenticatedInputNoteBlockNotInPartialBlockChain {
+            } => ProposedBlockError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
                 block_number,
                 note_id,
             },
@@ -417,10 +417,10 @@ impl From<InputOutputNoteTrackerError<TransactionId>> for ProposedBatchError {
                 input_commitment,
                 output_commitment,
             },
-            InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInPartialBlockChain {
+            InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
                 block_number,
                 note_id,
-            } => ProposedBatchError::UnauthenticatedInputNoteBlockNotInPartialBlockChain {
+            } => ProposedBatchError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
                 block_number,
                 note_id,
             },

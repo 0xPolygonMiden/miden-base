@@ -407,7 +407,7 @@ pub enum NoteError {
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum PartialBlockChainError {
+pub enum PartialBlockchainError {
     #[error(
         "block num {block_num} exceeds chain length {chain_length} implied by the partial blockchain"
     )]
@@ -421,7 +421,7 @@ pub enum PartialBlockChainError {
     UntrackedBlock { block_num: BlockNumber },
 }
 
-impl PartialBlockChainError {
+impl PartialBlockchainError {
     pub fn block_num_too_big(chain_length: usize, block_num: BlockNumber) -> Self {
         Self::BlockNumTooBig { chain_length, block_num }
     }
@@ -474,7 +474,7 @@ pub enum TransactionInputError {
     )]
     InconsistentChainCommitment { expected: Digest, actual: Digest },
     #[error("block in which input note with id {0} was created is not in partial blockchain")]
-    InputNoteBlockNotInPartialBlockChain(NoteId),
+    InputNoteBlockNotInPartialBlockchain(NoteId),
     #[error("input note with id {0} was not created in block {1}")]
     InputNoteNotInBlock(NoteId, BlockNumber),
     #[error("account ID computed from seed is invalid")]
@@ -623,7 +623,7 @@ pub enum ProposedBatchError {
     #[error(
         "unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in partial blockchain"
     )]
-    UnauthenticatedInputNoteBlockNotInPartialBlockChain {
+    UnauthenticatedInputNoteBlockNotInPartialBlockchain {
         block_number: BlockNumber,
         note_id: NoteId,
     },
@@ -772,7 +772,7 @@ pub enum ProposedBlockError {
     #[error(
         "failed to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in partial blockchain"
     )]
-    UnauthenticatedInputNoteBlockNotInPartialBlockChain {
+    UnauthenticatedInputNoteBlockNotInPartialBlockchain {
         block_number: BlockNumber,
         note_id: NoteId,
     },

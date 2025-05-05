@@ -357,7 +357,7 @@ fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_blo
         .expect("block2 should have been fetched");
 
     let error = ProposedBlock::new(invalid_block_inputs, batches.clone()).unwrap_err();
-    assert_matches!(error, ProposedBlockError::UnauthenticatedInputNoteBlockNotInPartialBlockChain { block_number, note_id } if block_number == block2.header().block_num() && note_id == note0.id());
+    assert_matches!(error, ProposedBlockError::UnauthenticatedInputNoteBlockNotInPartialBlockchain { block_number, note_id } if block_number == block2.header().block_num() && note_id == note0.id());
 
     // Error: Invalid note inclusion proof.
     // --------------------------------------------------------------------------------------------

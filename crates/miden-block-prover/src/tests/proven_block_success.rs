@@ -129,7 +129,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // The Mmr in MockChain adds a new block after it is sealed, so at this point the chain contains
     // block2 and has length 3.
     // This means the chain commitment of the mock chain must match the chain commitment of the
-    // PartialBlockChain with chain length 2 when the prev block (block2) is added.
+    // PartialBlockchain with chain length 2 when the prev block (block2) is added.
     assert_eq!(
         proven_block.header().chain_commitment(),
         chain.block_chain().peaks().hash_peaks()

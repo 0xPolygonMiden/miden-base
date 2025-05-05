@@ -1,16 +1,16 @@
 use alloc::vec::Vec;
 
 use crate::{
-    PartialBlockChainError,
+    PartialBlockchainError,
     block::{BlockHeader, Blockchain},
-    transaction::PartialBlockChain,
+    transaction::PartialBlockchain,
 };
 
-impl PartialBlockChain {
-    /// Converts the [`Blockchain`] into a [`PartialBlockChain`] by selectively copying all leaves
+impl PartialBlockchain {
+    /// Converts the [`Blockchain`] into a [`PartialBlockchain`] by selectively copying all leaves
     /// that are in the given `blocks` iterator.
     ///
-    /// This tracks all blocks in the given iterator in the [`PartialBlockChain`] except for the
+    /// This tracks all blocks in the given iterator in the [`PartialBlockchain`] except for the
     /// block whose block number equals [`Blockchain::chain_tip`], which is the current chain
     /// tip.
     ///
@@ -22,7 +22,7 @@ impl PartialBlockChain {
     pub fn from_blockchain(
         chain: &Blockchain,
         blocks: impl IntoIterator<Item = BlockHeader>,
-    ) -> Result<PartialBlockChain, PartialBlockChainError> {
+    ) -> Result<PartialBlockchain, PartialBlockchainError> {
         let block_headers: Vec<_> = blocks.into_iter().collect();
 
         // We take the state at the latest block which will be used as the reference block by
@@ -39,6 +39,6 @@ impl PartialBlockChain {
             )
             .expect("latest block should be in the chain and set of blocks should be valid");
 
-        PartialBlockChain::new(partial_mmr, block_headers)
+        PartialBlockchain::new(partial_mmr, block_headers)
     }
 }

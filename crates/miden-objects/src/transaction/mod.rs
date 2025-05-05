@@ -23,7 +23,7 @@ pub use inputs::{
 };
 pub use ordered_transactions::OrderedTransactionHeaders;
 pub use outputs::{OutputNote, OutputNotes, TransactionOutputs};
-pub use partial_blockchain::PartialBlockChain;
+pub use partial_blockchain::PartialBlockchain;
 pub use proven_tx::{
     InputNoteCommitment, ProvenTransaction, ProvenTransactionBuilder, TxAccountUpdate,
 };

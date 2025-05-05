@@ -10,7 +10,7 @@ use miden_objects::{
         ProposedBlock, ProvenBlock,
     },
     note::Nullifier,
-    transaction::PartialBlockChain,
+    transaction::PartialBlockchain,
 };
 
 use crate::errors::ProvenBlockError;
@@ -232,7 +232,7 @@ fn compute_nullifiers(
 /// Adds the commitment of the previous block header to the partial blockchain to compute the new
 /// chain commitment.
 fn compute_chain_commitment(
-    mut partial_block_chain: PartialBlockChain,
+    mut partial_block_chain: PartialBlockchain,
     prev_block_header: BlockHeader,
 ) -> Digest {
     // SAFETY: This does not panic as long as the block header we're adding is the next one in the

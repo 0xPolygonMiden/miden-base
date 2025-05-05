@@ -14,7 +14,7 @@ use crate::{
     },
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
-    transaction::{InputNoteCommitment, OutputNote, PartialBlockChain, TransactionHeader},
+    transaction::{InputNoteCommitment, OutputNote, PartialBlockchain, TransactionHeader},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -47,10 +47,10 @@ pub struct ProposedBlock {
     /// These are the nullifiers of all input notes after note erasure has been done, so these are
     /// the nullifiers of all _authenticated_ notes consumed in the block.
     created_nullifiers: BTreeMap<Nullifier, NullifierWitness>,
-    /// The [`PartialBlockChain`] at the state of the previous block header. It is used to:
+    /// The [`PartialBlockchain`] at the state of the previous block header. It is used to:
     /// - authenticate unauthenticated notes whose note inclusion proof references a block.
     /// - authenticate all reference blocks of the batches in this block.
-    partial_block_chain: PartialBlockChain,
+    partial_block_chain: PartialBlockchain,
     /// The previous block's header which this block builds on top of.
     ///
     /// As part of proving the block, this header will be added to the next partial blockchain.
@@ -81,9 +81,9 @@ impl ProposedBlock {
     ///
     /// ## Chain
     ///
-    /// - The length of the [`PartialBlockChain`] in the block inputs is not equal to the previous
+    /// - The length of the [`PartialBlockchain`] in the block inputs is not equal to the previous
     ///   block header in the block inputs.
-    /// - The [`PartialBlockChain`]'s chain commitment is not equal to the
+    /// - The [`PartialBlockchain`]'s chain commitment is not equal to the
     ///   [`BlockHeader::chain_commitment`] of the previous block header.
     ///
     /// ## Notes
@@ -96,7 +96,7 @@ impl ProposedBlock {
     /// - There is an unauthenticated input note and an output note with the same note ID but their
     ///   note commitments are different (i.e. their metadata is different).
     /// - There is a note inclusion proof for an unauthenticated note whose referenced block is not
-    ///   in the [`PartialBlockChain`].
+    ///   in the [`PartialBlockchain`].
     /// - The note inclusion proof for an unauthenticated is invalid.
     /// - There are any unauthenticated notes for which no note inclusion proof is provided.
     /// - A [`NullifierWitness`] is missing for an authenticated note.
@@ -283,8 +283,8 @@ impl ProposedBlock {
         &self.prev_block_header
     }
 
-    /// Returns the [`PartialBlockChain`] that this block contains.
-    pub fn partial_block_chain(&self) -> &PartialBlockChain {
+    /// Returns the [`PartialBlockchain`] that this block contains.
+    pub fn partial_block_chain(&self) -> &PartialBlockchain {
         &self.partial_block_chain
     }
 
@@ -315,7 +315,7 @@ impl ProposedBlock {
         Vec<(AccountId, AccountUpdateWitness)>,
         Vec<OutputNoteBatch>,
         BTreeMap<Nullifier, NullifierWitness>,
-        PartialBlockChain,
+        PartialBlockchain,
         BlockHeader,
     ) {
         (
@@ -352,7 +352,7 @@ impl Deserializable for ProposedBlock {
             account_updated_witnesses: <Vec<(AccountId, AccountUpdateWitness)>>::read_from(source)?,
             output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
             created_nullifiers: <BTreeMap<Nullifier, NullifierWitness>>::read_from(source)?,
-            partial_block_chain: PartialBlockChain::read_from(source)?,
+            partial_block_chain: PartialBlockchain::read_from(source)?,
             prev_block_header: BlockHeader::read_from(source)?,
         };
 
@@ -459,7 +459,7 @@ fn remove_erased_nullifiers(
 /// - the root of the partial blockchain is equivalent to the chain commitment of the previous block
 ///   header.
 fn check_reference_block_partial_block_chain_consistency(
-    partial_block_chain: &PartialBlockChain,
+    partial_block_chain: &PartialBlockchain,
     prev_block_header: &BlockHeader,
 ) -> Result<(), ProposedBlockError> {
     // Make sure that the current partial blockchain has blocks up to prev_block_header - 1, i.e.
@@ -486,7 +486,7 @@ fn check_reference_block_partial_block_chain_consistency(
 /// Check that each block referenced by a batch in the block has an entry in the partial blockchain,
 /// except if the referenced block is the same as the previous block, referenced by the block.
 fn check_batch_reference_blocks(
-    partial_block_chain: &PartialBlockChain,
+    partial_block_chain: &PartialBlockchain,
     prev_block_header: &BlockHeader,
     batches: &[ProvenBatch],
 ) -> Result<(), ProposedBlockError> {

@@ -4,7 +4,7 @@ use crate::{
     account::AccountId,
     block::{AccountWitness, BlockHeader, NullifierWitness},
     note::{NoteId, NoteInclusionProof, Nullifier},
-    transaction::PartialBlockChain,
+    transaction::PartialBlockchain,
 };
 
 // BLOCK INPUTS
@@ -19,7 +19,7 @@ pub struct BlockInputs {
     /// The chain state at the previous block with authentication paths for:
     /// - each block referenced by a batch in the block,
     /// - each block referenced by a note inclusion proof for an unauthenticated note.
-    partial_block_chain: PartialBlockChain,
+    partial_block_chain: PartialBlockchain,
 
     /// The state commitments of the accounts in the block and their authentication paths.
     account_witnesses: BTreeMap<AccountId, AccountWitness>,
@@ -36,7 +36,7 @@ impl BlockInputs {
     /// Creates new [`BlockInputs`] from the provided parts.
     pub fn new(
         prev_block_header: BlockHeader,
-        partial_block_chain: PartialBlockChain,
+        partial_block_chain: PartialBlockchain,
         account_witnesses: BTreeMap<AccountId, AccountWitness>,
         nullifier_witnesses: BTreeMap<Nullifier, NullifierWitness>,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
@@ -55,8 +55,8 @@ impl BlockInputs {
         &self.prev_block_header
     }
 
-    /// Returns a reference to the [`PartialBlockChain`].
-    pub fn partial_block_chain(&self) -> &PartialBlockChain {
+    /// Returns a reference to the [`PartialBlockchain`].
+    pub fn partial_block_chain(&self) -> &PartialBlockchain {
         &self.partial_block_chain
     }
 
@@ -81,7 +81,7 @@ impl BlockInputs {
         self,
     ) -> (
         BlockHeader,
-        PartialBlockChain,
+        PartialBlockchain,
         BTreeMap<AccountId, AccountWitness>,
         BTreeMap<Nullifier, NullifierWitness>,
         BTreeMap<NoteId, NoteInclusionProof>,
@@ -98,11 +98,11 @@ impl BlockInputs {
     // TESTING
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a mutable reference to the [`PartialBlockChain`].
+    /// Returns a mutable reference to the [`PartialBlockchain`].
     ///
     /// Allows mutating the inner partial blockchain for testing purposes.
     #[cfg(any(feature = "testing", test))]
-    pub fn partial_block_chain_mut(&mut self) -> &mut PartialBlockChain {
+    pub fn partial_block_chain_mut(&mut self) -> &mut PartialBlockchain {
         &mut self.partial_block_chain
     }
 

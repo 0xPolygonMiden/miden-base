@@ -4,7 +4,7 @@ use miden_objects::{
     Digest, EMPTY_WORD, Felt, FieldElement, TransactionInputError, WORD_SIZE, Word, ZERO,
     account::{Account, StorageSlot},
     transaction::{
-        InputNote, PartialBlockChain, TransactionArgs, TransactionInputs, TransactionScript,
+        InputNote, PartialBlockchain, TransactionArgs, TransactionInputs, TransactionScript,
     },
     vm::AdviceInputs,
 };
@@ -133,7 +133,7 @@ fn build_advice_stack(
 /// - MMR_ROOT, is the sequential hash of the padded MMR peaks
 /// - num_blocks, is the number of blocks in the MMR.
 /// - PEAK_1 .. PEAK_N, are the MMR peaks.
-fn add_partial_block_chain_to_advice_inputs(mmr: &PartialBlockChain, inputs: &mut AdviceInputs) {
+fn add_partial_block_chain_to_advice_inputs(mmr: &PartialBlockchain, inputs: &mut AdviceInputs) {
     // NOTE: keep this code in sync with the `process_chain_data` kernel procedure
 
     // add authentication paths from the MMR to the Merkle store

@@ -11,7 +11,7 @@ use miden_objects::{
     block::BlockNumber,
     note::{Note, NoteType},
     testing::{account_id::AccountIdBuilder, note::NoteBuilder},
-    transaction::{InputNote, InputNoteCommitment, OutputNote, PartialBlockChain},
+    transaction::{InputNote, InputNoteCommitment, OutputNote, PartialBlockchain},
 };
 use miden_tx::testing::{Auth, MockChain};
 use rand::{SeedableRng, rngs::SmallRng};
@@ -318,7 +318,7 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     let error = ProposedBatch::new(
         [tx1.clone()].into_iter().map(Arc::new).collect(),
         block4.header().clone(),
-        PartialBlockChain::new(mmr, blocks)
+        PartialBlockchain::new(mmr, blocks)
             .context("failed to build partial blockchain with missing block")?,
         BTreeMap::from_iter([(input_note1.id(), note_inclusion_proof1.clone())]),
     )
@@ -326,7 +326,7 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
 
     assert_matches!(
         error,
-        ProposedBatchError::UnauthenticatedInputNoteBlockNotInPartialBlockChain {
+        ProposedBatchError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
           block_number,
           note_id
         } if block_number == note_inclusion_proof1.location().block_num() &&
