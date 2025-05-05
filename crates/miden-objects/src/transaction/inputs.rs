@@ -3,7 +3,7 @@ use core::fmt::Debug;
 
 use miden_crypto::merkle::{SmtProof, SmtProofError};
 
-use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
+use super::{BlockHeader, Digest, Felt, Hasher, PartialBlockchain, Word};
 use crate::{
     MAX_INPUT_NOTES_PER_TX, TransactionInputError,
     account::{
@@ -23,7 +23,7 @@ pub struct TransactionInputs {
     account: Account,
     account_seed: Option<Word>,
     block_header: BlockHeader,
-    block_chain: ChainMmr,
+    block_chain: PartialBlockchain,
     input_notes: InputNotes<InputNote>,
 }
 
@@ -40,7 +40,7 @@ impl TransactionInputs {
         account: Account,
         account_seed: Option<Word>,
         block_header: BlockHeader,
-        block_chain: ChainMmr,
+        block_chain: PartialBlockchain,
         input_notes: InputNotes<InputNote>,
     ) -> Result<Self, TransactionInputError> {
         // validate the seed
@@ -70,9 +70,9 @@ impl TransactionInputs {
                 let block_header = if note_block_num == block_num {
                     &block_header
                 } else {
-                    block_chain
-                        .get_block(note_block_num)
-                        .ok_or(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?
+                    block_chain.get_block(note_block_num).ok_or(
+                        TransactionInputError::InputNoteBlockNotInPartialBlockchain(note.id()),
+                    )?
                 };
 
                 validate_is_in_block(note, proof, block_header)?;
@@ -106,9 +106,9 @@ impl TransactionInputs {
         &self.block_header
     }
 
-    /// Returns chain MMR containing authentication paths for all notes consumed by the
+    /// Returns partial blockchain containing authentication paths for all notes consumed by the
     /// transaction.
-    pub fn block_chain(&self) -> &ChainMmr {
+    pub fn block_chain(&self) -> &PartialBlockchain {
         &self.block_chain
     }
 
@@ -123,7 +123,7 @@ impl TransactionInputs {
     /// Consumes these transaction inputs and returns their underlying components.
     pub fn into_parts(
         self,
-    ) -> (Account, Option<Word>, BlockHeader, ChainMmr, InputNotes<InputNote>) {
+    ) -> (Account, Option<Word>, BlockHeader, PartialBlockchain, InputNotes<InputNote>) {
         (
             self.account,
             self.account_seed,
@@ -149,7 +149,7 @@ impl Deserializable for TransactionInputs {
         let account = Account::read_from(source)?;
         let account_seed = source.read()?;
         let block_header = BlockHeader::read_from(source)?;
-        let block_chain = ChainMmr::read_from(source)?;
+        let block_chain = PartialBlockchain::read_from(source)?;
         let input_notes = InputNotes::read_from(source)?;
         Self::new(account, account_seed, block_header, block_chain, input_notes)
             .map_err(|err| DeserializationError::InvalidValue(format!("{}", err)))
@@ -490,7 +490,7 @@ impl Deserializable for InputNote {
 pub fn validate_account_seed(
     account: &Account,
     block_header: &BlockHeader,
-    block_chain: &ChainMmr,
+    block_chain: &PartialBlockchain,
     account_seed: Option<Word>,
 ) -> Result<(), TransactionInputError> {
     match (account.is_new(), account_seed) {

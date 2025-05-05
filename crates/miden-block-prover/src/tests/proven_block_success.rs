@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, vec::Vec};
 use anyhow::Context;
 use miden_crypto::merkle::Smt;
 use miden_objects::{
-    Felt, FieldElement, MIN_PROOF_SECURITY_LEVEL,
+    MIN_PROOF_SECURITY_LEVEL,
     batch::BatchNoteTree,
     block::{AccountTree, BlockInputs, BlockNoteIndex, BlockNoteTree, ProposedBlock},
     transaction::InputNoteCommitment,
@@ -98,10 +98,9 @@ fn proven_block_success() -> anyhow::Result<()> {
 
     let mut expected_nullifier_tree = chain.nullifiers().clone();
     for nullifier in proposed_block.created_nullifiers().keys() {
-        expected_nullifier_tree.insert(
-            nullifier.inner(),
-            [Felt::from(proposed_block.block_num()), Felt::ZERO, Felt::ZERO, Felt::ZERO],
-        );
+        expected_nullifier_tree
+            .mark_spent(*nullifier, proposed_block.block_num())
+            .context("failed to mark nullifier as spent")?;
     }
 
     // Compute expected account root on the full account tree.
@@ -130,7 +129,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // The Mmr in MockChain adds a new block after it is sealed, so at this point the chain contains
     // block2 and has length 3.
     // This means the chain commitment of the mock chain must match the chain commitment of the
-    // ChainMmr with chain length 2 when the prev block (block2) is added.
+    // PartialBlockchain with chain length 2 when the prev block (block2) is added.
     assert_eq!(
         proven_block.header().chain_commitment(),
         chain.block_chain().peaks().hash_peaks()
@@ -370,12 +369,12 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     assert_ne!(latest_block_header.account_root(), AccountTree::new().root());
     assert_ne!(latest_block_header.nullifier_root(), Smt::new().root());
 
-    let (_, empty_chain_mmr) = chain.latest_selective_chain_mmr([]);
-    assert_eq!(empty_chain_mmr.block_headers().count(), 0);
+    let (_, empty_partial_blockchain) = chain.latest_selective_partial_blockchain([]);
+    assert_eq!(empty_partial_blockchain.block_headers().count(), 0);
 
     let block_inputs = BlockInputs::new(
         latest_block_header.clone(),
-        empty_chain_mmr.clone(),
+        empty_partial_blockchain.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
