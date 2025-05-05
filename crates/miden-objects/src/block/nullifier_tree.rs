@@ -230,6 +230,9 @@ impl NullifierMutationSet {
     }
 }
 
+// TESTS
+// ================================================================================================
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
