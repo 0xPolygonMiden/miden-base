@@ -14,19 +14,19 @@ use crate::{Digest, block::BlockNumber};
 /// 10 itself. This results from the fact that block 10 cannot compute its own block commitment
 /// and thus cannot add itself to the chain. Hence, the blockchain is lagging behind by one block.
 ///
-/// Some APIs take a _state block_ which is equivalent to the concept of _forest_ of the underlying
-/// MMR. As an example, if the blockchain has 20 blocks in total, and the state block is 10, then
+/// Some APIs take a _checkpoint_ which is equivalent to the concept of _forest_ of the underlying
+/// MMR. As an example, if the blockchain has 20 blocks in total, and the checkpoint is 10, then
 /// the API works in the context of the chain at the time it had 10 blocks, i.e. it contains blocks
 /// 0..=9. This is useful, for example, to retrieve proofs that are valid when verified against the
 /// chain commitment of block 10.
 ///
 /// The maximum number of supported blocks is [`u32::MAX`]. This is not validated however.
 #[derive(Debug, Clone)]
-pub struct BlockChain {
+pub struct Blockchain {
     mmr: Mmr,
 }
 
-impl BlockChain {
+impl Blockchain {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
@@ -75,8 +75,8 @@ impl BlockChain {
     /// # Errors
     ///
     /// Returns an error if the specified `block` exceeds the number of blocks in the chain.
-    pub fn peaks_at(&self, state_block: BlockNumber) -> Result<MmrPeaks, MmrError> {
-        self.mmr.peaks_at(state_block.as_usize())
+    pub fn peaks_at(&self, checkpoint: BlockNumber) -> Result<MmrPeaks, MmrError> {
+        self.mmr.peaks_at(checkpoint.as_usize())
     }
 
     /// Returns an [`MmrProof`] for the `block` with the given number.
@@ -90,19 +90,19 @@ impl BlockChain {
     }
 
     /// Returns an [`MmrProof`] for the `block` with the given number at the state of the given
-    /// `state_block`.
+    /// `checkpoint`.
     ///
     /// # Errors
     ///
     /// Returns an error if:
     /// - The specified block number does not exist in the chain.
-    /// - The specified state block number exceeds the number of blocks in the chain.
+    /// - The specified checkpoint number exceeds the number of blocks in the chain.
     pub fn open_at(
         &self,
         block: BlockNumber,
-        state_block: BlockNumber,
+        checkpoint: BlockNumber,
     ) -> Result<MmrProof, MmrError> {
-        self.mmr.open_at(block.as_usize(), state_block.as_usize())
+        self.mmr.open_at(block.as_usize(), checkpoint.as_usize())
     }
 
     /// Returns a reference to the underlying [`Mmr`].
@@ -111,7 +111,7 @@ impl BlockChain {
     }
 
     /// Creates a [`PartialMmr`] at the state of the given block. This means the hashed peaks of the
-    /// returned partial MMR will match the state block's chain commitment. This MMR will include
+    /// returned partial MMR will match the checkpoint's chain commitment. This MMR will include
     /// authentication paths for all blocks in the provided `blocks` set.
     ///
     /// # Errors
@@ -122,17 +122,17 @@ impl BlockChain {
     pub fn partial_mmr_from_blocks(
         &self,
         blocks: &BTreeSet<BlockNumber>,
-        state_block: BlockNumber,
+        checkpoint: BlockNumber,
     ) -> Result<PartialMmr, MmrError> {
         // Using latest block as the target state means we take the state of the MMR one before
         // the latest block.
-        let peaks = self.peaks_at(state_block)?;
+        let peaks = self.peaks_at(checkpoint)?;
 
         // Track the merkle paths of the requested blocks in the partial MMR.
         let mut partial_mmr = PartialMmr::from_peaks(peaks);
         for block_num in blocks.iter() {
             let leaf = self.mmr.get(block_num.as_usize())?;
-            let path = self.open_at(*block_num, state_block)?.merkle_path;
+            let path = self.open_at(*block_num, checkpoint)?.merkle_path;
 
             // SAFETY: We should be able to fill the partial MMR with data from the partial
             // blockchain without errors, otherwise it indicates the blockchain is
@@ -156,7 +156,7 @@ impl BlockChain {
     }
 }
 
-impl Default for BlockChain {
+impl Default for Blockchain {
     fn default() -> Self {
         Self::new()
     }

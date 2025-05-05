@@ -40,7 +40,7 @@ fn proposed_block_fails_on_too_many_batches() -> anyhow::Result<()> {
 
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.latest_partial_block_chain(),
+        chain.latest_partial_blockchain(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -64,7 +64,7 @@ fn proposed_block_fails_on_duplicate_batches() -> anyhow::Result<()> {
 
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.latest_partial_block_chain(),
+        chain.latest_partial_blockchain(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -124,7 +124,7 @@ fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::R
     // Mock BlockInputs.
     let block_inputs = BlockInputs::new(
         chain.latest_block_header(),
-        chain.latest_partial_block_chain(),
+        chain.latest_partial_blockchain(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -146,8 +146,7 @@ fn proposed_block_fails_on_timestamp_not_increasing_monotonically() -> anyhow::R
 /// Tests that a partial blockchain that is not at the state of the previous block header produces
 /// an error.
 #[test]
-fn proposed_block_fails_on_partial_block_chain_and_prev_block_inconsistency() -> anyhow::Result<()>
-{
+fn proposed_block_fails_on_partial_blockchain_and_prev_block_inconsistency() -> anyhow::Result<()> {
     let TestSetup { mut chain, mut txs, .. } = setup_chain(1);
     let proven_tx0 = txs.remove(&0).unwrap();
     let batch0 = generate_batch(&mut chain, vec![proven_tx0]);
@@ -155,12 +154,12 @@ fn proposed_block_fails_on_partial_block_chain_and_prev_block_inconsistency() ->
 
     // Select the partial blockchain which is valid for the current block but pass the next block in
     // the chain, which is an inconsistent combination.
-    let mut partial_block_chain = chain.latest_partial_block_chain();
+    let mut partial_blockchain = chain.latest_partial_blockchain();
     let block2 = chain.clone().seal_next_block();
 
     let block_inputs = BlockInputs::new(
         block2.header().clone(),
-        partial_block_chain.clone(),
+        partial_blockchain.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -172,19 +171,17 @@ fn proposed_block_fails_on_partial_block_chain_and_prev_block_inconsistency() ->
         ProposedBlockError::ChainLengthNotEqualToPreviousBlockNumber {
             chain_length,
             prev_block_num
-        } if chain_length == partial_block_chain.chain_length() &&
+        } if chain_length == partial_blockchain.chain_length() &&
           prev_block_num == block2.header().block_num()
     );
 
     // Add an invalid value making the chain length equal to block2's number, but resulting in a
     // different chain commitment.
-    partial_block_chain
-        .partial_mmr_mut()
-        .add(block2.header().nullifier_root(), true);
+    partial_blockchain.partial_mmr_mut().add(block2.header().nullifier_root(), true);
 
     let block_inputs = BlockInputs::new(
         block2.header().clone(),
-        partial_block_chain.clone(),
+        partial_blockchain.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -212,14 +209,13 @@ fn proposed_block_fails_on_missing_batch_reference_block() -> anyhow::Result<()>
 
     let block2 = chain.seal_next_block();
 
-    let (_, partial_block_chain) =
-        chain.latest_selective_partial_block_chain([BlockNumber::from(0)]);
+    let (_, partial_blockchain) = chain.latest_selective_partial_blockchain([BlockNumber::from(0)]);
 
     // The proposed block references block 2 but the partial blockchain only contains block 0 but
     // not block 1 which is referenced by the batch.
     let block_inputs = BlockInputs::new(
         block2.header().clone(),
-        partial_block_chain.clone(),
+        partial_blockchain.clone(),
         BTreeMap::default(),
         BTreeMap::default(),
         BTreeMap::default(),
@@ -347,17 +343,17 @@ fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_blo
 
     let mut invalid_block_inputs = original_block_inputs.clone();
     invalid_block_inputs
-        .partial_block_chain_mut()
+        .partial_blockchain_mut()
         .partial_mmr_mut()
         .untrack(block2.header().block_num().as_usize());
     invalid_block_inputs
-        .partial_block_chain_mut()
+        .partial_blockchain_mut()
         .block_headers_mut()
         .remove(&block2.header().block_num())
         .expect("block2 should have been fetched");
 
     let error = ProposedBlock::new(invalid_block_inputs, batches.clone()).unwrap_err();
-    assert_matches!(error, ProposedBlockError::UnauthenticatedInputNoteBlockNotInPartialBlockChain { block_number, note_id } if block_number == block2.header().block_num() && note_id == note0.id());
+    assert_matches!(error, ProposedBlockError::UnauthenticatedInputNoteBlockNotInPartialBlockchain { block_number, note_id } if block_number == block2.header().block_num() && note_id == note0.id());
 
     // Error: Invalid note inclusion proof.
     // --------------------------------------------------------------------------------------------

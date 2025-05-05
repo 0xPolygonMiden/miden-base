@@ -117,13 +117,13 @@ const.NOTE_ROOT_PTR=832
 # -------------------------------------------------------------------------------------------------
 
 # The memory address at which the chain data section begins
-const.PARTIAL_BLOCK_CHAIN_PTR=1200
+const.PARTIAL_BLOCKCHAIN_PTR=1200
 
 # The memory address at which the total number of leaves in the partial blockchain is stored
-const.PARTIAL_BLOCK_CHAIN_NUM_LEAVES_PTR=1200
+const.PARTIAL_BLOCKCHAIN_NUM_LEAVES_PTR=1200
 
 # The memory address at which the partial blockchain peaks are stored
-const.PARTIAL_BLOCK_CHAIN_PEAKS_PTR=1204
+const.PARTIAL_BLOCKCHAIN_PEAKS_PTR=1204
 
 # KERNEL DATA
 # -------------------------------------------------------------------------------------------------
@@ -625,8 +625,8 @@ end
 #!
 #! Where:
 #! - ptr is the pointer to the partial blockchain section.
-export.get_partial_block_chain_ptr
-    push.PARTIAL_BLOCK_CHAIN_PTR
+export.get_partial_blockchain_ptr
+    push.PARTIAL_BLOCKCHAIN_PTR
 end
 
 #! Sets the number of leaves in the partial blockchain.
@@ -636,8 +636,8 @@ end
 #!
 #! Where:
 #! - num_leaves is the number of leaves in the partial blockchain.
-export.set_partial_block_chain_num_leaves
-    push.PARTIAL_BLOCK_CHAIN_NUM_LEAVES_PTR mem_store
+export.set_partial_blockchain_num_leaves
+    push.PARTIAL_BLOCKCHAIN_NUM_LEAVES_PTR mem_store
 end
 
 #! Returns a pointer to start of the partial blockchain peaks section.
@@ -647,8 +647,8 @@ end
 #!
 #! Where:
 #! - ptr is the pointer to the start of the partial blockchain peaks section.
-export.get_partial_block_chain_peaks_ptr
-    push.PARTIAL_BLOCK_CHAIN_PEAKS_PTR
+export.get_partial_blockchain_peaks_ptr
+    push.PARTIAL_BLOCKCHAIN_PEAKS_PTR
 end
 
 # ACCOUNT DATA

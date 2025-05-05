@@ -11,9 +11,10 @@
 - Added pretty print for `AccountCode` (#1273).
 - [BREAKING] Add `NetworkAccount` configuration (#1275).
 - Added support for environment variables to set up the `miden-proving-service` worker (#1281).
+- Added field identifier structs for component metadata (#1292).
 - Move `NullifierTree` and `BlockChain` from node to base (#1304).
-- Rename `ChainMmr` to `PartialBlockChain` (#1305).
-- Add safe `PartialBlockChain` constructor (#1308).
+- Rename `ChainMmr` to `PartialBlockchain` (#1305).
+- Add safe `PartialBlockchain` constructor (#1308).
 - [BREAKING] Move `MockChain` and `TransactionContext` to new `miden-test` crate (#1309).
 
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only

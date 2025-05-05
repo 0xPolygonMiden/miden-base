@@ -12,7 +12,7 @@ use crate::{
     errors::ProposedBatchError,
     note::{NoteId, NoteInclusionProof},
     transaction::{
-        InputNoteCommitment, InputNotes, OrderedTransactionHeaders, OutputNote, PartialBlockChain,
+        InputNoteCommitment, InputNotes, OrderedTransactionHeaders, OutputNote, PartialBlockchain,
         ProvenTransaction, TransactionHeader,
     },
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -32,7 +32,7 @@ pub struct ProposedBatch {
     /// The partial blockchain used to authenticate:
     /// - all unauthenticated notes that can be authenticated,
     /// - all block commitments referenced by the transactions in the batch.
-    partial_block_chain: PartialBlockChain,
+    partial_blockchain: PartialBlockchain,
     /// The note inclusion proofs for unauthenticated notes that were consumed in the batch which
     /// can be authenticated.
     unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
@@ -116,7 +116,7 @@ impl ProposedBatch {
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
         reference_block_header: BlockHeader,
-        partial_block_chain: PartialBlockChain,
+        partial_blockchain: PartialBlockchain,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Result<Self, ProposedBatchError> {
         // Check for empty or duplicate transactions.
@@ -136,14 +136,14 @@ impl ProposedBatch {
         // Verify block header and partial blockchain match.
         // --------------------------------------------------------------------------------------------
 
-        if partial_block_chain.chain_length() != reference_block_header.block_num() {
+        if partial_blockchain.chain_length() != reference_block_header.block_num() {
             return Err(ProposedBatchError::InconsistentChainLength {
                 expected: reference_block_header.block_num(),
-                actual: partial_block_chain.chain_length(),
+                actual: partial_blockchain.chain_length(),
             });
         }
 
-        let hashed_peaks = partial_block_chain.peaks().hash_peaks();
+        let hashed_peaks = partial_blockchain.peaks().hash_peaks();
         if hashed_peaks != reference_block_header.chain_commitment() {
             return Err(ProposedBatchError::InconsistentChainRoot {
                 expected: reference_block_header.chain_commitment(),
@@ -168,13 +168,13 @@ impl ProposedBatch {
         //
         // Finally, note that we don't verify anything cryptographically here. We have previously
         // verified that the batch reference block's chain commitment matches the hashed peaks of
-        // the `PartialBlockChain`, and so we only have to check if the partial blockchain contains
+        // the `PartialBlockchain`, and so we only have to check if the partial blockchain contains
         // the block here.
         // --------------------------------------------------------------------------------------------
 
         for tx in transactions.iter() {
             if reference_block_header.block_num() != tx.ref_block_num()
-                && !partial_block_chain.contains_block(tx.ref_block_num())
+                && !partial_blockchain.contains_block(tx.ref_block_num())
             {
                 return Err(ProposedBatchError::MissingTransactionBlockReference {
                     block_reference: tx.ref_block_commitment(),
@@ -261,7 +261,7 @@ impl ProposedBatch {
         let (input_notes, output_notes) = InputOutputNoteTracker::from_transactions(
             transactions.iter().map(AsRef::as_ref),
             &unauthenticated_note_proofs,
-            &partial_block_chain,
+            &partial_blockchain,
             &reference_block_header,
         )?;
 
@@ -285,7 +285,7 @@ impl ProposedBatch {
             id,
             transactions,
             reference_block_header,
-            partial_block_chain,
+            partial_blockchain,
             unauthenticated_note_proofs,
             account_updates,
             batch_expiration_block_num,
@@ -357,7 +357,7 @@ impl ProposedBatch {
     ) -> (
         Vec<Arc<ProvenTransaction>>,
         BlockHeader,
-        PartialBlockChain,
+        PartialBlockchain,
         BTreeMap<NoteId, NoteInclusionProof>,
         BatchId,
         BTreeMap<AccountId, BatchAccountUpdate>,
@@ -368,7 +368,7 @@ impl ProposedBatch {
         (
             self.transactions,
             self.reference_block_header,
-            self.partial_block_chain,
+            self.partial_blockchain,
             self.unauthenticated_note_proofs,
             self.id,
             self.account_updates,
@@ -391,7 +391,7 @@ impl Serializable for ProposedBatch {
             .write_into(target);
 
         self.reference_block_header.write_into(target);
-        self.partial_block_chain.write_into(target);
+        self.partial_blockchain.write_into(target);
         self.unauthenticated_note_proofs.write_into(target);
     }
 }
@@ -404,14 +404,14 @@ impl Deserializable for ProposedBatch {
             .collect::<Vec<Arc<ProvenTransaction>>>();
 
         let block_header = BlockHeader::read_from(source)?;
-        let partial_block_chain = PartialBlockChain::read_from(source)?;
+        let partial_blockchain = PartialBlockchain::read_from(source)?;
         let unauthenticated_note_proofs =
             BTreeMap::<NoteId, NoteInclusionProof>::read_from(source)?;
 
         ProposedBatch::new(
             transactions,
             block_header,
-            partial_block_chain,
+            partial_blockchain,
             unauthenticated_note_proofs,
         )
         .map_err(|source| {
@@ -444,9 +444,9 @@ mod tests {
             mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
-        let partial_block_chain = PartialBlockChain::new(partial_mmr, Vec::new()).unwrap();
+        let partial_blockchain = PartialBlockchain::new(partial_mmr, Vec::new()).unwrap();
 
-        let chain_commitment = partial_block_chain.peaks().hash_peaks();
+        let chain_commitment = partial_blockchain.peaks().hash_peaks();
         let note_root: Word = rand_array();
         let tx_kernel_commitment: Word = rand_array();
         let reference_block_header = BlockHeader::mock(
@@ -488,7 +488,7 @@ mod tests {
         let batch = ProposedBatch::new(
             vec![Arc::new(tx)],
             reference_block_header,
-            partial_block_chain,
+            partial_blockchain,
             BTreeMap::new(),
         )
         .context("failed to propose batch")?;
@@ -500,7 +500,7 @@ mod tests {
 
         assert_eq!(batch.transactions(), batch2.transactions());
         assert_eq!(batch.reference_block_header, batch2.reference_block_header);
-        assert_eq!(batch.partial_block_chain, batch2.partial_block_chain);
+        assert_eq!(batch.partial_blockchain, batch2.partial_blockchain);
         assert_eq!(batch.unauthenticated_note_proofs, batch2.unauthenticated_note_proofs);
         assert_eq!(batch.id, batch2.id);
         assert_eq!(batch.account_updates, batch2.account_updates);

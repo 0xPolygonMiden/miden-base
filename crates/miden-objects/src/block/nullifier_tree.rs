@@ -88,35 +88,38 @@ impl NullifierTree {
     /// yet.
     pub fn get_block_num(&self, nullifier: &Nullifier) -> Option<BlockNumber> {
         let value = self.smt.get_value(&nullifier.inner());
-        if value == Smt::EMPTY_VALUE {
+        if value == Self::UNSPENT_NULLIFIER {
             return None;
         }
 
         Some(Self::leaf_value_to_block_num(value))
     }
 
-    /// Computes mutations for the nullifier SMT.
+    /// Computes a mutation set resulting from inserting the provided nullifiers into this nullifier
+    /// tree.
     ///
     /// # Errors
     ///
     /// Returns an error if:
     /// - a nullifier in the provided iterator was already spent.
-    pub fn compute_mutations(
+    pub fn compute_mutations<I>(
         &self,
-        nullifiers: impl IntoIterator<Item = (Nullifier, BlockNumber)>,
-    ) -> Result<NullifierMutationSet, NullifierTreeError> {
-        let mutation_set =
-            self.smt.compute_mutations(nullifiers.into_iter().map(|(nullifier, block_num)| {
-                (nullifier.inner(), Self::block_num_to_leaf_value(block_num))
-            }));
-
-        for nullifier in mutation_set.new_pairs().keys() {
-            let nullifier = Nullifier::from(*nullifier);
-
+        nullifiers: impl IntoIterator<Item = (Nullifier, BlockNumber), IntoIter = I>,
+    ) -> Result<NullifierMutationSet, NullifierTreeError>
+    where
+        I: Iterator<Item = (Nullifier, BlockNumber)> + Clone,
+    {
+        let nullifiers = nullifiers.into_iter();
+        for (nullifier, _) in nullifiers.clone() {
             if self.get_block_num(&nullifier).is_some() {
                 return Err(NullifierTreeError::NullifierAlreadySpent(nullifier));
             }
         }
+
+        let mutation_set =
+            self.smt.compute_mutations(nullifiers.into_iter().map(|(nullifier, block_num)| {
+                (nullifier.inner(), Self::block_num_to_leaf_value(block_num))
+            }));
 
         Ok(NullifierMutationSet::new(mutation_set))
     }
@@ -227,6 +230,9 @@ impl NullifierMutationSet {
     }
 }
 
+// TESTS
+// ================================================================================================
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
@@ -264,8 +270,10 @@ mod tests {
 
         let mut tree = NullifierTree::with_entries([(nullifier1, block1)]).unwrap();
 
-        let mutations =
-            tree.compute_mutations([(nullifier2, block2), (nullifier3, block3)]).unwrap();
+        // Check that passing nullifier2 twice with different values will use the last value.
+        let mutations = tree
+            .compute_mutations([(nullifier2, block1), (nullifier3, block3), (nullifier2, block2)])
+            .unwrap();
 
         tree.apply_mutations(mutations).unwrap();
 
@@ -284,14 +292,18 @@ mod tests {
 
         let mut tree = NullifierTree::with_entries([(nullifier1, block1)]).unwrap();
 
-        // Attempt to insert nullifier 1 again at a different block number.
-        let err = tree.clone().compute_mutations([(nullifier1, block2)]).unwrap_err();
+        // Attempt to insert nullifier 1 again at _the same_ block number.
+        let err = tree.clone().compute_mutations([(nullifier1, block1)]).unwrap_err();
+        assert_matches!(err, NullifierTreeError::NullifierAlreadySpent(nullifier) if nullifier == nullifier1);
 
+        let err = tree.clone().mark_spent(nullifier1, block1).unwrap_err();
         assert_matches!(err, NullifierTreeError::NullifierAlreadySpent(nullifier) if nullifier == nullifier1);
 
         // Attempt to insert nullifier 1 again at a different block number.
-        let err = tree.mark_spent(nullifier1, block2).unwrap_err();
+        let err = tree.clone().compute_mutations([(nullifier1, block2)]).unwrap_err();
+        assert_matches!(err, NullifierTreeError::NullifierAlreadySpent(nullifier) if nullifier == nullifier1);
 
+        let err = tree.mark_spent(nullifier1, block2).unwrap_err();
         assert_matches!(err, NullifierTreeError::NullifierAlreadySpent(nullifier) if nullifier == nullifier1);
     }
 }

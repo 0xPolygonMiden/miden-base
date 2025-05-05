@@ -162,13 +162,13 @@ pub const NOTE_ROOT_PTR: MemoryAddress = 832;
 // ------------------------------------------------------------------------------------------------
 
 /// The memory address at which the chain data section begins
-pub const PARTIAL_BLOCK_CHAIN_PTR: MemoryAddress = 1200;
+pub const PARTIAL_BLOCKCHAIN_PTR: MemoryAddress = 1200;
 
 /// The memory address at which the total number of leaves in the partial blockchain is stored
-pub const PARTIAL_BLOCK_CHAIN_NUM_LEAVES_PTR: MemoryAddress = 1200;
+pub const PARTIAL_BLOCKCHAIN_NUM_LEAVES_PTR: MemoryAddress = 1200;
 
 /// The memory address at which the partial blockchain peaks are stored
-pub const PARTIAL_BLOCK_CHAIN_PEAKS_PTR: MemoryAddress = 1204;
+pub const PARTIAL_BLOCKCHAIN_PEAKS_PTR: MemoryAddress = 1204;
 
 // KERNEL DATA
 // ------------------------------------------------------------------------------------------------

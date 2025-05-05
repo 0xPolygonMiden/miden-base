@@ -10,7 +10,7 @@ use miden_objects::{
         ProposedBlock, ProvenBlock,
     },
     note::Nullifier,
-    transaction::PartialBlockChain,
+    transaction::PartialBlockchain,
 };
 
 use crate::errors::ProvenBlockError;
@@ -86,7 +86,7 @@ impl LocalBlockProver {
             account_updated_witnesses,
             output_note_batches,
             created_nullifiers,
-            partial_block_chain,
+            partial_blockchain,
             prev_block_header,
         ) = proposed_block.into_parts();
 
@@ -115,7 +115,7 @@ impl LocalBlockProver {
         // commitment.
         // --------------------------------------------------------------------------------------------
 
-        let new_chain_commitment = compute_chain_commitment(partial_block_chain, prev_block_header);
+        let new_chain_commitment = compute_chain_commitment(partial_blockchain, prev_block_header);
 
         // Transform the account update witnesses into block account updates.
         // --------------------------------------------------------------------------------------------
@@ -232,13 +232,13 @@ fn compute_nullifiers(
 /// Adds the commitment of the previous block header to the partial blockchain to compute the new
 /// chain commitment.
 fn compute_chain_commitment(
-    mut partial_block_chain: PartialBlockChain,
+    mut partial_blockchain: PartialBlockchain,
     prev_block_header: BlockHeader,
 ) -> Digest {
     // SAFETY: This does not panic as long as the block header we're adding is the next one in the
     // chain which is validated as part of constructing a `ProposedBlock`.
-    partial_block_chain.add_block(prev_block_header, true);
-    partial_block_chain.peaks().hash_peaks()
+    partial_blockchain.add_block(prev_block_header, true);
+    partial_blockchain.peaks().hash_peaks()
 }
 
 /// Computes the new account tree root after the given updates.
