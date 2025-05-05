@@ -17,9 +17,9 @@ use miden_objects::{
     asset::{Asset, FungibleAsset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
     block::{
-        AccountTree, AccountWitness, BlockAccountUpdate, BlockChain, BlockHeader, BlockInputs,
-        BlockNoteIndex, BlockNoteTree, BlockNumber, NullifierTree, NullifierWitness,
-        OutputNoteBatch, ProposedBlock, ProvenBlock,
+        AccountTree, AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteIndex,
+        BlockNoteTree, BlockNumber, Blockchain, NullifierTree, NullifierWitness, OutputNoteBatch,
+        ProposedBlock, ProvenBlock,
     },
     crypto::{dsa::rpo_falcon512::SecretKey, merkle::SmtProof},
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
@@ -248,7 +248,7 @@ impl PendingObjects {
 #[derive(Debug, Clone)]
 pub struct MockChain {
     /// An append-only structure used to represent the history of blocks produced for this chain.
-    chain: BlockChain,
+    chain: Blockchain,
 
     /// History of produced blocks.
     blocks: Vec<ProvenBlock>,
@@ -281,7 +281,7 @@ pub struct MockChain {
 impl Default for MockChain {
     fn default() -> Self {
         MockChain {
-            chain: BlockChain::default(),
+            chain: Blockchain::default(),
             blocks: vec![],
             nullifiers: NullifierTree::default(),
             account_tree: AccountTree::new(),
@@ -992,8 +992,8 @@ impl MockChain {
     // ACCESSORS
     // =========================================================================================
 
-    /// Returns a refernce to the current [`BlockChain`].
-    pub fn block_chain(&self) -> &BlockChain {
+    /// Returns a refernce to the current [`Blockchain`].
+    pub fn block_chain(&self) -> &Blockchain {
         &self.chain
     }
 
