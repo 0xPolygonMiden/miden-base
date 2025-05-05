@@ -7,7 +7,7 @@ use miden_objects::{
     asset::{Asset, AssetVault, FungibleAsset},
     note::NoteType,
 };
-use miden_test::{Auth, MockChain};
+use miden_testing::{Auth, MockChain};
 
 use crate::assert_transaction_executor_error;
 

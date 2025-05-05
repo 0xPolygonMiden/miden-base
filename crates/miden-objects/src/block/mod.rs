@@ -22,8 +22,8 @@ pub use account_tree::AccountTree;
 mod nullifier_tree;
 pub use nullifier_tree::NullifierTree;
 
-mod block_chain;
-pub use block_chain::BlockChain;
+mod blockchain;
+pub use blockchain::Blockchain;
 
 mod partial_nullifier_tree;
 pub use partial_nullifier_tree::PartialNullifierTree;

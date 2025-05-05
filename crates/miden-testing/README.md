@@ -1,4 +1,4 @@
-# Miden Mock
+# Miden Testing
 
 This crate contains tool for testing Miden transactions, batches and blocks.
 

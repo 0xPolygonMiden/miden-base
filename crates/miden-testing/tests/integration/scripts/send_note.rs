@@ -9,7 +9,7 @@ use miden_objects::{
     },
     transaction::OutputNote,
 };
-use miden_test::{Auth, MockChain};
+use miden_testing::{Auth, MockChain};
 
 /// Tests the execution of the generated send_note transaction script in case the sending account
 /// has the [`BasicWallet`][wallet] interface.

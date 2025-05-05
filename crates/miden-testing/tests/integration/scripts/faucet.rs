@@ -10,7 +10,7 @@ use miden_objects::{
     note::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
     transaction::{OutputNote, TransactionScript},
 };
-use miden_test::{Auth, MockChain, MockFungibleFaucet};
+use miden_testing::{Auth, MockChain, MockFungibleFaucet};
 use miden_tx::utils::word_to_masm_push_string;
 
 use crate::{

@@ -1876,7 +1876,7 @@ dependencies = [
  "miden-lib",
  "miden-objects",
  "miden-processor",
- "miden-test",
+ "miden-testing",
  "miden-tx",
  "rand_chacha 0.9.0",
  "serde",
@@ -2062,7 +2062,7 @@ dependencies = [
  "miden-block-prover",
  "miden-lib",
  "miden-objects",
- "miden-test",
+ "miden-testing",
  "miden-tx",
  "miden-tx-batch-prover",
  "miette",
@@ -2126,7 +2126,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "miden-test"
+name = "miden-testing"
 version = "0.9.0"
 dependencies = [
  "anyhow",

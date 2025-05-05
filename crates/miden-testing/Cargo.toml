@@ -1,6 +1,6 @@
 
 [package]
-name = "miden-test"
+name = "miden-testing"
 version = "0.9.0"
 description = "Miden test tools"
 readme = "README.md"
@@ -23,21 +23,24 @@ masm-debug = ["miden-lib/with-debug-info"]
 
 [dependencies]
 async-trait = "0.1"
-miden-lib = { workspace = true, features = ["testing"] }
-miden-tx = { workspace = true, features = ["testing"] }
-miden-objects = { workspace = true, features = ["testing"] }
 miden-crypto = { workspace = true }
+miden-lib = { workspace = true, features = ["testing"] }
+miden-objects = { workspace = true, features = ["testing"] }
+miden-tx = { workspace = true, features = ["testing"] }
+rand_chacha = { version = "0.9", default-features = false }
 rand = { workspace = true }
 vm-processor = { workspace = true }
 winter-maybe-async = { version = "0.12" }
-rand_chacha = { version = "0.9", default-features = false }
 
 [dev-dependencies]
-anyhow = { version = "1.0", default-features = false, features = ["std", "backtrace"]}
+anyhow = { version = "1.0", default-features = false, features = [
+  "std",
+  "backtrace",
+] }
 assembly = { workspace = true }
 assert_matches = { workspace = true }
-winterfell = { version = "0.12" }
 miden-block-prover = { workspace = true }
+winterfell = { version = "0.12" }
 
 [package.metadata.cargo-machete]
 # cargo machete flags async-trait as unused but it is used by winter-maybe-async with the async feature

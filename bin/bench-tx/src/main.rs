@@ -15,7 +15,7 @@ use miden_objects::{
     note::NoteType,
     transaction::{TransactionArgs, TransactionMeasurements, TransactionScript},
 };
-use miden_test::TransactionContextBuilder;
+use miden_testing::TransactionContextBuilder;
 use miden_tx::TransactionExecutor;
 use vm_processor::ONE;
 

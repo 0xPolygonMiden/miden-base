@@ -770,8 +770,8 @@ export.validate_seed
     dup.3 exec.account_id::id_anchor_block_num
     # => [anchor_block_num, 0, 0, account_id_prefix, account_id_suffix]
 
-    exec.memory::get_partial_block_chain_ptr swap
-    # => [anchor_block_num, partial_block_chain_ptr, 0, 0, account_id_prefix, account_id_suffix]
+    exec.memory::get_partial_blockchain_ptr swap
+    # => [anchor_block_num, partial_blockchain_ptr, 0, 0, account_id_prefix, account_id_suffix]
 
     exec.mmr::get
     # => [ANCHOR_BLOCK_COMMITMENT, 0, 0, account_id_prefix, account_id_suffix]
