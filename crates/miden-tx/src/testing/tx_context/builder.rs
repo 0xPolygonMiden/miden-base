@@ -196,12 +196,6 @@ impl TransactionContextBuilder {
         self
     }
 
-    /// Set custom libraries to add to the MAST forest store at context creation.
-    pub fn libraries(mut self, libraries: Vec<Library>) -> Self {
-        self.libraries = libraries;
-        self
-    }
-
     /// Defines the expected output notes
     pub fn expected_notes(mut self, output_notes: Vec<OutputNote>) -> Self {
         let output_notes = output_notes.into_iter().filter_map(|n| match n {

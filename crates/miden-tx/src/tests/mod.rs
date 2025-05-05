@@ -856,7 +856,7 @@ fn transaction_executor_account_code_using_custom_library() {
         .unwrap();
 
     let mut assembler = TransactionKernel::assembler();
-    assembler.add_library(&external_library).unwrap();
+    assembler.add_vendored_library(&external_library).unwrap();
 
     let account_component_module = Module::parser(ModuleKind::Library)
         .parse_str(
@@ -897,7 +897,6 @@ fn transaction_executor_account_code_using_custom_library() {
     .unwrap();
 
     let tx_context = TransactionContextBuilder::new(native_account.clone())
-        .libraries(vec![external_library])
         .tx_script(tx_script)
         .build();
 
