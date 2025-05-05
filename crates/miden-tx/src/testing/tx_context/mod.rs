@@ -10,7 +10,8 @@ use miden_objects::{
     block::{BlockHeader, BlockNumber},
     note::Note,
     transaction::{
-        ChainMmr, ExecutedTransaction, InputNote, InputNotes, TransactionArgs, TransactionInputs,
+        ExecutedTransaction, InputNote, InputNotes, PartialBlockchain, TransactionArgs,
+        TransactionInputs,
     },
 };
 use rand_chacha::ChaCha20Rng;
@@ -154,7 +155,7 @@ impl DataStore for TransactionContext {
         &self,
         account_id: AccountId,
         _ref_blocks: BTreeSet<BlockNumber>,
-    ) -> Result<(Account, Option<Word>, BlockHeader, ChainMmr), DataStoreError> {
+    ) -> Result<(Account, Option<Word>, BlockHeader, PartialBlockchain), DataStoreError> {
         assert_eq!(account_id, self.account().id());
         let (account, seed, header, mmr, _) = self.tx_inputs.clone().into_parts();
 

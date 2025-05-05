@@ -750,7 +750,7 @@ end
 #!
 #! Validation is performed via the following steps:
 #! 1. Retrieve the anchor block commitment by computing the block number of the anchor block and
-#!    retrieving it from the chain mmr.
+#!    retrieving it from the partial blockchain.
 #! 2. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_COMMITMENT).
 #! 3. Assert the two least significant elements of the digest are equal to the account ID of the
 #!    account the transaction is being executed against.
@@ -758,7 +758,7 @@ end
 #! Inputs:  []
 #! Outputs: []
 export.validate_seed
-    # Load the block commitment of the anchor block from the chain mmr.
+    # Load the block commitment of the anchor block from the partial blockchain.
     # This is the block commitment to which the account ID is anchored and is derived from.
     # ---------------------------------------------------------------------------------------------
 
@@ -770,8 +770,8 @@ export.validate_seed
     dup.3 exec.account_id::id_anchor_block_num
     # => [anchor_block_num, 0, 0, account_id_prefix, account_id_suffix]
 
-    exec.memory::get_chain_mmr_ptr swap
-    # => [anchor_block_num, chain_mmr_ptr, 0, 0, account_id_prefix, account_id_suffix]
+    exec.memory::get_partial_blockchain_ptr swap
+    # => [anchor_block_num, partial_blockchain_ptr, 0, 0, account_id_prefix, account_id_suffix]
 
     exec.mmr::get
     # => [ANCHOR_BLOCK_COMMITMENT, 0, 0, account_id_prefix, account_id_suffix]

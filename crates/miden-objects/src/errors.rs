@@ -403,23 +403,25 @@ pub enum NoteError {
     TooManyInputs(usize),
 }
 
-// CHAIN MMR ERROR
+// PARTIAL BLOCKCHAIN ERROR
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum ChainMmrError {
-    #[error("block num {block_num} exceeds chain length {chain_length} implied by the chain MMR")]
+pub enum PartialBlockchainError {
+    #[error(
+        "block num {block_num} exceeds chain length {chain_length} implied by the partial blockchain"
+    )]
     BlockNumTooBig {
         chain_length: usize,
         block_num: BlockNumber,
     },
-    #[error("duplicate block {block_num} in chain MMR")]
+    #[error("duplicate block {block_num} in partial blockchain")]
     DuplicateBlock { block_num: BlockNumber },
-    #[error("chain MMR does not track authentication paths for block {block_num}")]
+    #[error("partial blockchain does not track authentication paths for block {block_num}")]
     UntrackedBlock { block_num: BlockNumber },
 }
 
-impl ChainMmrError {
+impl PartialBlockchainError {
     pub fn block_num_too_big(chain_length: usize, block_num: BlockNumber) -> Self {
         Self::BlockNumTooBig { chain_length, block_num }
     }
@@ -452,7 +454,7 @@ pub enum TransactionInputError {
     #[error("account seed must not be provided for existing accounts")]
     AccountSeedProvidedForExistingAccount,
     #[error(
-      "anchor block header for epoch {0} (block number = {block_number}) must be provided in the chain mmr for the new account",
+      "anchor block header for epoch {0} (block number = {block_number}) must be provided in the partial blockchain for the new account",
       block_number = BlockNumber::from_epoch(*.0),
     )]
     AnchorBlockHeaderNotProvidedForNewAccount(u16),
@@ -462,17 +464,17 @@ pub enum TransactionInputError {
         "ID {expected} of the new account does not match the ID {actual} computed from the provided seed"
     )]
     InconsistentAccountSeed { expected: AccountId, actual: AccountId },
-    #[error("chain mmr has length {actual} which does not match block number {expected}")]
+    #[error("partial blockchain has length {actual} which does not match block number {expected}")]
     InconsistentChainLength {
         expected: BlockNumber,
         actual: BlockNumber,
     },
     #[error(
-        "chain mmr has commitment {actual} which does not match the block header's chain commitment {expected}"
+        "partial blockchain has commitment {actual} which does not match the block header's chain commitment {expected}"
     )]
     InconsistentChainCommitment { expected: Digest, actual: Digest },
-    #[error("block in which input note with id {0} was created is not in chain mmr")]
-    InputNoteBlockNotInChainMmr(NoteId),
+    #[error("block in which input note with id {0} was created is not in partial blockchain")]
+    InputNoteBlockNotInPartialBlockchain(NoteId),
     #[error("input note with id {0} was not created in block {1}")]
     InputNoteNotInBlock(NoteId, BlockNumber),
     #[error("account ID computed from seed is invalid")]
@@ -619,9 +621,9 @@ pub enum ProposedBatchError {
     },
 
     #[error(
-        "unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr"
+        "unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in partial blockchain"
     )]
-    UnauthenticatedInputNoteBlockNotInChainMmr {
+    UnauthenticatedInputNoteBlockNotInPartialBlockchain {
         block_number: BlockNumber,
         note_id: NoteId,
     },
@@ -635,17 +637,19 @@ pub enum ProposedBatchError {
         source: MerkleError,
     },
 
-    #[error("chain mmr has length {actual} which does not match block number {expected}")]
+    #[error("partial blockchain has length {actual} which does not match block number {expected}")]
     InconsistentChainLength {
         expected: BlockNumber,
         actual: BlockNumber,
     },
 
-    #[error("chain mmr has root {actual} which does not match block header's root {expected}")]
+    #[error(
+        "partial blockchain has root {actual} which does not match block header's root {expected}"
+    )]
     InconsistentChainRoot { expected: Digest, actual: Digest },
 
     #[error(
-        "block {block_reference} referenced by transaction {transaction_id} is not in the chain mmr"
+        "block {block_reference} referenced by transaction {transaction_id} is not in the partial blockchain"
     )]
     MissingTransactionBlockReference {
         block_reference: Digest,
@@ -732,7 +736,7 @@ pub enum ProposedBlockError {
     },
 
     #[error(
-        "chain mmr has length {chain_length} which does not match the block number {prev_block_num} of the previous block referenced by the to-be-built block"
+        "partial blockchain has length {chain_length} which does not match the block number {prev_block_num} of the previous block referenced by the to-be-built block"
     )]
     ChainLengthNotEqualToPreviousBlockNumber {
         chain_length: BlockNumber,
@@ -740,7 +744,7 @@ pub enum ProposedBlockError {
     },
 
     #[error(
-        "chain mmr has commitment {chain_commitment} which does not match the chain commitment {prev_block_chain_commitment} of the previous block {prev_block_num}"
+        "partial blockchain has commitment {chain_commitment} which does not match the chain commitment {prev_block_chain_commitment} of the previous block {prev_block_num}"
     )]
     ChainRootNotEqualToPreviousBlockChainCommitment {
         chain_commitment: Digest,
@@ -749,7 +753,7 @@ pub enum ProposedBlockError {
     },
 
     #[error(
-        "chain mmr is missing block {reference_block_num} referenced by batch {batch_id} in the block"
+        "partial blockchain is missing block {reference_block_num} referenced by batch {batch_id} in the block"
     )]
     BatchReferenceBlockMissingFromChain {
         reference_block_num: BlockNumber,
@@ -766,9 +770,9 @@ pub enum ProposedBlockError {
     },
 
     #[error(
-        "failed to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr"
+        "failed to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in partial blockchain"
     )]
-    UnauthenticatedInputNoteBlockNotInChainMmr {
+    UnauthenticatedInputNoteBlockNotInPartialBlockchain {
         block_number: BlockNumber,
         note_id: NoteId,
     },

@@ -13,6 +13,7 @@
 - Added support for environment variables to set up the `miden-proving-service` worker (#1281).
 - Added field identifier structs for component metadata (#1292).
 - Move `NullifierTree` and `BlockChain` from node to base (#1304).
+- Rename `ChainMmr` to `PartialBlockchain` (#1305).
 
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 

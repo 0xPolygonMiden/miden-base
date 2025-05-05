@@ -1,40 +1,40 @@
 use alloc::collections::BTreeMap;
 
 use crate::{
-    ChainMmrError,
+    PartialBlockchainError,
     block::{BlockHeader, BlockNumber},
     crypto::merkle::{InnerNodeInfo, MmrPeaks, PartialMmr},
     utils::serde::{Deserializable, Serializable},
 };
 
-// CHAIN MMR
+// PARTIAL BLOCKCHAIN
 // ================================================================================================
 
 /// A struct that represents the chain Merkle Mountain Range (MMR).
 ///
 /// The MMR allows for efficient authentication of input notes during transaction execution.
 /// Authentication is achieved by providing inclusion proofs for the notes consumed in the
-/// transaction against the chain MMR root associated with the latest block known at the time
-/// of transaction execution.
+/// transaction against the partial blockchain root associated with the latest block known at the
+/// time of transaction execution.
 ///
-/// [ChainMmr] represents a partial view into the actual MMR and contains authentication paths
-/// for a limited set of blocks. The intent is to include only the blocks relevant for execution
-/// of a specific transaction (i.e., the blocks corresponding to all input notes and the one needed
-/// to validate the seed of a new account, if applicable).
+/// [PartialBlockchain] represents a partial view into the actual MMR and contains authentication
+/// paths for a limited set of blocks. The intent is to include only the blocks relevant for
+/// execution of a specific transaction (i.e., the blocks corresponding to all input notes and the
+/// one needed to validate the seed of a new account, if applicable).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ChainMmr {
-    /// Partial view of the Chain MMR with authentication paths for the blocks listed below.
+pub struct PartialBlockchain {
+    /// Partial view of the blockchain with authentication paths for the blocks listed below.
     mmr: PartialMmr,
     /// A map of block_num |-> block_header for all blocks for which the partial MMR contains
     /// authentication paths.
     blocks: BTreeMap<BlockNumber, BlockHeader>,
 }
 
-impl ChainMmr {
+impl PartialBlockchain {
     // CONSTRUCTOR
     // --------------------------------------------------------------------------------------------
-    /// Returns a new [ChainMmr] instantiated from the provided partial MMR and a list of block
-    /// headers.
+    /// Returns a new [PartialBlockchain] instantiated from the provided partial MMR and a list of
+    /// block headers.
     ///
     /// # Errors
     /// Returns an error if:
@@ -45,21 +45,21 @@ impl ChainMmr {
     pub fn new(
         mmr: PartialMmr,
         blocks: impl IntoIterator<Item = BlockHeader>,
-    ) -> Result<Self, ChainMmrError> {
+    ) -> Result<Self, PartialBlockchainError> {
         let chain_length = mmr.forest();
         let mut block_map = BTreeMap::new();
         for block in blocks {
             let block_num = block.block_num();
             if block.block_num().as_usize() >= chain_length {
-                return Err(ChainMmrError::block_num_too_big(chain_length, block_num));
+                return Err(PartialBlockchainError::block_num_too_big(chain_length, block_num));
             }
 
             if !mmr.is_tracked(block_num.as_usize()) {
-                return Err(ChainMmrError::untracked_block(block_num));
+                return Err(PartialBlockchainError::untracked_block(block_num));
             }
 
             if block_map.insert(block_num, block).is_some() {
-                return Err(ChainMmrError::duplicate_block(block_num));
+                return Err(PartialBlockchainError::duplicate_block(block_num));
             }
         }
 
@@ -83,22 +83,22 @@ impl ChainMmr {
     pub fn chain_length(&self) -> BlockNumber {
         BlockNumber::from(
             u32::try_from(self.mmr.forest())
-                .expect("chain mmr should never contain more than u32::MAX blocks"),
+                .expect("partial blockchain should never contain more than u32::MAX blocks"),
         )
     }
 
-    /// Returns true if the block is present in this chain MMR.
+    /// Returns true if the block is present in this partial blockchain.
     pub fn contains_block(&self, block_num: BlockNumber) -> bool {
         self.blocks.contains_key(&block_num)
     }
 
     /// Returns the block header for the specified block, or None if the block is not present in
-    /// this chain MMR.
+    /// this partial blockchain.
     pub fn get_block(&self, block_num: BlockNumber) -> Option<&BlockHeader> {
         self.blocks.get(&block_num)
     }
 
-    /// Returns an iterator over the block headers in this chain MMR.
+    /// Returns an iterator over the block headers in this partial blockchain.
     pub fn block_headers(&self) -> impl Iterator<Item = &BlockHeader> {
         self.blocks.values()
     }
@@ -106,11 +106,11 @@ impl ChainMmr {
     // DATA MUTATORS
     // --------------------------------------------------------------------------------------------
 
-    /// Appends the provided block header to this chain MMR. This method assumes that the provided
-    /// block header is for the next block in the chain.
+    /// Appends the provided block header to this partial blockchain. This method assumes that the
+    /// provided block header is for the next block in the chain.
     ///
     /// If `track` parameter is set to true, the authentication path for the provided block header
-    /// will be added to this chain MMR.
+    /// will be added to this partial blockchain.
     ///
     /// # Panics
     /// Panics if the `block_header.block_num` is not equal to the current chain length (i.e., the
@@ -136,7 +136,8 @@ impl ChainMmr {
     // TESTING
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a mutable reference to the map of block numbers to block headers in this chain MMR.
+    /// Returns a mutable reference to the map of block numbers to block headers in this partial
+    /// blockchain.
     ///
     /// Allows mutating the inner map for testing purposes.
     #[cfg(any(feature = "testing", test))]
@@ -144,7 +145,7 @@ impl ChainMmr {
         &mut self.blocks
     }
 
-    /// Returns a mutable reference to the partial MMR of this chain MMR.
+    /// Returns a mutable reference to the partial MMR of this partial blockchain.
     ///
     /// Allows mutating the inner partial MMR for testing purposes.
     #[cfg(any(feature = "testing", test))]
@@ -153,14 +154,14 @@ impl ChainMmr {
     }
 }
 
-impl Serializable for ChainMmr {
+impl Serializable for PartialBlockchain {
     fn write_into<W: miden_crypto::utils::ByteWriter>(&self, target: &mut W) {
         self.mmr.write_into(target);
         self.blocks.write_into(target);
     }
 }
 
-impl Deserializable for ChainMmr {
+impl Deserializable for PartialBlockchain {
     fn read_from<R: miden_crypto::utils::ByteReader>(
         source: &mut R,
     ) -> Result<Self, miden_crypto::utils::DeserializationError> {
@@ -176,7 +177,7 @@ impl Deserializable for ChainMmr {
 mod tests {
     use vm_core::utils::{Deserializable, Serializable};
 
-    use super::ChainMmr;
+    use super::PartialBlockchain;
     use crate::{
         Digest,
         alloc::vec::Vec,
@@ -185,65 +186,65 @@ mod tests {
     };
 
     #[test]
-    fn test_chain_mmr_add() {
-        // create chain MMR with 3 blocks - i.e., 2 peaks
+    fn test_partial_blockchain_add() {
+        // create partial blockchain with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
             let block_header = int_to_block_header(i);
             mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
-        let mut chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
+        let mut partial_blockchain = PartialBlockchain::new(partial_mmr, Vec::new()).unwrap();
 
-        // add a new block to the chain MMR, this reduces the number of peaks to 1
+        // add a new block to the partial blockchain, this reduces the number of peaks to 1
         let block_num = 3;
         let bock_header = int_to_block_header(block_num);
         mmr.add(bock_header.commitment());
-        chain_mmr.add_block(bock_header, true);
+        partial_blockchain.add_block(bock_header, true);
 
         assert_eq!(
             mmr.open(block_num as usize).unwrap(),
-            chain_mmr.mmr.open(block_num as usize).unwrap().unwrap()
+            partial_blockchain.mmr.open(block_num as usize).unwrap().unwrap()
         );
 
-        // add one more block to the chain MMR, the number of peaks is again 2
+        // add one more block to the partial blockchain, the number of peaks is again 2
         let block_num = 4;
         let bock_header = int_to_block_header(block_num);
         mmr.add(bock_header.commitment());
-        chain_mmr.add_block(bock_header, true);
+        partial_blockchain.add_block(bock_header, true);
 
         assert_eq!(
             mmr.open(block_num as usize).unwrap(),
-            chain_mmr.mmr.open(block_num as usize).unwrap().unwrap()
+            partial_blockchain.mmr.open(block_num as usize).unwrap().unwrap()
         );
 
-        // add one more block to the chain MMR, the number of peaks is still 2
+        // add one more block to the partial blockchain, the number of peaks is still 2
         let block_num = 5;
         let bock_header = int_to_block_header(block_num);
         mmr.add(bock_header.commitment());
-        chain_mmr.add_block(bock_header, true);
+        partial_blockchain.add_block(bock_header, true);
 
         assert_eq!(
             mmr.open(block_num as usize).unwrap(),
-            chain_mmr.mmr.open(block_num as usize).unwrap().unwrap()
+            partial_blockchain.mmr.open(block_num as usize).unwrap().unwrap()
         );
     }
 
     #[test]
-    fn tst_chain_mmr_serialization() {
-        // create chain MMR with 3 blocks - i.e., 2 peaks
+    fn tst_partial_blockchain_serialization() {
+        // create partial blockchain with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
             let block_header = int_to_block_header(i);
             mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
-        let chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
+        let partial_blockchain = PartialBlockchain::new(partial_mmr, Vec::new()).unwrap();
 
-        let bytes = chain_mmr.to_bytes();
-        let deserialized = ChainMmr::read_from_bytes(&bytes).unwrap();
+        let bytes = partial_blockchain.to_bytes();
+        let deserialized = PartialBlockchain::read_from_bytes(&bytes).unwrap();
 
-        assert_eq!(chain_mmr, deserialized);
+        assert_eq!(partial_blockchain, deserialized);
     }
 
     fn int_to_block_header(block_num: impl Into<BlockNumber>) -> BlockHeader {

@@ -25,9 +25,10 @@ use miden_objects::{
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
-        ChainMmr, ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes,
-        OrderedTransactionHeaders, OutputNote, ProvenTransaction, ToInputNoteCommitments,
-        TransactionHeader, TransactionId, TransactionInputs, TransactionScript,
+        ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes,
+        OrderedTransactionHeaders, OutputNote, PartialBlockchain, ProvenTransaction,
+        ToInputNoteCommitments, TransactionHeader, TransactionId, TransactionInputs,
+        TransactionScript,
     },
 };
 use rand::{Rng, SeedableRng};
@@ -439,7 +440,7 @@ impl MockChain {
     {
         let transactions: Vec<_> = txs.into_iter().map(alloc::sync::Arc::new).collect();
 
-        let (batch_reference_block, chain_mmr) =
+        let (batch_reference_block, partial_blockchain) =
             self.get_batch_inputs(transactions.iter().map(|tx| tx.ref_block_num()));
 
         // TODO: Get the actual proofs as part of get_batch_inputs.
@@ -448,7 +449,7 @@ impl MockChain {
         ProposedBatch::new(
             transactions,
             batch_reference_block,
-            chain_mmr,
+            partial_blockchain,
             unauthenticated_note_proofs,
         )
     }
@@ -460,7 +461,7 @@ impl MockChain {
         let (
             transactions,
             block_header,
-            _chain_mmr,
+            _partial_blockchain,
             _unauthenticated_note_proofs,
             id,
             account_updates,
@@ -734,7 +735,7 @@ impl MockChain {
         }
 
         let block_headers = block_headers_map.values().cloned();
-        let mmr = ChainMmr::from_blockchain(&self.chain, block_headers).unwrap();
+        let mmr = PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap();
 
         TransactionInputs::new(
             account,
@@ -751,11 +752,11 @@ impl MockChain {
     pub fn get_batch_inputs(
         &self,
         tx_reference_blocks: impl IntoIterator<Item = BlockNumber>,
-    ) -> (BlockHeader, ChainMmr) {
-        let (batch_reference_block, chain_mmr) =
-            self.latest_selective_chain_mmr(tx_reference_blocks);
+    ) -> (BlockHeader, PartialBlockchain) {
+        let (batch_reference_block, partial_blockchain) =
+            self.latest_selective_partial_blockchain(tx_reference_blocks);
 
-        (batch_reference_block, chain_mmr)
+        (batch_reference_block, partial_blockchain)
     }
 
     /// Gets foreign account inputs to execute FPI transactions.
@@ -798,7 +799,7 @@ impl MockChain {
                 batch.input_notes().iter().filter_map(|note| note.header().map(NoteHeader::id))
             }));
 
-        let (block_reference_block, chain_mmr) = self.latest_selective_chain_mmr(
+        let (block_reference_block, partial_blockchain) = self.latest_selective_partial_blockchain(
             batch_iterator.clone().map(ProvenBatch::reference_block_num).chain(
                 unauthenticated_note_proofs.values().map(|proof| proof.location().block_num()),
             ),
@@ -812,7 +813,7 @@ impl MockChain {
 
         BlockInputs::new(
             block_reference_block,
-            chain_mmr,
+            partial_blockchain,
             account_witnesses,
             nullifier_proofs,
             unauthenticated_note_proofs,
@@ -995,28 +996,28 @@ impl MockChain {
         &self.chain
     }
 
-    /// Gets the latest [ChainMmr].
-    pub fn latest_chain_mmr(&self) -> ChainMmr {
+    /// Gets the latest [PartialBlockchain].
+    pub fn latest_partial_blockchain(&self) -> PartialBlockchain {
         // We have to exclude the latest block because we need to fetch the state of the chain at
         // that latest block, which does not include itself.
         let block_headers =
             self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1).cloned();
 
-        ChainMmr::from_blockchain(&self.chain, block_headers).unwrap()
+        PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap()
     }
 
-    /// Creates a new [`ChainMmr`] with all reference blocks in the given iterator except for the
-    /// latest block header in the chain and returns that latest block header.
+    /// Creates a new [`PartialBlockchain`] with all reference blocks in the given iterator except
+    /// for the latest block header in the chain and returns that latest block header.
     ///
     /// The intended use is for the latest block header to become the reference block of a new
     /// transaction batch or block.
-    pub fn latest_selective_chain_mmr(
+    pub fn latest_selective_partial_blockchain(
         &self,
         reference_blocks: impl IntoIterator<Item = BlockNumber>,
-    ) -> (BlockHeader, ChainMmr) {
+    ) -> (BlockHeader, PartialBlockchain) {
         let latest_block_header = self.latest_block_header().clone();
         // Deduplicate block numbers so each header will be included just once. This is required so
-        // ChainMmr::from_blockchain does not panic.
+        // PartialBlockchain::from_blockchain does not panic.
         let reference_blocks: BTreeSet<_> = reference_blocks.into_iter().collect();
 
         // Include all block headers of the reference blocks except the latest block.
@@ -1026,9 +1027,10 @@ impl MockChain {
             .filter(|block_header| block_header.commitment() != latest_block_header.commitment())
             .collect();
 
-        let chain_mmr = ChainMmr::from_blockchain(&self.chain, block_headers).unwrap();
+        let partial_blockchain =
+            PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap();
 
-        (latest_block_header, chain_mmr)
+        (latest_block_header, partial_blockchain)
     }
 
     /// Returns the witnesses for the provided account IDs of the current account tree.

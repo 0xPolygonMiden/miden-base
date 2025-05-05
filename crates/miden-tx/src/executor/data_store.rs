@@ -5,7 +5,7 @@ use alloc::collections::BTreeSet;
 use miden_objects::{
     account::{Account, AccountId},
     block::{BlockHeader, BlockNumber},
-    transaction::ChainMmr,
+    transaction::PartialBlockchain,
 };
 use vm_processor::{MastForestStore, Word};
 use winter_maybe_async::*;
@@ -37,5 +37,5 @@ pub trait DataStore: MastForestStore {
         &self,
         account_id: AccountId,
         ref_blocks: BTreeSet<BlockNumber>,
-    ) -> Result<(Account, Option<Word>, BlockHeader, ChainMmr), DataStoreError>;
+    ) -> Result<(Account, Option<Word>, BlockHeader, PartialBlockchain), DataStoreError>;
 }

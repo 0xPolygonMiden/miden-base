@@ -135,8 +135,9 @@ impl Blockchain {
             let leaf = self.mmr.get(block_num.as_usize())?;
             let path = self.open_at(*block_num, checkpoint)?.merkle_path;
 
-            // SAFETY: We should be able to fill the partial MMR with data from the chain MMR
-            // without errors, otherwise it indicates the blockchain is invalid.
+            // SAFETY: We should be able to fill the partial MMR with data from the partial
+            // blockchain without errors, otherwise it indicates the blockchain is
+            // invalid.
             partial_mmr
                 .track(block_num.as_usize(), leaf, &path)
                 .expect("filling partial mmr with data from mmr should succeed");

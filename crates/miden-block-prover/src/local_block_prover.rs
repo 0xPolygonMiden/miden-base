@@ -10,7 +10,7 @@ use miden_objects::{
         ProposedBlock, ProvenBlock,
     },
     note::Nullifier,
-    transaction::ChainMmr,
+    transaction::PartialBlockchain,
 };
 
 use crate::errors::ProvenBlockError;
@@ -86,7 +86,7 @@ impl LocalBlockProver {
             account_updated_witnesses,
             output_note_batches,
             created_nullifiers,
-            chain_mmr,
+            partial_blockchain,
             prev_block_header,
         ) = proposed_block.into_parts();
 
@@ -111,11 +111,11 @@ impl LocalBlockProver {
         let new_account_root =
             compute_account_root(&account_updated_witnesses, &prev_block_header)?;
 
-        // Insert the previous block header into the block chain MMR to get the new chain
+        // Insert the previous block header into the block partial blockchain to get the new chain
         // commitment.
         // --------------------------------------------------------------------------------------------
 
-        let new_chain_commitment = compute_chain_commitment(chain_mmr, prev_block_header);
+        let new_chain_commitment = compute_chain_commitment(partial_blockchain, prev_block_header);
 
         // Transform the account update witnesses into block account updates.
         // --------------------------------------------------------------------------------------------
@@ -229,13 +229,16 @@ fn compute_nullifiers(
     Ok((nullifiers, partial_nullifier_tree.root()))
 }
 
-/// Adds the commitment of the previous block header to the chain MMR to compute the new chain
-/// commitment.
-fn compute_chain_commitment(mut chain_mmr: ChainMmr, prev_block_header: BlockHeader) -> Digest {
+/// Adds the commitment of the previous block header to the partial blockchain to compute the new
+/// chain commitment.
+fn compute_chain_commitment(
+    mut partial_blockchain: PartialBlockchain,
+    prev_block_header: BlockHeader,
+) -> Digest {
     // SAFETY: This does not panic as long as the block header we're adding is the next one in the
     // chain which is validated as part of constructing a `ProposedBlock`.
-    chain_mmr.add_block(prev_block_header, true);
-    chain_mmr.peaks().hash_peaks()
+    partial_blockchain.add_block(prev_block_header, true);
+    partial_blockchain.peaks().hash_peaks()
 }
 
 /// Computes the new account tree root after the given updates.

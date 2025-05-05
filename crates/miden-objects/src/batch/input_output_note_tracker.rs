@@ -7,7 +7,9 @@ use crate::{
     crypto::merkle::MerkleError,
     errors::ProposedBatchError,
     note::{NoteHeader, NoteId, NoteInclusionProof, Nullifier},
-    transaction::{ChainMmr, InputNoteCommitment, OutputNote, ProvenTransaction, TransactionId},
+    transaction::{
+        InputNoteCommitment, OutputNote, PartialBlockchain, ProvenTransaction, TransactionId,
+    },
 };
 
 type BatchInputNotes = Vec<InputNoteCommitment>;
@@ -53,7 +55,7 @@ impl InputOutputNoteTracker<TransactionId> {
     pub fn from_transactions<'a>(
         txs: impl Iterator<Item = &'a ProvenTransaction> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
-        chain_mmr: &ChainMmr,
+        partial_blockchain: &PartialBlockchain,
         batch_reference_block: &BlockHeader,
     ) -> Result<(BatchInputNotes, BatchOutputNotes), ProposedBatchError> {
         let input_notes_iter = txs.clone().flat_map(|tx| {
@@ -69,7 +71,7 @@ impl InputOutputNoteTracker<TransactionId> {
             input_notes_iter,
             output_notes_iter,
             unauthenticated_note_proofs,
-            chain_mmr,
+            partial_blockchain,
             batch_reference_block,
         )
         .map_err(ProposedBatchError::from)?;
@@ -93,7 +95,7 @@ impl InputOutputNoteTracker<BatchId> {
     pub fn from_batches<'a>(
         batches: impl Iterator<Item = &'a ProvenBatch> + Clone,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
-        chain_mmr: &ChainMmr,
+        partial_blockchain: &PartialBlockchain,
         prev_block: &BlockHeader,
     ) -> Result<(BlockInputNotes, ErasedNotes, BlockOutputNotes), ProposedBlockError> {
         let input_notes_iter = batches.clone().flat_map(|batch| {
@@ -111,7 +113,7 @@ impl InputOutputNoteTracker<BatchId> {
             input_notes_iter,
             output_notes_iter,
             unauthenticated_note_proofs,
-            chain_mmr,
+            partial_blockchain,
             prev_block,
         )
         .map_err(ProposedBlockError::from)?;
@@ -133,7 +135,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         input_notes_iter: impl Iterator<Item = (InputNoteCommitment, ContainerId)>,
         output_notes_iter: impl Iterator<Item = (OutputNote, ContainerId)>,
         unauthenticated_note_proofs: &BTreeMap<NoteId, NoteInclusionProof>,
-        chain_mmr: &ChainMmr,
+        partial_blockchain: &PartialBlockchain,
         reference_block: &BlockHeader,
     ) -> Result<Self, InputOutputNoteTrackerError<ContainerId>> {
         let mut input_notes = BTreeMap::new();
@@ -148,7 +150,7 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
                         input_note_commitment.nullifier(),
                         note_header,
                         proof,
-                        chain_mmr,
+                        partial_blockchain,
                         reference_block,
                     )?;
                 }
@@ -261,7 +263,8 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
     }
 
     /// Verifies the note inclusion proof for the given input note commitment parts (nullifier and
-    /// note header). Uses the block header referenced by the inclusion proof from the chain MMR.
+    /// note header). Uses the block header referenced by the inclusion proof from the partial
+    /// blockchain.
     ///
     /// If the proof is valid, it means the note is part of the chain and it is "marked" as
     /// authenticated by returning an [`InputNoteCommitment`] without the note header.
@@ -269,15 +272,15 @@ impl<ContainerId: Copy> InputOutputNoteTracker<ContainerId> {
         nullifier: Nullifier,
         note_header: &NoteHeader,
         proof: &NoteInclusionProof,
-        chain_mmr: &ChainMmr,
+        partial_blockchain: &PartialBlockchain,
         reference_block: &BlockHeader,
     ) -> Result<InputNoteCommitment, InputOutputNoteTrackerError<ContainerId>> {
         let proof_reference_block = proof.location().block_num();
         let note_block_header = if reference_block.block_num() == proof_reference_block {
             reference_block
         } else {
-            chain_mmr.get_block(proof.location().block_num()).ok_or_else(|| {
-                InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInChainMmr {
+            partial_blockchain.get_block(proof.location().block_num()).ok_or_else(|| {
+                InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
                     block_number: proof.location().block_num(),
                     note_id: note_header.id(),
                 }
@@ -323,7 +326,7 @@ enum InputOutputNoteTrackerError<ContainerId: Copy> {
         input_commitment: Digest,
         output_commitment: Digest,
     },
-    UnauthenticatedInputNoteBlockNotInChainMmr {
+    UnauthenticatedInputNoteBlockNotInPartialBlockchain {
         block_number: BlockNumber,
         note_id: NoteId,
     },
@@ -364,10 +367,10 @@ impl From<InputOutputNoteTrackerError<BatchId>> for ProposedBlockError {
                 input_commitment,
                 output_commitment,
             },
-            InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInChainMmr {
+            InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
                 block_number,
                 note_id,
-            } => ProposedBlockError::UnauthenticatedInputNoteBlockNotInChainMmr {
+            } => ProposedBlockError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
                 block_number,
                 note_id,
             },
@@ -414,10 +417,10 @@ impl From<InputOutputNoteTrackerError<TransactionId>> for ProposedBatchError {
                 input_commitment,
                 output_commitment,
             },
-            InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInChainMmr {
+            InputOutputNoteTrackerError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
                 block_number,
                 note_id,
-            } => ProposedBatchError::UnauthenticatedInputNoteBlockNotInChainMmr {
+            } => ProposedBatchError::UnauthenticatedInputNoteBlockNotInPartialBlockchain {
                 block_number,
                 note_id,
             },

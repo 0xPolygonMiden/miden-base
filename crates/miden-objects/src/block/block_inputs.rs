@@ -4,7 +4,7 @@ use crate::{
     account::AccountId,
     block::{AccountWitness, BlockHeader, NullifierWitness},
     note::{NoteId, NoteInclusionProof, Nullifier},
-    transaction::ChainMmr,
+    transaction::PartialBlockchain,
 };
 
 // BLOCK INPUTS
@@ -19,7 +19,7 @@ pub struct BlockInputs {
     /// The chain state at the previous block with authentication paths for:
     /// - each block referenced by a batch in the block,
     /// - each block referenced by a note inclusion proof for an unauthenticated note.
-    chain_mmr: ChainMmr,
+    partial_blockchain: PartialBlockchain,
 
     /// The state commitments of the accounts in the block and their authentication paths.
     account_witnesses: BTreeMap<AccountId, AccountWitness>,
@@ -36,14 +36,14 @@ impl BlockInputs {
     /// Creates new [`BlockInputs`] from the provided parts.
     pub fn new(
         prev_block_header: BlockHeader,
-        chain_mmr: ChainMmr,
+        partial_blockchain: PartialBlockchain,
         account_witnesses: BTreeMap<AccountId, AccountWitness>,
         nullifier_witnesses: BTreeMap<Nullifier, NullifierWitness>,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Self {
         Self {
             prev_block_header,
-            chain_mmr,
+            partial_blockchain,
             account_witnesses,
             nullifier_witnesses,
             unauthenticated_note_proofs,
@@ -55,9 +55,9 @@ impl BlockInputs {
         &self.prev_block_header
     }
 
-    /// Returns a reference to the [`ChainMmr`].
-    pub fn chain_mmr(&self) -> &ChainMmr {
-        &self.chain_mmr
+    /// Returns a reference to the [`PartialBlockchain`].
+    pub fn partial_blockchain(&self) -> &PartialBlockchain {
+        &self.partial_blockchain
     }
 
     /// Returns a reference to the account witnesses.
@@ -81,14 +81,14 @@ impl BlockInputs {
         self,
     ) -> (
         BlockHeader,
-        ChainMmr,
+        PartialBlockchain,
         BTreeMap<AccountId, AccountWitness>,
         BTreeMap<Nullifier, NullifierWitness>,
         BTreeMap<NoteId, NoteInclusionProof>,
     ) {
         (
             self.prev_block_header,
-            self.chain_mmr,
+            self.partial_blockchain,
             self.account_witnesses,
             self.nullifier_witnesses,
             self.unauthenticated_note_proofs,
@@ -98,12 +98,12 @@ impl BlockInputs {
     // TESTING
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a mutable reference to the [`ChainMmr`].
+    /// Returns a mutable reference to the [`PartialBlockchain`].
     ///
-    /// Allows mutating the inner chain MMR for testing purposes.
+    /// Allows mutating the inner partial blockchain for testing purposes.
     #[cfg(any(feature = "testing", test))]
-    pub fn chain_mmr_mut(&mut self) -> &mut ChainMmr {
-        &mut self.chain_mmr
+    pub fn partial_blockchain_mut(&mut self) -> &mut PartialBlockchain {
+        &mut self.partial_blockchain
     }
 
     /// Returns a mutable reference to the note inclusion proofs.
