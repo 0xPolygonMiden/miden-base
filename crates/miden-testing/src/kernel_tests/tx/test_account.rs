@@ -35,7 +35,7 @@ use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, EMPTY_WORD, ExecutionError, MemAdviceProvider, ProcessState};
 
 use super::{Felt, ONE, StackInputs, Word, ZERO};
-use crate::{assert_execution_error, executor::CodeExecutor, MockChain, TransactionContextBuilder};
+use crate::{MockChain, TransactionContextBuilder, assert_execution_error, executor::CodeExecutor};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================
