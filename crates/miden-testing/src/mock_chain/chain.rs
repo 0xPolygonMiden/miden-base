@@ -4,7 +4,7 @@ use alloc::{
 };
 
 use anyhow::Context;
-use miden_block_prover::LocalBlockProver;
+use miden_block_prover::{LocalBlockProver, ProvenBlockError};
 use miden_lib::{
     account::{faucets::BasicFungibleFaucet, wallets::BasicWallet},
     note::{create_p2id_note, create_p2idr_note},
@@ -162,7 +162,7 @@ pub struct MockChain {
 
     /// Transactions that have been submitted to the chain but have not yet been included in a
     /// block.
-    pending_transactions: Vec<ExecutedTransaction>,
+    pending_transactions: Vec<ProvenTransaction>,
 
     /// NoteID |-> MockChainNote mapping to simplify note retrieval.
     committed_notes: BTreeMap<NoteId, MockChainNote>,
@@ -236,31 +236,59 @@ impl MockChain {
         chain
     }
 
+    // PUBLIC MUTATORS
+    // ----------------------------------------------------------------------------------------
+
     /// Sets the seed for the internal RNG.
     pub fn set_rng_seed(&mut self, seed: [u8; 32]) {
         self.rng = ChaCha20Rng::from_seed(seed);
     }
 
-    /// Applies the transaction, adding the entities to the mockchain.
+    // PENDING APIS
+    // ----------------------------------------------------------------------------------------
+
+    /// Adds the given [`ExecutedTransaction`] to the list of pending transactions.
+    ///
+    /// A block has to be created to apply the transaction effects to the chain state, e.g. using
+    /// [`MockChain::prove_next_block`].
+    ///
     /// Returns the resulting state of the executing account after executing the transaction.
-    pub fn submit_transaction(&mut self, transaction: &ExecutedTransaction) -> Account {
+    pub fn add_pending_executed_transaction(
+        &mut self,
+        transaction: &ExecutedTransaction,
+    ) -> Account {
         let mut account = transaction.initial_account().clone();
         account.apply_delta(transaction.account_delta()).unwrap();
 
-        self.pending_transactions.push(transaction.clone());
+        // This essentially transforms an executed tx into a proven tx with a dummy proof.
+        let proven_tx = ProvenTransaction::from_executed_transaction_mocked(transaction.clone());
+
+        self.pending_transactions.push(proven_tx);
 
         account
     }
 
-    /// Adds an [OutputNote] to the pending objects.
-    /// A block has to be created to finalize the new entity.
+    /// Adds the given [`ProvenTransaction`] to the list of pending transactions.
+    ///
+    /// A block has to be created to apply the transaction effects to the chain state, e.g. using
+    /// [`MockChain::prove_next_block`].
+    pub fn add_pending_proven_transaction(&mut self, transaction: ProvenTransaction) {
+        self.pending_transactions.push(transaction);
+    }
+
+    /// Adds the given [`OutputNote`] to list of pending notes.
+    ///
+    /// A block has to be created to add the note to that block and make it available in the chain
+    /// state, e.g. using [`MockChain::prove_next_block`].
     pub fn add_pending_note(&mut self, note: OutputNote) {
         self.pending_objects.output_notes.push(note);
     }
 
-    /// Adds a P2ID [Note] to the pending objects and returns it.
-    /// A block has to be created to finalize the new entity.
-    pub fn add_p2id_note(
+    /// Adds a P2ID [`OutputNote`] to list of pending notes.
+    ///
+    /// A block has to be created to add the note to that block and make it available in the chain
+    /// state, e.g. using [`MockChain::prove_next_block`].
+    pub fn add_pending_p2id_note(
         &mut self,
         sender_account_id: AccountId,
         target_account_id: AccountId,
@@ -296,11 +324,173 @@ impl MockChain {
         Ok(note)
     }
 
-    /// Marks a [Note] as consumed by inserting its nullifier into the block.
-    /// A block has to be created to finalize the new entity.
-    pub fn add_nullifier(&mut self, nullifier: Nullifier) {
+    /// Adds the [`Nullifier`] to list of pending nullifiers.
+    ///
+    /// A block has to be created to add the nullifier to the nullifier tree as part of that block,
+    /// e.g. using [`MockChain::prove_next_block`].
+    pub fn add_pending_nullifier(&mut self, nullifier: Nullifier) {
         self.pending_objects.created_nullifiers.push(nullifier);
     }
+
+    /// Adds a new [`BasicWallet`] account to the list of pending accounts.
+    ///
+    /// A block has to be created to add the account to the chain state as part of that block,
+    /// e.g. using [`MockChain::prove_next_block`].
+    pub fn add_pending_new_wallet(&mut self, auth_method: Auth) -> Account {
+        let account_builder = AccountBuilder::new(self.rng.random()).with_component(BasicWallet);
+
+        self.add_pending_account_from_builder(auth_method, account_builder, AccountState::New)
+    }
+
+    /// Adds an existing [`BasicWallet`] account with nonce `1` to the list of pending accounts.
+    ///
+    /// A block has to be created to add the account to the chain state as part of that block,
+    /// e.g. using [`MockChain::prove_next_block`].
+    pub fn add_pending_existing_wallet(
+        &mut self,
+        auth_method: Auth,
+        assets: Vec<Asset>,
+    ) -> Account {
+        let account_builder = Account::builder(self.rng.random())
+            .with_component(BasicWallet)
+            .with_assets(assets);
+
+        self.add_pending_account_from_builder(auth_method, account_builder, AccountState::Exists)
+    }
+
+    /// Adds a new [`BasicFungibleFaucet`] account with the specified authentication method and the
+    /// given token metadata to the list of pending accounts.
+    ///
+    /// A block has to be created to add the account to the chain state as part of that block,
+    /// e.g. using [`MockChain::prove_next_block`].
+    pub fn add_pending_new_faucet(
+        &mut self,
+        auth_method: Auth,
+        token_symbol: &str,
+        max_supply: u64,
+    ) -> MockFungibleFaucet {
+        let account_builder = AccountBuilder::new(self.rng.random())
+            .account_type(AccountType::FungibleFaucet)
+            .with_component(
+                BasicFungibleFaucet::new(
+                    TokenSymbol::new(token_symbol).unwrap(),
+                    10,
+                    max_supply.try_into().unwrap(),
+                )
+                .unwrap(),
+            );
+
+        MockFungibleFaucet::new(self.add_pending_account_from_builder(
+            auth_method,
+            account_builder,
+            AccountState::New,
+        ))
+    }
+
+    /// Adds an existing [`BasicFungibleFaucet`] account with the specified authentication method
+    /// and the given token metadata to the list of pending accounts.
+    ///
+    /// A block has to be created to add the account to the chain state as part of that block,
+    /// e.g. using [`MockChain::prove_next_block`].
+    pub fn add_pending_existing_faucet(
+        &mut self,
+        auth_method: Auth,
+        token_symbol: &str,
+        max_supply: u64,
+        total_issuance: Option<u64>,
+    ) -> MockFungibleFaucet {
+        let mut account_builder = AccountBuilder::new(self.rng.random())
+            .with_component(
+                BasicFungibleFaucet::new(
+                    TokenSymbol::new(token_symbol).unwrap(),
+                    10u8,
+                    Felt::new(max_supply),
+                )
+                .unwrap(),
+            )
+            .account_type(AccountType::FungibleFaucet);
+
+        let authenticator = match auth_method.build_component() {
+            Some((auth_component, authenticator)) => {
+                account_builder = account_builder.with_component(auth_component);
+                Some(authenticator)
+            },
+            None => None,
+        };
+        let mut account = account_builder.build_existing().unwrap();
+
+        // The faucet's reserved slot is initialized to an empty word by default.
+        // If total_issuance is set, overwrite it.
+        if let Some(issuance) = total_issuance {
+            account
+                .storage_mut()
+                .set_item(memory::FAUCET_STORAGE_DATA_SLOT, [ZERO, ZERO, ZERO, Felt::new(issuance)])
+                .unwrap();
+        }
+
+        self.committed_accounts
+            .insert(account.id(), MockAccount::new(account.clone(), None, authenticator));
+
+        MockFungibleFaucet::new(account)
+    }
+
+    /// Adds the [`AccountComponent`](miden_objects::account::AccountComponent) corresponding to
+    /// `auth_method` to the account in the builder and builds a new or existing account
+    /// depending on `account_state`.
+    ///
+    /// The account is added to the list of committed accounts _and_ is added to the list of pending
+    /// accounts. This means the next block that is created will add the pending accounts.
+    pub fn add_pending_account_from_builder(
+        &mut self,
+        auth_method: Auth,
+        mut account_builder: AccountBuilder,
+        account_state: AccountState,
+    ) -> Account {
+        let authenticator = match auth_method.build_component() {
+            Some((auth_component, authenticator)) => {
+                account_builder = account_builder.with_component(auth_component);
+                Some(authenticator)
+            },
+            None => None,
+        };
+
+        let (account, seed) = if let AccountState::New = account_state {
+            let epoch_block_number = self.latest_block_header().epoch_block_num();
+            let account_id_anchor =
+                self.blocks.get(epoch_block_number.as_usize()).unwrap().header();
+            account_builder =
+                account_builder.anchor(AccountIdAnchor::try_from(account_id_anchor).unwrap());
+
+            account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
+        } else {
+            account_builder.build_existing().map(|account| (account, None)).unwrap()
+        };
+
+        // Add account to the available accounts so transaction inputs can be retrieved via the mock
+        // chain APIs.
+        self.committed_accounts
+            .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
+        self.add_pending_account(account.clone());
+
+        account
+    }
+
+    /// Adds a new `Account` to the list of pending objects.
+    ///
+    /// A block has to be created to finalize the new entity.
+    pub fn add_pending_account(&mut self, account: Account) {
+        self.pending_objects.updated_accounts.insert(
+            account.id(),
+            BlockAccountUpdate::new(
+                account.id(),
+                account.commitment(),
+                AccountUpdateDetails::New(account),
+            ),
+        );
+    }
+
+    // BATCH APIS
+    // ----------------------------------------------------------------------------------------
 
     /// Proposes a new transaction batch from the provided transactions and returns it.
     ///
@@ -368,6 +558,9 @@ impl MockChain {
         .expect("failed to create ProvenBatch")
     }
 
+    // BLOCK APIS
+    // ----------------------------------------------------------------------------------------
+
     /// Proposes a new block from the provided batches with the given timestamp and returns it.
     ///
     /// This method does not modify the chain state.
@@ -404,158 +597,14 @@ impl MockChain {
         self.propose_block_at(batches, timestamp)
     }
 
-    pub fn prove_block(&self, proposed_block: ProposedBlock) -> anyhow::Result<ProvenBlock> {
-        LocalBlockProver::new(0)
-            .prove_without_batch_verification(proposed_block)
-            .context("failed to prove proposed block into proven block")
-    }
-
-    // OTHER IMPLEMENTATIONS
-    // ----------------------------------------------------------------------------------------
-
-    /// Adds a new wallet with the specified authentication method and assets.
-    pub fn add_new_wallet(&mut self, auth_method: Auth) -> Account {
-        let account_builder = AccountBuilder::new(self.rng.random()).with_component(BasicWallet);
-
-        self.add_from_account_builder(auth_method, account_builder, AccountState::New)
-    }
-
-    /// Adds an existing wallet (nonce == 1) with the specified authentication method and assets.
-    pub fn add_existing_wallet(&mut self, auth_method: Auth, assets: Vec<Asset>) -> Account {
-        let account_builder = Account::builder(self.rng.random())
-            .with_component(BasicWallet)
-            .with_assets(assets);
-
-        self.add_from_account_builder(auth_method, account_builder, AccountState::Exists)
-    }
-
-    /// Adds a new faucet with the specified authentication method and metadata.
-    pub fn add_new_faucet(
-        &mut self,
-        auth_method: Auth,
-        token_symbol: &str,
-        max_supply: u64,
-    ) -> MockFungibleFaucet {
-        let account_builder = AccountBuilder::new(self.rng.random())
-            .account_type(AccountType::FungibleFaucet)
-            .with_component(
-                BasicFungibleFaucet::new(
-                    TokenSymbol::new(token_symbol).unwrap(),
-                    10,
-                    max_supply.try_into().unwrap(),
-                )
-                .unwrap(),
-            );
-
-        MockFungibleFaucet::new(self.add_from_account_builder(
-            auth_method,
-            account_builder,
-            AccountState::New,
-        ))
-    }
-
-    /// Adds an existing (nonce == 1) faucet with the specified authentication method and metadata.
-    pub fn add_existing_faucet(
-        &mut self,
-        auth_method: Auth,
-        token_symbol: &str,
-        max_supply: u64,
-        total_issuance: Option<u64>,
-    ) -> MockFungibleFaucet {
-        let mut account_builder = AccountBuilder::new(self.rng.random())
-            .with_component(
-                BasicFungibleFaucet::new(
-                    TokenSymbol::new(token_symbol).unwrap(),
-                    10u8,
-                    Felt::new(max_supply),
-                )
-                .unwrap(),
-            )
-            .account_type(AccountType::FungibleFaucet);
-
-        let authenticator = match auth_method.build_component() {
-            Some((auth_component, authenticator)) => {
-                account_builder = account_builder.with_component(auth_component);
-                Some(authenticator)
-            },
-            None => None,
-        };
-        let mut account = account_builder.build_existing().unwrap();
-
-        // The faucet's reserved slot is initialized to an empty word by default.
-        // If total_issuance is set, overwrite it.
-        if let Some(issuance) = total_issuance {
-            account
-                .storage_mut()
-                .set_item(memory::FAUCET_STORAGE_DATA_SLOT, [ZERO, ZERO, ZERO, Felt::new(issuance)])
-                .unwrap();
-        }
-
-        self.committed_accounts
-            .insert(account.id(), MockAccount::new(account.clone(), None, authenticator));
-
-        MockFungibleFaucet::new(account)
-    }
-
-    /// Adds the [`AccountComponent`](miden_objects::account::AccountComponent) corresponding to
-    /// `auth_method` to the account in the builder and builds a new or existing account
-    /// depending on `account_state`.
+    /// Proves a proposed block into a proven block and returns it.
     ///
-    /// This account is added to the available accounts and are immediately available without having
-    /// to seal a block.
-    // TODO: Rename to add_pending_account_from_builder
-    pub fn add_from_account_builder(
-        &mut self,
-        auth_method: Auth,
-        mut account_builder: AccountBuilder,
-        account_state: AccountState,
-    ) -> Account {
-        let authenticator = match auth_method.build_component() {
-            Some((auth_component, authenticator)) => {
-                account_builder = account_builder.with_component(auth_component);
-                Some(authenticator)
-            },
-            None => None,
-        };
-
-        let (account, seed) = if let AccountState::New = account_state {
-            let epoch_block_number = self.latest_block_header().epoch_block_num();
-            let account_id_anchor =
-                self.blocks.get(epoch_block_number.as_usize()).unwrap().header();
-            account_builder =
-                account_builder.anchor(AccountIdAnchor::try_from(account_id_anchor).unwrap());
-
-            account_builder.build().map(|(account, seed)| (account, Some(seed))).unwrap()
-        } else {
-            account_builder.build_existing().map(|account| (account, None)).unwrap()
-        };
-
-        // Add account to the available accounts so transaction inputs can be retrieved via the mock
-        // chain APIs.
-        self.committed_accounts
-            .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
-
-        // Only automatically add the account in the next block if it is supposed to already exist.
-        // If it's a new account, it should be committed in other ways.
-        if let AccountState::Exists = account_state {
-            self.add_pending_account(account.clone());
-        }
-
-        account
-    }
-
-    /// Adds a new `Account` to the list of pending objects.
-    ///
-    /// A block has to be created to finalize the new entity.
-    pub fn add_pending_account(&mut self, account: Account) {
-        self.pending_objects.updated_accounts.insert(
-            account.id(),
-            BlockAccountUpdate::new(
-                account.id(),
-                account.commitment(),
-                AccountUpdateDetails::New(account),
-            ),
-        );
+    /// This method does not modify the chain state.
+    pub fn prove_block(
+        &self,
+        proposed_block: ProposedBlock,
+    ) -> Result<ProvenBlock, ProvenBlockError> {
+        LocalBlockProver::new(0).prove_without_batch_verification(proposed_block)
     }
 
     /// Initializes a [TransactionContextBuilder].
@@ -942,10 +991,7 @@ impl MockChain {
         // TODO: Distribute the transactions into multiple batches if the transactions would not fit
         // into a single batch (according to max input notes, max output notes and max accounts).
         let proven_batch = self
-            .propose_transaction_batch(pending_transactions.into_iter().map(|executed_tx| {
-                // This essentially transforms an executed tx into a proven tx with a dummy proof.
-                ProvenTransaction::from_executed_transaction_mocked(executed_tx)
-            }))
+            .propose_transaction_batch(pending_transactions)
             .map(|proposed_batch| self.prove_transaction_batch(proposed_batch))?;
 
         Ok(vec![proven_batch])

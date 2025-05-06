@@ -618,7 +618,7 @@ fn test_build_note_metadata() {
 #[test]
 pub fn test_timelock() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    let account = mock_chain.add_existing_wallet(Auth::NoAuth, vec![]);
+    let account = mock_chain.add_pending_existing_wallet(Auth::NoAuth, vec![]);
     const TIMESTAMP_ERROR: u32 = 123;
 
     let code = format!(

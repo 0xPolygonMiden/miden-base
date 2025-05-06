@@ -350,8 +350,8 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     let tx1 =
         generate_executed_tx_with_authenticated_notes(&mut chain, account1.id(), &[note1.id()]);
 
-    chain.submit_transaction(&tx0);
-    chain.submit_transaction(&tx1);
+    chain.add_pending_executed_transaction(&tx0);
+    chain.add_pending_executed_transaction(&tx1);
     let blockx = chain.prove_next_block();
 
     // Build a block with empty inputs whose account tree and nullifier tree root are not the empty

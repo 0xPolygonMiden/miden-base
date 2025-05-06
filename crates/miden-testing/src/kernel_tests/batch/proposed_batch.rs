@@ -43,8 +43,8 @@ struct TestSetup {
 
 fn setup_chain() -> TestSetup {
     let mut chain = MockChain::new();
-    let account1 = chain.add_new_wallet(Auth::NoAuth);
-    let account2 = chain.add_new_wallet(Auth::NoAuth);
+    let account1 = chain.add_pending_new_wallet(Auth::NoAuth);
+    let account2 = chain.add_pending_new_wallet(Auth::NoAuth);
     chain.prove_next_block();
 
     TestSetup { chain, account1, account2 }
@@ -143,7 +143,8 @@ fn duplicate_unauthenticated_input_notes() -> anyhow::Result<()> {
 #[test]
 fn duplicate_authenticated_input_notes() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
-    let note = chain.add_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
+    let note =
+        chain.add_pending_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
     let block1 = chain.block_header(1);
     let block2 = chain.prove_next_block();
 
@@ -183,7 +184,8 @@ fn duplicate_authenticated_input_notes() -> anyhow::Result<()> {
 #[test]
 fn duplicate_mixed_input_notes() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
-    let note = chain.add_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
+    let note =
+        chain.add_pending_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
     let block1 = chain.block_header(1);
     let block2 = chain.prove_next_block();
 
@@ -261,8 +263,10 @@ fn duplicate_output_notes() -> anyhow::Result<()> {
 #[test]
 fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
-    let note0 = chain.add_p2id_note(account2.id(), account1.id(), &[], NoteType::Private, None)?;
-    let note1 = chain.add_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
+    let note0 =
+        chain.add_pending_p2id_note(account2.id(), account1.id(), &[], NoteType::Private, None)?;
+    let note1 =
+        chain.add_pending_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
     // The just created note will be provable against block2.
     let block2 = chain.prove_next_block();
     let block3 = chain.prove_next_block();
@@ -370,7 +374,8 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
 #[test]
 fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
-    let note = chain.add_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
+    let note =
+        chain.add_pending_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
     let block1 = chain.block_header(1);
     let block2 = chain.prove_next_block();
 

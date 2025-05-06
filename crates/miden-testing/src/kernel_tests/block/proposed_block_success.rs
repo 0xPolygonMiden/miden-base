@@ -129,7 +129,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         account1.id(),
         &[note0.id()],
     );
-    alternative_chain.submit_transaction(&executed_tx0);
+    alternative_chain.add_pending_executed_transaction(&executed_tx0);
     alternative_chain.prove_next_block();
 
     let executed_tx1 = generate_executed_tx_with_authenticated_notes(
@@ -137,7 +137,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         account1.id(),
         &[note1.id()],
     );
-    alternative_chain.submit_transaction(&executed_tx1);
+    alternative_chain.add_pending_executed_transaction(&executed_tx1);
     alternative_chain.prove_next_block();
 
     let executed_tx2 = generate_executed_tx_with_authenticated_notes(
@@ -145,7 +145,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         account1.id(),
         &[note2.id()],
     );
-    alternative_chain.submit_transaction(&executed_tx2);
+    alternative_chain.add_pending_executed_transaction(&executed_tx2);
 
     let [tx0, tx1, tx2] = [executed_tx0, executed_tx1, executed_tx2]
         .into_iter()

@@ -476,7 +476,7 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
         account1.id(),
         &[note0.id()],
     );
-    alternative_chain.submit_transaction(&transaction);
+    alternative_chain.add_pending_executed_transaction(&transaction);
     alternative_chain.prove_next_block();
     let spent_proof = alternative_chain.nullifiers().open(&note0.nullifier());
 
@@ -595,7 +595,7 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
         account1.id(),
         &[note0.id()],
     );
-    alternative_chain.submit_transaction(&executed_tx0);
+    alternative_chain.add_pending_executed_transaction(&executed_tx0);
     alternative_chain.prove_next_block();
 
     let executed_tx1 = generate_executed_tx_with_authenticated_notes(
@@ -603,7 +603,7 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
         account1.id(),
         &[note1.id()],
     );
-    alternative_chain.submit_transaction(&executed_tx1);
+    alternative_chain.add_pending_executed_transaction(&executed_tx1);
     alternative_chain.prove_next_block();
 
     let executed_tx2 = generate_executed_tx_with_authenticated_notes(
@@ -611,7 +611,7 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
         account1.id(),
         &[note2.id()],
     );
-    alternative_chain.submit_transaction(&executed_tx2);
+    alternative_chain.add_pending_executed_transaction(&executed_tx2);
 
     // We will only include tx0 and tx2 and leave out tx1, which will trigger the error condition
     // that there is no transition from tx0 -> tx2.

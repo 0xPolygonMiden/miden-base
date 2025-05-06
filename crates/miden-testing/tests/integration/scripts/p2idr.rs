@@ -21,9 +21,9 @@ fn p2idr_script() -> anyhow::Result<()> {
     let fungible_asset: Asset = FungibleAsset::mock(100);
 
     // Create sender and target and malicious account
-    let sender_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    let target_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    let malicious_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let sender_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
+    let target_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
+    let malicious_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
 
     // Create the reclaim block heights
     let reclaim_block_height_in_time = 7.into();
@@ -31,7 +31,7 @@ fn p2idr_script() -> anyhow::Result<()> {
 
     // Create the notes with the P2IDR script
     let note_in_time = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             sender_account.id(),
             target_account.id(),
             &[fungible_asset],
@@ -41,7 +41,7 @@ fn p2idr_script() -> anyhow::Result<()> {
         .unwrap();
 
     let note_reclaimable = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             sender_account.id(),
             target_account.id(),
             &[fungible_asset],

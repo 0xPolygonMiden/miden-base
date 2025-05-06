@@ -34,12 +34,12 @@ fn p2id_script_multiple_assets() {
             .into();
 
     // Create sender and target account
-    let sender_account = mock_chain.add_new_wallet(Auth::BasicAuth);
-    let target_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let sender_account = mock_chain.add_pending_new_wallet(Auth::BasicAuth);
+    let target_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
 
     // Create the note
     let note = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             sender_account.id(),
             target_account.id(),
             &[fungible_asset_1, fungible_asset_2],
@@ -77,7 +77,7 @@ fn p2id_script_multiple_assets() {
     // --------------------------------------------------------------------------------------------
     // A "malicious" account tries to consume the note, we expect an error (not the correct target)
 
-    let malicious_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let malicious_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
     mock_chain.prove_next_block();
 
     // Execute the transaction and get the result
@@ -99,12 +99,12 @@ fn prove_consume_note_with_new_account() {
     let fungible_asset: Asset = FungibleAsset::mock(123);
 
     // Create faucet account and target account
-    let faucet_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    let target_account = mock_chain.add_new_wallet(Auth::BasicAuth);
+    let faucet_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
+    let target_account = mock_chain.add_pending_new_wallet(Auth::BasicAuth);
 
     // Create the note
     let note = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             faucet_account.id(),
             target_account.id(),
             &[fungible_asset],
@@ -145,13 +145,13 @@ fn prove_consume_note_with_new_account() {
 #[test]
 fn prove_consume_multiple_notes() {
     let mut mock_chain = MockChain::new();
-    let mut account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let mut account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
 
     let fungible_asset_1: Asset = FungibleAsset::mock(100);
     let fungible_asset_2: Asset = FungibleAsset::mock(23);
 
     let note_1 = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             ACCOUNT_ID_SENDER.try_into().unwrap(),
             account.id(),
             &[fungible_asset_1],
@@ -160,7 +160,7 @@ fn prove_consume_multiple_notes() {
         )
         .unwrap();
     let note_2 = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             ACCOUNT_ID_SENDER.try_into().unwrap(),
             account.id(),
             &[fungible_asset_2],
@@ -193,7 +193,7 @@ fn prove_consume_multiple_notes() {
 fn test_create_consume_multiple_notes() {
     let mut mock_chain = MockChain::new();
     let mut account =
-        mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
+        mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(20)]);
 
     let input_note_faucet_id = ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET.try_into().unwrap();
     let input_note_asset_1: Asset = FungibleAsset::new(input_note_faucet_id, 11).unwrap().into();
@@ -201,7 +201,7 @@ fn test_create_consume_multiple_notes() {
     let input_note_asset_2: Asset = FungibleAsset::new(input_note_faucet_id, 100).unwrap().into();
 
     let input_note_1 = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             ACCOUNT_ID_SENDER.try_into().unwrap(),
             account.id(),
             &[input_note_asset_1],
@@ -211,7 +211,7 @@ fn test_create_consume_multiple_notes() {
         .unwrap();
 
     let input_note_2 = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2.try_into().unwrap(),
             account.id(),
             &[input_note_asset_2],

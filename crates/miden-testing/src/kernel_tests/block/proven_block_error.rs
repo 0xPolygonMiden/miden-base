@@ -57,7 +57,7 @@ fn witness_test_setup() -> WitnessTestSetup {
     let nullifier_root0 = chain.nullifiers().root();
 
     // Apply the executed tx and seal a block. This invalidates the block inputs we've just fetched.
-    chain.submit_transaction(&tx0);
+    chain.add_pending_executed_transaction(&tx0);
     chain.prove_next_block();
 
     let valid_block_inputs = chain.get_block_inputs(&batches);

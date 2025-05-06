@@ -46,14 +46,14 @@ use crate::{
 fn test_fpi_anchoring_validations() {
     // Create a chain with an account
     let mut mock_chain = MockChain::new();
-    let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
     mock_chain.prove_next_block();
 
     // Retrieve inputs which will become stale
     let inputs = mock_chain.get_foreign_account_inputs(account.id());
 
     // Add account to modify account tree
-    let new_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let new_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
     mock_chain.prove_next_block();
 
     // Attempt to execute with older foreign account inputs
@@ -73,12 +73,12 @@ fn test_fpi_anchoring_validations() {
 fn test_future_input_note_fails() -> anyhow::Result<()> {
     // Create a chain with an account
     let mut mock_chain = MockChain::new();
-    let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
     mock_chain.prove_until_block(10u32)?;
 
     // Create note that will land on a future block
     let note = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             account.id(),
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
             &[],
