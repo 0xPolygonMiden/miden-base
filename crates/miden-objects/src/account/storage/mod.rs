@@ -15,6 +15,9 @@ pub use map::StorageMap;
 mod header;
 pub use header::{AccountStorageHeader, StorageSlotHeader};
 
+mod partial;
+pub use partial::PartialStorage;
+
 // ACCOUNT STORAGE
 // ================================================================================================
 

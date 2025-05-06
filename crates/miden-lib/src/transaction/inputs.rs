@@ -2,7 +2,8 @@ use alloc::vec::Vec;
 
 use miden_objects::{
     Digest, EMPTY_WORD, Felt, FieldElement, TransactionInputError, WORD_SIZE, Word, ZERO,
-    account::{Account, StorageSlot},
+    account::{AccountHeader, PartialAccount},
+    block::AccountWitness,
     transaction::{
         InputNote, PartialBlockchain, TransactionArgs, TransactionInputs, TransactionScript,
     },
@@ -33,10 +34,17 @@ pub(super) fn extend_advice_inputs(
     // build the advice map and Merkle store for relevant components
     add_kernel_commitments_to_advice_inputs(advice_inputs, kernel_version);
     add_partial_blockchain_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
-    add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
     add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs)?;
-    for foreign_account in tx_args.foreign_accounts() {
-        TransactionKernel::extend_advice_inputs_for_account(advice_inputs, foreign_account)?;
+
+    // inject account data
+    // TODO: get rid of this clone
+    let partial_account = PartialAccount::from(tx_inputs.account().clone());
+    add_account_to_advice_inputs(&partial_account, tx_inputs.account_seed(), advice_inputs)?;
+
+    // inject foreign account data
+    for account_inputs in tx_args.foreign_account_inputs() {
+        add_account_to_advice_inputs(account_inputs.partial_account(), None, advice_inputs)?;
+        add_account_witness_to_advice_inputs(account_inputs.witness(), advice_inputs)?;
     }
 
     advice_inputs.extend(tx_args.advice_inputs().clone());
@@ -149,7 +157,7 @@ fn add_partial_blockchain_to_advice_inputs(mmr: &PartialBlockchain, inputs: &mut
 // ACCOUNT DATA INJECTOR
 // ------------------------------------------------------------------------------------------------
 
-/// Inserts core account data into the provided advice inputs.
+/// Inserts account data into the provided advice inputs.
 ///
 /// Inserts the following items into the Merkle store:
 /// - The Merkle nodes associated with the account vault tree.
@@ -161,50 +169,111 @@ fn add_partial_blockchain_to_advice_inputs(mmr: &PartialBlockchain, inputs: &mut
 /// - The node |-> (key, value), for all leaf nodes of the asset vault SMT.
 /// - [account_id_suffix, account_id_prefix, 0, 0] |-> account_seed, when account seed is provided.
 /// - If present, the Merkle leaves associated with the account storage maps.
-fn add_account_to_advice_inputs(
-    account: &Account,
+pub fn add_account_to_advice_inputs(
+    account: &PartialAccount,
     account_seed: Option<Word>,
-    inputs: &mut AdviceInputs,
-) {
-    // --- account storage ----------------------------------------------------
-    let storage = account.storage();
+    advice_inputs: &mut AdviceInputs,
+) -> Result<(), TransactionInputError> {
+    let storage_header = account.partial_storage().header();
+    let account_code = account.code();
+    let storage_proofs = account.partial_storage().storage_map_proofs();
+    let account_id = account.id();
 
-    for slot in storage.slots() {
-        // if there are storage maps, we populate the merkle store and advice map
-        if let StorageSlot::Map(map) = slot {
-            // extend the merkle store and map with the storage maps
-            inputs.extend_merkle_store(map.inner_nodes());
-            // populate advice map with Sparse Merkle Tree leaf nodes
-            inputs.extend_map(map.leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
-        }
-    }
+    let account_header = AccountHeader::from(account);
+
+    // --- account storage ----------------------------------------------------
 
     // extend advice map with storage commitment |-> length, storage slots and types vector
-    inputs.extend_map([(storage.commitment(), storage.as_elements())]);
+    advice_inputs.extend_map([
+        // STORAGE_COMMITMENT -> [STORAGE_SLOT_DATA]
+        (storage_header.compute_commitment(), storage_header.as_elements()),
+    ]);
 
-    // --- account vault ------------------------------------------------------
-    let vault = account.vault();
+    // load merkle nodes for storage maps
+    for proof in storage_proofs {
+        // Extend the merkle store and map with the storage maps
+        advice_inputs.extend_merkle_store(
+            proof
+                .path()
+                .inner_nodes(proof.leaf().index().value(), proof.leaf().hash())
+                .map_err(|err| {
+                    TransactionInputError::InvalidMerklePath(
+                        format!("foreign account ID {} storage proof", account_id).into(),
+                        err,
+                    )
+                })?,
+        );
+        // Populate advice map with Sparse Merkle Tree leaf nodes
+        advice_inputs
+            .extend_map(core::iter::once((proof.leaf().hash(), proof.leaf().to_elements())));
+    }
 
-    // extend the merkle store with account vault data
-    inputs.extend_merkle_store(vault.asset_tree().inner_nodes());
+    // --- account code ----------------------------------------------------
+
+    advice_inputs.extend_map([
+        // CODE_COMMITMENT -> [ACCOUNT_CODE_DATA]
+        (account_code.commitment(), account_code.as_elements()),
+    ]);
+
+    // --- account vault ----------------------------------------------------
+
+    advice_inputs.extend_merkle_store(account.partial_vault().inner_nodes());
 
     // populate advice map with Sparse Merkle Tree leaf nodes
-    inputs
-        .extend_map(vault.asset_tree().leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
+    advice_inputs.extend_map(
+        account
+            .partial_vault()
+            .leaves()
+            .map(|(_, leaf)| (leaf.hash(), leaf.to_elements())),
+    );
 
-    // --- account code -------------------------------------------------------
-    let code = account.code();
+    // --- account state ----------------------------------------------------
 
-    // extend the advice map with the account code data
-    inputs.extend_map([(code.commitment(), code.as_elements())]);
+    let account_id_key: Digest =
+        Digest::from([account_id.suffix(), account_id.prefix().as_felt(), ZERO, ZERO]);
 
-    // --- account seed -------------------------------------------------------
-    if let Some(account_seed) = account_seed {
-        inputs.extend_map(vec![(
-            [account.id().suffix(), account.id().prefix().as_felt(), ZERO, ZERO].into(),
-            account_seed.to_vec(),
+    // if a seed was provided, extend the map; otherwise inject the state
+    if let Some(seed) = account_seed {
+        advice_inputs.extend_map([(
+            // ACCOUNT_ID -> ACCOUNT_SEED
+            account_id_key,
+            seed.to_vec(),
+        )]);
+    } else {
+        // Note: keep in sync with the start_foreign_context kernel procedure
+        advice_inputs.extend_map([(
+            // ACCOUNT_ID -> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT, CODE_COMMITMENT]
+            account_id_key,
+            account_header.as_elements(),
         )]);
     }
+    Ok(())
+}
+
+fn add_account_witness_to_advice_inputs(
+    witness: &AccountWitness,
+    advice_inputs: &mut AdviceInputs,
+) -> Result<(), TransactionInputError> {
+    let account_id = witness.id();
+
+    let account_leaf = witness.leaf();
+    let account_leaf_hash = account_leaf.hash();
+
+    // populate advice map with the account's leaf
+    advice_inputs.extend_map([(account_leaf_hash, account_leaf.to_elements())]);
+    // extend the merkle store and map with account witnesses merkle path
+    advice_inputs.extend_merkle_store(
+        witness
+            .path()
+            .inner_nodes(account_id.prefix().as_u64(), account_leaf_hash)
+            .map_err(|err| {
+                TransactionInputError::InvalidMerklePath(
+                    format!("foreign account ID {}", account_id).into(),
+                    err,
+                )
+            })?,
+    );
+    Ok(())
 }
 
 // INPUT NOTE INJECTOR

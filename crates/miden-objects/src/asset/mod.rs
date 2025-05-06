@@ -15,7 +15,7 @@ mod token_symbol;
 pub use token_symbol::TokenSymbol;
 
 mod vault;
-pub use vault::AssetVault;
+pub use vault::{AssetVault, PartialVault};
 
 // ASSET
 // ================================================================================================

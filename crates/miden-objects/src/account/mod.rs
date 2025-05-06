@@ -34,13 +34,18 @@ pub use delta::{
 };
 
 mod storage;
-pub use storage::{AccountStorage, AccountStorageHeader, StorageMap, StorageSlot, StorageSlotType};
+pub use storage::{
+    AccountStorage, AccountStorageHeader, PartialStorage, StorageMap, StorageSlot, StorageSlotType,
+};
 
 mod header;
 pub use header::AccountHeader;
 
 mod file;
 pub use file::AccountFile;
+
+mod partial;
+pub use partial::PartialAccount;
 
 // ACCOUNT
 // ================================================================================================
