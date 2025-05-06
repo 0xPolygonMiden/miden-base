@@ -11,7 +11,8 @@ use miden_objects::{
     note::{Note, NoteId, NoteTag, NoteType},
     testing::{account_component::AccountMockComponent, note::NoteBuilder},
     transaction::{
-        ExecutedTransaction, ProvenTransaction, ProvenTransactionBuilder, TransactionScript,
+        ExecutedTransaction, OutputNote, ProvenTransaction, ProvenTransactionBuilder,
+        TransactionScript,
     },
     utils::word_to_masm_push_string,
     vm::ExecutionProof,
@@ -40,7 +41,7 @@ pub fn generate_tracked_note(
     receiver: AccountId,
 ) -> Note {
     let note = generate_untracked_note_internal(sender, receiver, vec![]);
-    chain.add_pending_note(note.clone());
+    chain.add_pending_note(OutputNote::Full(note.clone()));
     note
 }
 
@@ -51,7 +52,7 @@ pub fn generate_tracked_note_with_asset(
     asset: Asset,
 ) -> Note {
     let note = generate_untracked_note_internal(sender, receiver, vec![asset]);
-    chain.add_pending_note(note.clone());
+    chain.add_pending_note(OutputNote::Full(note.clone()));
     note
 }
 

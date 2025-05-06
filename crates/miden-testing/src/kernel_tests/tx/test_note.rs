@@ -11,7 +11,7 @@ use miden_objects::{
         Note, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata, NoteTag, NoteType,
     },
     testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
-    transaction::{ForeignAccountInputs, TransactionArgs},
+    transaction::{ForeignAccountInputs, OutputNote, TransactionArgs},
 };
 use miden_tx::TransactionExecutorError;
 use rand::SeedableRng;
@@ -655,7 +655,7 @@ pub fn test_timelock() {
         .build(&TransactionKernel::testing_assembler_with_mock_account())
         .unwrap();
 
-    mock_chain.add_pending_note(timelock_note.clone());
+    mock_chain.add_pending_note(OutputNote::Full(timelock_note.clone()));
     mock_chain.seal_block(None, Some(lock_timestamp - 100));
 
     // Attempt to consume note too early.

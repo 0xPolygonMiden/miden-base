@@ -7,7 +7,7 @@ use miden_objects::{
     MIN_PROOF_SECURITY_LEVEL,
     batch::BatchNoteTree,
     block::{AccountTree, BlockInputs, BlockNoteIndex, BlockNoteTree, ProposedBlock},
-    transaction::InputNoteCommitment,
+    transaction::{InputNoteCommitment, OutputNote},
 };
 use rand::Rng;
 
@@ -43,10 +43,10 @@ fn proven_block_success() -> anyhow::Result<()> {
     let input_note3 = generate_untracked_note_with_output_note(account3.id(), output_note3);
 
     // Add input notes to chain so we can consume them.
-    chain.add_pending_note(input_note0.clone());
-    chain.add_pending_note(input_note1.clone());
-    chain.add_pending_note(input_note2.clone());
-    chain.add_pending_note(input_note3.clone());
+    chain.add_pending_note(OutputNote::Full(input_note0.clone()));
+    chain.add_pending_note(OutputNote::Full(input_note1.clone()));
+    chain.add_pending_note(OutputNote::Full(input_note2.clone()));
+    chain.add_pending_note(OutputNote::Full(input_note3.clone()));
     chain.seal_next_block();
 
     let tx0 = generate_tx_with_authenticated_notes(&mut chain, account0.id(), &[input_note0.id()]);
@@ -213,9 +213,9 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
     let note3 = generate_untracked_note_with_output_note(account3.id(), output_note3.clone());
 
     // Add note{0,2,3} to the chain so we can consume them.
-    chain.add_pending_note(note0.clone());
-    chain.add_pending_note(note2.clone());
-    chain.add_pending_note(note3.clone());
+    chain.add_pending_note(OutputNote::Full(note0.clone()));
+    chain.add_pending_note(OutputNote::Full(note2.clone()));
+    chain.add_pending_note(OutputNote::Full(note3.clone()));
     chain.seal_next_block();
 
     let tx0 = generate_tx_with_authenticated_notes(&mut chain, account0.id(), &[note0.id()]);

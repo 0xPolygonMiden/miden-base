@@ -90,12 +90,7 @@ fn test_future_input_note_fails() {
 
     // Get as input note, and assert that the note was created after block 1 (which we'll
     // use as reference)
-    let input_note = mock_chain
-        .available_notes()
-        .iter()
-        .find(|n| n.id() == note.id())
-        .unwrap()
-        .clone();
+    let input_note = mock_chain.get_public_note(&note.id()).expect("note not found");
     assert!(input_note.location().unwrap().block_num() > 1.into());
 
     mock_chain.seal_next_block();

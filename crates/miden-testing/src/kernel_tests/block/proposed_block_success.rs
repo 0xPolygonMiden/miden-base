@@ -5,7 +5,7 @@ use miden_objects::{
     account::AccountId,
     block::{BlockInputs, ProposedBlock},
     testing::account_id::ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
-    transaction::{ProvenTransaction, TransactionHeader},
+    transaction::{OutputNote, ProvenTransaction, TransactionHeader},
 };
 
 use super::utils::{
@@ -204,8 +204,8 @@ fn proposed_block_authenticating_unauthenticated_notes() -> anyhow::Result<()> {
     let batch0 = generate_batch(&mut chain, vec![tx0.clone()]);
     let batch1 = generate_batch(&mut chain, vec![tx1.clone()]);
 
-    chain.add_pending_note(note0.clone());
-    chain.add_pending_note(note1.clone());
+    chain.add_pending_note(OutputNote::Full(note0.clone()));
+    chain.add_pending_note(OutputNote::Full(note1.clone()));
     chain.seal_next_block();
 
     let batches = [batch0, batch1];

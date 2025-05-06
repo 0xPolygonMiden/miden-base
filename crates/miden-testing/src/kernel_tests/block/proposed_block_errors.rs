@@ -7,7 +7,7 @@ use miden_objects::{
     block::{BlockInputs, BlockNumber, ProposedBlock},
     note::NoteInclusionProof,
     testing::account_id::ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
-    transaction::ProvenTransaction,
+    transaction::{OutputNote, ProvenTransaction},
 };
 
 use super::utils::{
@@ -281,8 +281,8 @@ fn proposed_block_fails_on_duplicate_output_note() -> anyhow::Result<()> {
     let note0 = generate_untracked_note_with_output_note(account.id(), output_note.clone());
     let note1 = generate_untracked_note_with_output_note(account.id(), output_note);
 
-    chain.add_pending_note(note0.clone());
-    chain.add_pending_note(note1.clone());
+    chain.add_pending_note(OutputNote::Full(note0.clone()));
+    chain.add_pending_note(OutputNote::Full(note1.clone()));
 
     chain.seal_next_block();
 
@@ -326,7 +326,7 @@ fn proposed_block_fails_on_invalid_proof_or_missing_note_inclusion_reference_blo
     let batch0 = generate_batch(&mut chain, vec![tx0]);
 
     // Add the note to the chain so we can retrieve an inclusion proof for it.
-    chain.add_pending_note(note0.clone());
+    chain.add_pending_note(OutputNote::Full(note0.clone()));
     let block2 = chain.seal_next_block();
 
     // Seal another block so that the next block will use this one as the reference block and block2
@@ -426,7 +426,7 @@ fn proposed_block_fails_on_missing_nullifier_witness() -> anyhow::Result<()> {
     let batch0 = generate_batch(&mut chain, vec![tx0]);
 
     // Add the note to the chain so we can retrieve an inclusion proof for it.
-    chain.add_pending_note(note0.clone());
+    chain.add_pending_note(OutputNote::Full(note0.clone()));
     let _block2 = chain.seal_next_block();
 
     let batches = vec![batch0.clone()];
@@ -464,7 +464,7 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
     let batch0 = generate_batch(&mut chain, vec![tx0]);
 
     // Add the note to the chain so we can consume it in the next step.
-    chain.add_pending_note(note0.clone());
+    chain.add_pending_note(OutputNote::Full(note0.clone()));
     let _block2 = chain.seal_next_block();
 
     // Create an alternative chain where we consume the note so it is marked as spent in the

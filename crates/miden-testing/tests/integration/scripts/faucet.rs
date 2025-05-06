@@ -8,7 +8,7 @@ use miden_objects::{
     Felt,
     asset::{Asset, FungibleAsset},
     note::{NoteAssets, NoteExecutionHint, NoteId, NoteMetadata, NoteTag, NoteType},
-    transaction::TransactionScript,
+    transaction::{OutputNote, TransactionScript},
 };
 use miden_testing::{Auth, MockChain, MockFungibleFaucet};
 use miden_tx::utils::word_to_masm_push_string;
@@ -195,7 +195,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
 
     let note = get_note_with_fungible_asset_and_script(fungible_asset, note_script);
 
-    mock_chain.add_pending_note(note.clone());
+    mock_chain.add_pending_note(OutputNote::Full(note.clone()));
     mock_chain.seal_next_block();
 
     // CONSTRUCT AND EXECUTE TX (Success)
