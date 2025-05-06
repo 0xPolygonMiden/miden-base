@@ -247,7 +247,7 @@ impl TransactionContextBuilder {
             .unwrap()
     }
 
-    /// Adds one input note with a note script that creates another ouput note.
+    /// Adds one input note with a note script that creates another output note.
     fn input_note_with_one_output_note(
         &mut self,
         sender: AccountId,
@@ -301,7 +301,7 @@ impl TransactionContextBuilder {
             .unwrap()
     }
 
-    /// Adds one input note with a note script that creates 2 ouput notes.
+    /// Adds one input note with a note script that creates 2 output notes.
     fn input_note_with_two_output_notes(
         &mut self,
         sender: AccountId,

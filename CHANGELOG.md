@@ -15,6 +15,7 @@
 - Move `NullifierTree` and `BlockChain` from node to base (#1304).
 - Rename `ChainMmr` to `PartialBlockchain` (#1305).
 - Add safe `PartialBlockchain` constructor (#1308).
+- Fix error when creating accounts with empty storage (#1307).
 - [BREAKING] Move `MockChain` and `TransactionContext` to new `miden-testing` crate (#1309).
 - [BREAKING] Add support for private notes in `MockChain` (#1310).
 
@@ -41,6 +42,7 @@
 - Implement user-facing bech32 encoding for `AccountId`s (#1185).
 - Implemented `execute_tx_view_script` procedure for the `TransactionExecutor` (#1197).
 - Enabled nested FPI calls (#1227).
+- Implement `check_notes_consumability` procedure for the `TransactionExecutor` (#1269).
 
 ### Changes
 

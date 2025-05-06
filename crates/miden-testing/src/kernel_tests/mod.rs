@@ -9,12 +9,18 @@ use ::assembly::{
     LibraryPath,
     ast::{Module, ModuleKind},
 };
-use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string};
+use assert_matches::assert_matches;
+use miden_lib::{
+    note::{create_p2id_note, create_p2idr_note},
+    transaction::TransactionKernel,
+    utils::word_to_masm_push_string,
+};
 use miden_objects::{
     Felt, FieldElement, MIN_PROOF_SECURITY_LEVEL, Word,
-    account::{Account, AccountBuilder, AccountComponent, AccountStorage, StorageSlot},
+    account::{Account, AccountBuilder, AccountComponent, AccountId, AccountStorage, StorageSlot},
     assembly::DefaultSourceManager,
     asset::{Asset, AssetVault, FungibleAsset, NonFungibleAsset},
+    block::BlockNumber,
     note::{
         Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteHeader, NoteId, NoteInputs,
         NoteMetadata, NoteRecipient, NoteScript, NoteTag, NoteType,
@@ -24,22 +30,24 @@ use miden_objects::{
         account_id::{
             ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
-            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE, ACCOUNT_ID_SENDER,
         },
         constants::{FUNGIBLE_ASSET_AMOUNT, NON_FUNGIBLE_ASSET_DATA},
-        note::DEFAULT_NOTE_CODE,
+        note::{DEFAULT_NOTE_CODE, NoteBuilder},
         storage::{STORAGE_INDEX_0, STORAGE_INDEX_2},
     },
     transaction::{OutputNote, ProvenTransaction, TransactionScript},
 };
 use miden_tx::{
-    LocalTransactionProver, ProvingOptions, TransactionExecutor, TransactionHost,
-    TransactionMastStore, TransactionProver, TransactionVerifier,
+    LocalTransactionProver, NoteAccountExecution, NoteConsumptionChecker, ProvingOptions,
+    TransactionExecutor, TransactionExecutorError, TransactionHost, TransactionMastStore,
+    TransactionProver, TransactionVerifier,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{
-    Digest, MemAdviceProvider, ONE,
+    Digest, ExecutionError, MemAdviceProvider, ONE,
+    crypto::RpoRandomCoin,
     utils::{Deserializable, Serializable},
 };
 
@@ -956,4 +964,119 @@ fn test_execute_program() {
         .unwrap();
 
     assert_eq!(stack_outputs[..3], [Felt::new(7), Felt::new(2), ONE]);
+}
+
+#[test]
+fn test_check_note_consumability() {
+    // Success (well known notes)
+    // --------------------------------------------------------------------------------------------
+    let p2id_note = create_p2id_note(
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE.try_into().unwrap(),
+        vec![FungibleAsset::mock(10)],
+        NoteType::Public,
+        Default::default(),
+        &mut RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]),
+    )
+    .unwrap();
+
+    let p2idr_note = create_p2idr_note(
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
+        ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE.try_into().unwrap(),
+        vec![FungibleAsset::mock(10)],
+        NoteType::Public,
+        Default::default(),
+        BlockNumber::default(),
+        &mut RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]),
+    )
+    .unwrap();
+
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .input_notes(vec![p2id_note, p2idr_note])
+        .build();
+
+    let input_notes = tx_context.input_notes().clone();
+    let target_account_id = tx_context.account().id();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let tx_args = tx_context.tx_args().clone();
+
+    let executor: TransactionExecutor =
+        TransactionExecutor::new(Arc::new(tx_context), None).with_tracing();
+    let notes_checker = NoteConsumptionChecker::new(&executor);
+
+    let execution_check_result = notes_checker
+        .check_notes_consumability(target_account_id, block_ref, input_notes, tx_args)
+        .unwrap();
+    assert_matches!(execution_check_result, NoteAccountExecution::Success);
+
+    // Success (custom notes)
+    // --------------------------------------------------------------------------------------------
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .build();
+
+    let input_notes = tx_context.input_notes().clone();
+    let account_id = tx_context.account().id();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let tx_args = tx_context.tx_args().clone();
+
+    let executor: TransactionExecutor =
+        TransactionExecutor::new(Arc::new(tx_context), None).with_tracing();
+    let notes_checker = NoteConsumptionChecker::new(&executor);
+
+    let execution_check_result = notes_checker
+        .check_notes_consumability(account_id, block_ref, input_notes, tx_args)
+        .unwrap();
+    assert_matches!(execution_check_result, NoteAccountExecution::Success);
+
+    // Failure
+    // --------------------------------------------------------------------------------------------
+    let sender = AccountId::try_from(ACCOUNT_ID_SENDER).unwrap();
+
+    let failing_note_1 = NoteBuilder::new(
+        sender,
+        ChaCha20Rng::from_seed(ChaCha20Rng::from_seed([0_u8; 32]).random()),
+    )
+    .code("begin push.1 drop push.0 div end")
+    .build(&TransactionKernel::testing_assembler())
+    .unwrap();
+
+    let failing_note_2 = NoteBuilder::new(
+        sender,
+        ChaCha20Rng::from_seed(ChaCha20Rng::from_seed([0_u8; 32]).random()),
+    )
+    .code("begin push.2 drop push.0 div end")
+    .build(&TransactionKernel::testing_assembler())
+    .unwrap();
+
+    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
+        .with_mock_notes_preserved()
+        .input_notes(vec![failing_note_1, failing_note_2.clone()])
+        .build();
+
+    let input_notes = tx_context.input_notes().clone();
+    let input_note_ids =
+        input_notes.iter().map(|input_note| input_note.id()).collect::<Vec<NoteId>>();
+    let account_id = tx_context.account().id();
+    let block_ref = tx_context.tx_inputs().block_header().block_num();
+    let tx_args = tx_context.tx_args().clone();
+
+    let executor: TransactionExecutor =
+        TransactionExecutor::new(Arc::new(tx_context), None).with_tracing();
+    let notes_checker = NoteConsumptionChecker::new(&executor);
+
+    // let notes_checker = NoteConsumptionChecker::new(account_id, input_notes.clone().into_vec());
+    let execution_check_result = notes_checker
+        .check_notes_consumability(account_id, block_ref, input_notes, tx_args)
+        .unwrap();
+
+    assert_matches!(execution_check_result, NoteAccountExecution::Failure {
+        failed_note_id,
+        successful_notes,
+        error: Some(e)} => {
+            assert_eq!(failed_note_id, failing_note_2.id());
+            assert_eq!(successful_notes, input_note_ids[..2].to_vec());
+            assert_matches!(e, TransactionExecutorError::TransactionProgramExecutionFailed(ExecutionError::DivideByZero(_)));
+        }
+    );
 }
