@@ -654,7 +654,7 @@ impl TransactionContextBuilder {
                 mock_chain.prove_next_block();
 
                 let input_note_ids: Vec<NoteId> =
-                    mock_chain.available_notes().iter().map(|n| n.id()).collect();
+                    mock_chain.committed_notes().values().map(|note| note.id()).collect();
 
                 mock_chain.get_transaction_inputs(
                     self.account.clone(),

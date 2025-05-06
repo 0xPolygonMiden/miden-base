@@ -103,7 +103,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // Compute expected account root on the full account tree.
     // --------------------------------------------------------------------------------------------
 
-    let mut expected_account_tree = chain.accounts().clone();
+    let mut expected_account_tree = chain.account_tree().clone();
     for (account_id, witness) in proposed_block.updated_accounts() {
         expected_account_tree
             .insert(*account_id, witness.final_state_commitment())

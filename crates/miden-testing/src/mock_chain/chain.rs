@@ -146,10 +146,10 @@ pub struct MockChain {
     /// History of produced blocks.
     blocks: Vec<ProvenBlock>,
 
-    /// Tree containing the latest `Nullifier`'s tree.
+    /// Tree containing all nullifiers.
     nullifier_tree: NullifierTree,
 
-    /// Tree containing the latest state commitment of each account.
+    /// Tree containing the state commitments of all accounts.
     account_tree: AccountTree,
 
     /// Objects that have not yet been finalized.
@@ -160,16 +160,18 @@ pub struct MockChain {
     /// - The [Note]s in this container do not have the `proof` set.
     pending_objects: PendingObjects,
 
-    /// NoteID |-> MockChainNote mapping to simplify note retrieval
-    available_notes: BTreeMap<NoteId, MockChainNote>,
-
-    /// TODO
+    /// Transactions that have been submitted to the chain but have not yet been included in a
+    /// block.
     pending_transactions: Vec<ExecutedTransaction>,
 
-    /// AccountId |-> Account mapping to simplify transaction creation
-    available_accounts: BTreeMap<AccountId, MockAccount>,
+    /// NoteID |-> MockChainNote mapping to simplify note retrieval.
+    committed_notes: BTreeMap<NoteId, MockChainNote>,
 
-    rng: ChaCha20Rng, // RNG field
+    /// AccountId |-> MockAccount mapping to simplify transaction creation.
+    committed_accounts: BTreeMap<AccountId, MockAccount>,
+
+    // The RNG used to generate note serial numbers, account seeds or cryptographic keys.
+    rng: ChaCha20Rng,
 }
 
 impl MockChain {
@@ -194,43 +196,24 @@ impl MockChain {
 
     /// Creates a new `MockChain` with a genesis block containing the provided accounts.
     pub fn with_accounts(accounts: &[Account]) -> Self {
-        let mut genesis_block = create_genesis_block(accounts.iter().cloned());
+        let (genesis_block, account_tree) =
+            create_genesis_state(accounts.iter().cloned()).expect("TODO: turn into error");
 
         let mut chain = MockChain {
             chain: Blockchain::default(),
             blocks: vec![],
             nullifier_tree: NullifierTree::default(),
-            account_tree: AccountTree::new(),
+            account_tree,
             pending_objects: PendingObjects::new(),
             pending_transactions: Vec::new(),
-            available_notes: BTreeMap::new(),
-            available_accounts: BTreeMap::new(),
+            committed_notes: BTreeMap::new(),
+            committed_accounts: BTreeMap::new(),
             // Initialize RNG with default seed.
             rng: ChaCha20Rng::from_seed(Default::default()),
         };
 
-        chain
-            .apply_block_tree_updates(&genesis_block)
-            .context("failed to partially apply genesis block")
-            .unwrap();
-
-        // Update account tree root in the genesis block so the added accounts are committed to.
-        let genesis_header = genesis_block.header();
-        let updated_header = BlockHeader::new(
-            genesis_header.version(),
-            genesis_header.prev_block_commitment(),
-            genesis_header.block_num(),
-            genesis_header.chain_commitment(),
-            chain.account_tree.root(),
-            genesis_header.nullifier_root(),
-            genesis_header.note_root(),
-            genesis_header.tx_commitment(),
-            genesis_header.tx_kernel_commitment(),
-            genesis_header.proof_commitment(),
-            genesis_header.timestamp(),
-        );
-        genesis_block.set_block_header(updated_header);
-
+        // We do not have to apply the tree changes, because the account tree is already initialized
+        // and the nullifier tree is empty at genesis.
         chain
             .apply_block(genesis_block)
             .context("failed to apply genesis block")
@@ -238,14 +221,14 @@ impl MockChain {
 
         debug_assert_eq!(chain.blocks.len(), 1);
         debug_assert_eq!(chain.account_tree.num_accounts(), accounts.len());
-        debug_assert_eq!(chain.available_accounts.len(), accounts.len());
+        debug_assert_eq!(chain.committed_accounts.len(), accounts.len());
         for added_account in accounts {
             debug_assert_eq!(
                 chain.account_tree.get(added_account.id()),
                 added_account.commitment()
             );
             debug_assert_eq!(
-                chain.available_account(added_account.id()).commitment(),
+                chain.committed_account(added_account.id()).commitment(),
                 added_account.commitment(),
             );
         }
@@ -267,31 +250,6 @@ impl MockChain {
         self.pending_transactions.push(transaction.clone());
 
         account
-
-        // disregard private accounts, so it's easier to retrieve data
-        // let account_update_details = AccountUpdateDetails::New(account.clone());
-
-        // let block_account_update = BatchAccountUpdate::new(
-        //     transaction.account_id(),
-        //     account.commitment(),
-        //     account_update_details,
-        // );
-        // self.pending_objects.updated_accounts.push(block_account_update);
-
-        // for note in transaction.input_notes().iter() {
-        //     // TODO: check that nullifiers are not duplicate
-        //     self.pending_objects.created_nullifiers.push(note.nullifier());
-        //     self.removed_notes.push(note.id());
-        // }
-
-        // TODO: check that notes are not duplicate
-        // let output_notes: Vec<OutputNote> = transaction.output_notes().iter().cloned().collect();
-        // self.pending_objects
-        //     .output_note_batches
-        //     .push(output_notes.into_iter().enumerate().collect());
-        // self.pending_objects
-        //     .included_transactions
-        //     .push((transaction.id(), transaction.account_id()));
     }
 
     /// Adds an [OutputNote] to the pending objects.
@@ -533,7 +491,7 @@ impl MockChain {
                 .unwrap();
         }
 
-        self.available_accounts
+        self.committed_accounts
             .insert(account.id(), MockAccount::new(account.clone(), None, authenticator));
 
         MockFungibleFaucet::new(account)
@@ -574,7 +532,7 @@ impl MockChain {
 
         // Add account to the available accounts so transaction inputs can be retrieved via the mock
         // chain APIs.
-        self.available_accounts
+        self.committed_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
 
         // Only automatically add the account in the next block if it is supposed to already exist.
@@ -612,7 +570,7 @@ impl MockChain {
         note_ids: &[NoteId],
         unauthenticated_notes: &[Note],
     ) -> TransactionContextBuilder {
-        let mock_account = self.available_accounts.get(&account_id).unwrap().clone();
+        let mock_account = self.committed_accounts.get(&account_id).unwrap().clone();
 
         let tx_inputs = self.get_transaction_inputs(
             mock_account.account().clone(),
@@ -653,7 +611,7 @@ impl MockChain {
         let mut block_headers_map: BTreeMap<BlockNumber, BlockHeader> = BTreeMap::new();
         for note in notes {
             let input_note: InputNote = self
-                .available_notes
+                .committed_notes
                 .get(note)
                 .expect("Note not found")
                 .clone()
@@ -726,9 +684,9 @@ impl MockChain {
 
     /// Gets foreign account inputs to execute FPI transactions.
     pub fn get_foreign_account_inputs(&self, account_id: AccountId) -> ForeignAccountInputs {
-        let account = self.available_account(account_id);
+        let account = self.committed_account(account_id);
 
-        let account_witness = self.accounts().open(account_id);
+        let account_witness = self.account_tree().open(account_id);
         assert_eq!(account_witness.state_commitment(), account.commitment());
 
         let mut storage_map_proofs = vec![];
@@ -896,7 +854,7 @@ impl MockChain {
 
     /// Applies the given block to the chain state, which means:
     ///
-    /// - Updated accounts from the block are inserted into the available accounts.
+    /// - Updated accounts from the block are updated in the available accounts.
     /// - Created notes are inserted into the available notes.
     /// - Consumed notes are removed from the available notes.
     /// - The block is appended to the [`BlockChain`] and the list of proven blocks.
@@ -905,19 +863,19 @@ impl MockChain {
             match account_update.details() {
                 AccountUpdateDetails::New(account) => {
                     let committed_account =
-                        self.available_accounts.get(&account_update.account_id());
+                        self.committed_accounts.get(&account_update.account_id());
                     let authenticator =
                         committed_account.and_then(|account| account.authenticator());
                     let seed = committed_account.and_then(|account| account.seed());
 
-                    self.available_accounts.insert(
+                    self.committed_accounts.insert(
                         account.id(),
                         MockAccount::new(account.clone(), seed.cloned(), authenticator.cloned()),
                     );
                 },
                 AccountUpdateDetails::Delta(account_delta) => {
                     let committed_account =
-                        self.available_accounts.get_mut(&account_update.account_id()).ok_or_else(
+                        self.committed_accounts.get_mut(&account_update.account_id()).ok_or_else(
                             || anyhow::anyhow!("account delta in block for non-existent account"),
                         )?;
                     committed_account
@@ -941,10 +899,10 @@ impl MockChain {
             .context("failed to construct note inclusion proof")?;
 
             if let OutputNote::Full(note) = created_note {
-                self.available_notes
+                self.committed_notes
                     .insert(note.id(), MockChainNote::Public(note.clone(), note_inclusion_proof));
             } else {
-                self.available_notes.insert(
+                self.committed_notes.insert(
                     created_note.id(),
                     MockChainNote::Private(
                         created_note.id(),
@@ -981,8 +939,8 @@ impl MockChain {
 
         let pending_transactions = core::mem::take(&mut self.pending_transactions);
 
-        // TODO: Split into multiple batches if num of pending transactions exceeds max txs per
-        // batch.
+        // TODO: Distribute the transactions into multiple batches if the transactions would not fit
+        // into a single batch (according to max input notes, max output notes and max accounts).
         let proven_batch = self
             .propose_transaction_batch(pending_transactions.into_iter().map(|executed_tx| {
                 // This essentially transforms an executed tx into a proven tx with a dummy proof.
@@ -1180,7 +1138,7 @@ impl MockChain {
     ) -> BTreeMap<NoteId, NoteInclusionProof> {
         let mut proofs = BTreeMap::default();
         for note in notes {
-            if let Some(input_note) = self.available_notes.get(&note) {
+            if let Some(input_note) = self.committed_notes.get(&note) {
                 proofs.insert(note, input_note.inclusion_proof().clone());
             }
         }
@@ -1210,40 +1168,41 @@ impl MockChain {
         &self.nullifier_tree
     }
 
-    /// Get the vector of IDs of the currently available notes.
-    pub fn available_notes(&self) -> Vec<MockChainNote> {
-        self.available_notes.values().cloned().collect()
-    }
-
-    /// Returns the map of note IDs to consumable notes.
-    pub fn available_notes_map(&self) -> &BTreeMap<NoteId, MockChainNote> {
-        &self.available_notes
+    /// Returns the map of note IDs to committed notes.
+    ///
+    /// These notes are available for authenticated consumption.
+    pub fn committed_notes(&self) -> &BTreeMap<NoteId, MockChainNote> {
+        &self.committed_notes
     }
 
     /// Returns an [`InputNote`] for the given note ID. If the note does not exist or is not
     /// public, `None` is returned.
     pub fn get_public_note(&self, note_id: &NoteId) -> Option<InputNote> {
-        let note = self.available_notes.get(note_id)?;
+        let note = self.committed_notes.get(note_id)?;
         note.clone().try_into().ok()
     }
 
     /// Returns a reference to the account identifed by the given account ID and panics if it does
     /// not exist.
-    pub fn available_account(&self, account_id: AccountId) -> &Account {
-        self.available_accounts
+    pub fn committed_account(&self, account_id: AccountId) -> &Account {
+        self.committed_accounts
             .get(&account_id)
             .expect("account should be available")
             .account()
     }
 
     /// Get the reference to the account tree.
-    pub fn accounts(&self) -> &AccountTree {
+    pub fn account_tree(&self) -> &AccountTree {
         &self.account_tree
     }
 }
 
-fn create_genesis_block(accounts: impl IntoIterator<Item = Account>) -> ProvenBlock {
-    let block_account_updates = accounts
+/// Creates the genesis state, consisting of a block containing the provided account updates and an
+/// account tree with those accounts.
+fn create_genesis_state(
+    accounts: impl IntoIterator<Item = Account>,
+) -> anyhow::Result<(ProvenBlock, AccountTree)> {
+    let block_account_updates: Vec<BlockAccountUpdate> = accounts
         .into_iter()
         .map(|account| {
             BlockAccountUpdate::new(
@@ -1254,6 +1213,13 @@ fn create_genesis_block(accounts: impl IntoIterator<Item = Account>) -> ProvenBl
         })
         .collect();
 
+    let account_tree = AccountTree::with_entries(
+        block_account_updates
+            .iter()
+            .map(|account| (account.account_id(), account.final_state_commitment())),
+    )
+    .context("failed to create genesis account tree")?;
+
     let output_note_batches = Vec::new();
     let created_nullifiers = Vec::new();
     let transactions = OrderedTransactionHeaders::new_unchecked(Vec::new());
@@ -1262,7 +1228,7 @@ fn create_genesis_block(accounts: impl IntoIterator<Item = Account>) -> ProvenBl
     let prev_block_commitment = Digest::default();
     let block_num = BlockNumber::from(0u32);
     let chain_commitment = Blockchain::new().commitment();
-    let account_root = AccountTree::new().root();
+    let account_root = account_tree.root();
     let nullifier_root = NullifierTree::new().root();
     let note_root = BlockNoteTree::empty().root();
     let tx_commitment = transactions.commitment();
@@ -1284,13 +1250,16 @@ fn create_genesis_block(accounts: impl IntoIterator<Item = Account>) -> ProvenBl
         timestamp,
     );
 
-    ProvenBlock::new_unchecked(
-        header,
-        block_account_updates,
-        output_note_batches,
-        created_nullifiers,
-        transactions,
-    )
+    Ok((
+        ProvenBlock::new_unchecked(
+            header,
+            block_account_updates,
+            output_note_batches,
+            created_nullifiers,
+            transactions,
+        ),
+        account_tree,
+    ))
 }
 
 impl Default for MockChain {
@@ -1337,7 +1306,7 @@ mod tests {
 
         let mock_chain = MockChain::with_accounts(&[native_account.clone()]);
 
-        assert_eq!(mock_chain.available_account(native_account.id()), &native_account);
+        assert_eq!(mock_chain.committed_account(native_account.id()), &native_account);
 
         // Check that transaction inputs retrieved from the chain are against the block header with
         // the current account tree root.

@@ -53,7 +53,7 @@ fn witness_test_setup() -> WitnessTestSetup {
     let batches = vec![batch1];
     let stale_block_inputs = chain.get_block_inputs(&batches);
 
-    let account_root0 = chain.accounts().root();
+    let account_root0 = chain.account_tree().root();
     let nullifier_root0 = chain.nullifiers().root();
 
     // Apply the executed tx and seal a block. This invalidates the block inputs we've just fetched.
@@ -64,7 +64,7 @@ fn witness_test_setup() -> WitnessTestSetup {
 
     // Sanity check: This test requires that the tree roots change with the last sealed block so the
     // previously fetched block inputs become invalid.
-    assert_ne!(chain.accounts().root(), account_root0);
+    assert_ne!(chain.account_tree().root(), account_root0);
     assert_ne!(chain.nullifiers().root(), nullifier_root0);
 
     WitnessTestSetup {
@@ -318,8 +318,11 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
     let block_inputs = mock_chain.get_block_inputs(batches.iter());
     // Sanity check: The mock chain account tree root should match the previous block header's
     // account tree root.
-    assert_eq!(mock_chain.accounts().root(), block_inputs.prev_block_header().account_root());
-    assert_eq!(mock_chain.accounts().num_accounts(), 1);
+    assert_eq!(
+        mock_chain.account_tree().root(),
+        block_inputs.prev_block_header().account_root()
+    );
+    assert_eq!(mock_chain.account_tree().num_accounts(), 1);
 
     // Sanity check: The block inputs should contain an account witness whose ID matches the
     // existing ID.
