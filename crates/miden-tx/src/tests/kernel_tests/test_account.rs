@@ -1,19 +1,23 @@
+use anyhow::Context;
 use miden_lib::{
     errors::tx_kernel_errors::{
         ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX,
         ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO,
         ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT, ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE,
-        ERR_ACCOUNT_ID_UNKNOWN_VERSION, TX_KERNEL_ERRORS,
+        ERR_ACCOUNT_ID_UNKNOWN_VERSION, ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS,
+        ERR_FAUCET_INVALID_STORAGE_OFFSET, TX_KERNEL_ERRORS,
     },
     transaction::TransactionKernel,
     utils::word_to_masm_push_string,
 };
 use miden_objects::{
     account::{
-        AccountBuilder, AccountCode, AccountComponent, AccountId, AccountStorage, AccountType,
-        StorageSlot,
+        Account, AccountBuilder, AccountCode, AccountComponent, AccountId, AccountIdAnchor,
+        AccountIdVersion, AccountProcedureInfo, AccountStorage, AccountStorageMode, AccountType,
+        NetworkAccount, StorageSlot,
     },
     assembly::Library,
+    asset::AssetVault,
     testing::{
         account_component::AccountMockComponent,
         account_id::{
@@ -23,14 +27,17 @@ use miden_objects::{
         },
         storage::STORAGE_LEAVES_2,
     },
-    transaction::TransactionScript,
+    transaction::{ExecutedTransaction, TransactionScript},
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use vm_processor::{Digest, ExecutionError, MemAdviceProvider, ProcessState};
+use vm_processor::{Digest, EMPTY_WORD, ExecutionError, MemAdviceProvider, ProcessState};
 
 use super::{Felt, ONE, StackInputs, Word, ZERO};
-use crate::testing::{TransactionContextBuilder, executor::CodeExecutor};
+use crate::{
+    TransactionExecutorError, assert_execution_error,
+    testing::{MockChain, TransactionContextBuilder, executor::CodeExecutor},
+};
 
 // ACCOUNT CODE TESTS
 // ================================================================================================
@@ -658,6 +665,143 @@ fn test_account_component_storage_offset() {
         account.storage().get_item(1).unwrap(),
         [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)].into()
     );
+}
+
+/// Tests that we can successfully create regular and faucet accounts with empty storage.
+#[test]
+fn create_account_with_empty_storage_slots() -> anyhow::Result<()> {
+    for account_type in [AccountType::FungibleFaucet, AccountType::RegularAccountUpdatableCode] {
+        let mock_chain = MockChain::new();
+        let anchor_block = mock_chain.block_header(0);
+        let (account, seed) = AccountBuilder::new([5; 32])
+            .account_type(account_type)
+            .anchor(AccountIdAnchor::try_from(&anchor_block)?)
+            .with_component(
+                AccountMockComponent::new_with_empty_slots(TransactionKernel::testing_assembler())
+                    .unwrap(),
+            )
+            .build()
+            .context("failed to build account")?;
+
+        let tx_inputs = mock_chain.get_transaction_inputs(account.clone(), Some(seed), &[], &[]);
+        let tx_context = TransactionContextBuilder::new(account)
+            .account_seed(Some(seed))
+            .tx_inputs(tx_inputs)
+            .build();
+        tx_context
+            .execute()
+            .context(format!("failed to execute {account_type} account creating tx"))?;
+    }
+
+    Ok(())
+}
+
+fn create_procedure_metadata_test_account(
+    account_type: AccountType,
+    storage_offset: u8,
+    storage_size: u8,
+) -> anyhow::Result<Result<ExecutedTransaction, ExecutionError>> {
+    let mock_chain = MockChain::new();
+    let anchor_block = mock_chain.block_header(0);
+    let anchor = AccountIdAnchor::try_from(&anchor_block)?;
+    let version = AccountIdVersion::Version0;
+
+    let mock_code = AccountCode::mock();
+    let code = AccountCode::from_parts(
+        mock_code.mast(),
+        mock_code
+            .mast()
+            .procedure_digests()
+            .map(|mast_root| {
+                AccountProcedureInfo::new(mast_root, storage_offset, storage_size).unwrap()
+            })
+            .collect(),
+    );
+
+    let storage = AccountStorage::new(vec![StorageSlot::Value(EMPTY_WORD)]).unwrap();
+
+    let seed = AccountId::compute_account_seed(
+        [9; 32],
+        account_type,
+        AccountStorageMode::Private,
+        NetworkAccount::Disabled,
+        version,
+        code.commitment(),
+        storage.commitment(),
+        anchor.block_commitment(),
+    )
+    .context("failed to compute seed")?;
+    let id = AccountId::new(seed, anchor, version, code.commitment(), storage.commitment())
+        .context("failed to compute ID")?;
+
+    let account = Account::from_parts(id, AssetVault::default(), storage, code, Felt::from(0u32));
+
+    let tx_inputs = mock_chain.get_transaction_inputs(account.clone(), Some(seed), &[], &[]);
+    let tx_context = TransactionContextBuilder::new(account)
+        .account_seed(Some(seed))
+        .tx_inputs(tx_inputs)
+        .build();
+
+    let result = tx_context.execute().map_err(|err| {
+        let TransactionExecutorError::TransactionProgramExecutionFailed(exec_err) = err else {
+            panic!("should have received an execution error");
+        };
+
+        exec_err
+    });
+
+    Ok(result)
+}
+
+/// Tests that creating an account whose procedure accesses the reserved faucet storage slot fails.
+#[test]
+fn creating_faucet_account_with_procedure_accessing_reserved_slot_fails() -> anyhow::Result<()> {
+    // Set offset to 0 for a faucet which should be disallowed.
+    let execution_res = create_procedure_metadata_test_account(AccountType::FungibleFaucet, 0, 1)
+        .context("failed to create test account")?;
+
+    assert_execution_error!(execution_res, ERR_FAUCET_INVALID_STORAGE_OFFSET);
+
+    Ok(())
+}
+
+/// Tests that creating a faucet whose procedure offset+size is out of bounds fails.
+#[test]
+fn creating_faucet_with_procedure_offset_plus_size_out_of_bounds_fails() -> anyhow::Result<()> {
+    // Set offset to lowest allowed value 1 and size to 1 while number of slots is 1 which should
+    // result in an out of bounds error.
+    let execution_res = create_procedure_metadata_test_account(AccountType::FungibleFaucet, 1, 1)
+        .context("failed to create test account")?;
+
+    assert_execution_error!(execution_res, ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS);
+
+    // Set offset to 2 while number of slots is 1 which should result in an out of bounds error.
+    let execution_res = create_procedure_metadata_test_account(AccountType::FungibleFaucet, 2, 1)
+        .context("failed to create test account")?;
+
+    assert_execution_error!(execution_res, ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS);
+
+    Ok(())
+}
+
+/// Tests that creating an account whose procedure offset+size is out of bounds fails.
+#[test]
+fn creating_account_with_procedure_offset_plus_size_out_of_bounds_fails() -> anyhow::Result<()> {
+    // Set size to 2 while number of slots is 1 which should result in an out of bounds error.
+    let execution_res =
+        create_procedure_metadata_test_account(AccountType::RegularAccountImmutableCode, 0, 2)
+            .context("failed to create test account")?;
+
+    assert_execution_error!(execution_res, ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS);
+
+    // Set offset to 2 while number of slots is 1 which should result in an out of bounds error.
+    let execution_res =
+        create_procedure_metadata_test_account(AccountType::RegularAccountImmutableCode, 2, 1)
+            .context("failed to create test account")?;
+
+    assert_execution_error!(execution_res, ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS);
+
+    Ok(())
 }
 
 // ACCOUNT VAULT TESTS
