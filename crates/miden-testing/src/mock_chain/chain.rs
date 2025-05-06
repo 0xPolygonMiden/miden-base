@@ -79,28 +79,6 @@ impl PendingObjects {
             && self.created_nullifiers.is_empty()
             && self.included_transactions.is_empty()
     }
-
-    // /// Creates a [BlockNoteTree] tree from the `notes`.
-    // ///
-    // /// The root of the tree is a commitment to all notes created in the block. The commitment
-    // /// is not for all fields of the [Note] struct, but only for note metadata + core fields of
-    // /// a note (i.e., vault, inputs, script, and serial number).
-    // pub fn build_notes_tree(&self) -> BlockNoteTree {
-    //     let entries =
-    //         self.output_note_batches.iter().enumerate().flat_map(|(batch_index, batch)| {
-    //             batch.iter().map(move |(note_index, note)| {
-    //                 (
-    //                     BlockNoteIndex::new(batch_index, *note_index).expect(
-    //                         "max batches in block and max notes in batches should be enforced",
-    //                     ),
-    //                     note.id(),
-    //                     *note.metadata(),
-    //                 )
-    //             })
-    //         });
-
-    //     BlockNoteTree::with_entries(entries).unwrap()
-    // }
 }
 
 // MOCK CHAIN
