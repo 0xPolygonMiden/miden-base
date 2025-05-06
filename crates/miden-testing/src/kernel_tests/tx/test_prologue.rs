@@ -236,11 +236,15 @@ fn partial_blockchain_memory_assertions(process: &Process, prepared_tx: &Transac
 
     for (i, peak) in partial_blockchain.peaks().peaks().iter().enumerate() {
         // The peaks should be stored at the PARTIAL_BLOCKCHAIN_PEAKS_PTR
-        let i: u32 = i.try_into().expect(
+        let peak_idx: u32 = i.try_into().expect(
             "Number of peaks is log2(number_of_leaves), this value won't be larger than 2**32",
         );
+        let word_aligned_peak_idx = peak_idx * 4;
         assert_eq!(
-            read_root_mem_word(&process.into(), PARTIAL_BLOCKCHAIN_PEAKS_PTR + i),
+            read_root_mem_word(
+                &process.into(),
+                PARTIAL_BLOCKCHAIN_PEAKS_PTR + word_aligned_peak_idx
+            ),
             Word::from(peak)
         );
     }
