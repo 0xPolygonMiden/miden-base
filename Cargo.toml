@@ -1,14 +1,15 @@
 [workspace]
 resolver = "3"
 members = [
-    "bin/bench-tx",
-    "bin/proving-service",
-    "crates/miden-block-prover",
-    "crates/miden-tx-batch-prover",
-    "crates/miden-lib",
-    "crates/miden-objects",
-    "crates/miden-proving-service-client",
-    "crates/miden-tx",
+  "bin/bench-tx",
+  "bin/proving-service",
+  "crates/miden-block-prover",
+  "crates/miden-tx-batch-prover",
+  "crates/miden-lib",
+  "crates/miden-objects",
+  "crates/miden-proving-service-client",
+  "crates/miden-testing",
+  "crates/miden-tx",
 ]
 
 [workspace.package]
@@ -46,6 +47,7 @@ miden-lib = { path = "crates/miden-lib", version = "0.9", default-features = fal
 miden-objects = { path = "crates/miden-objects", version = "0.9", default-features = false }
 miden-prover = { version = "0.13", default-features = false }
 miden-stdlib = { version = "0.13", default-features = false }
+miden-testing = { path = "crates/miden-testing", version = "0.9", default-features = false }
 miden-tx = { path = "crates/miden-tx", version = "0.9", default-features = false }
 miden-tx-batch-prover = { path = "crates/miden-tx-batch-prover", version = "0.9", default-features = false }
 miden-verifier = { version = "0.13", default-features = false }
