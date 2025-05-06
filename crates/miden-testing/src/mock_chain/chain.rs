@@ -11,13 +11,8 @@ use miden_lib::{
 use miden_objects::{
     NoteError, ProposedBatchError, ProposedBlockError,
     account::{
-<<<<<<< HEAD:crates/miden-tx/src/testing/mock_chain/mod.rs
-        Account, AccountBuilder, AccountComponent, AccountDelta, AccountId, AccountIdAnchor,
-        AccountType, AuthSecretKey, PartialAccount, StorageSlot, delta::AccountUpdateDetails,
-=======
-        Account, AccountBuilder, AccountHeader, AccountId, AccountIdAnchor, AccountType,
+        Account, AccountBuilder, AccountId, AccountIdAnchor, AccountType, PartialAccount,
         StorageSlot, delta::AccountUpdateDetails,
->>>>>>> a467ed679d2bb2d8fa56cfeb477ac29d61c3d18b:crates/miden-testing/src/mock_chain/chain.rs
     },
     asset::{Asset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},

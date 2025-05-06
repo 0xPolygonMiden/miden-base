@@ -11,11 +11,7 @@ use miden_objects::{
         Note, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata, NoteTag, NoteType,
     },
     testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
-<<<<<<< HEAD:crates/miden-tx/src/tests/kernel_tests/test_note.rs
-    transaction::{AccountInputs, TransactionArgs},
-=======
-    transaction::{ForeignAccountInputs, OutputNote, TransactionArgs},
->>>>>>> a467ed679d2bb2d8fa56cfeb477ac29d61c3d18b:crates/miden-testing/src/kernel_tests/tx/test_note.rs
+    transaction::{AccountInputs, OutputNote, TransactionArgs},
 };
 use miden_tx::TransactionExecutorError;
 use rand::SeedableRng;
