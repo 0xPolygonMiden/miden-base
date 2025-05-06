@@ -33,7 +33,7 @@ macro_rules! assert_execution_error {
             Err(vm_processor::ExecutionError::FailedAssertion { clk: _, err_code, err_msg: _ }) => {
                 assert!(
                     err_code == $expected_err_code,
-                    "Execution failed on assertion with an unexpected error code (Actual err_code: {}, expected {}).",
+                    "Execution failed on assertion with an unexpected error code (Actual err_code: 0x{:x}, expected 0x{:x}).",
                     err_code, $expected_err_code
                 );
             },
