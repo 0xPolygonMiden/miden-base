@@ -494,9 +494,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "chrono"
-version = "0.4.40"
+version = "0.4.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a7964611d71df112cb1730f2ee67324fcf4d0fc6606acbbe9bfe06df124637c"
+checksum = "c469d952047f47f91b68d1cba3f10d63c11d73e4636f24f08daf0278abf01c4d"
 dependencies = [
  "num-traits",
 ]
@@ -1878,6 +1878,7 @@ dependencies = [
  "miden-lib",
  "miden-objects",
  "miden-processor",
+ "miden-testing",
  "miden-tx",
  "rand_chacha 0.9.0",
  "serde",
@@ -1888,15 +1889,9 @@ dependencies = [
 name = "miden-block-prover"
 version = "0.9.0"
 dependencies = [
- "anyhow",
- "assert_matches",
- "miden-crypto",
  "miden-lib",
  "miden-objects",
- "miden-tx",
- "rand 0.9.0",
  "thiserror 2.0.12",
- "winterfell",
 ]
 
 [[package]]
@@ -2069,6 +2064,7 @@ dependencies = [
  "miden-block-prover",
  "miden-lib",
  "miden-objects",
+ "miden-testing",
  "miden-tx",
  "miden-tx-batch-prover",
  "miette",
@@ -2132,6 +2128,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "miden-testing"
+version = "0.9.0"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "async-trait",
+ "miden-assembly",
+ "miden-block-prover",
+ "miden-crypto",
+ "miden-lib",
+ "miden-objects",
+ "miden-processor",
+ "miden-tx",
+ "rand 0.9.0",
+ "rand_chacha 0.9.0",
+ "winter-maybe-async",
+ "winterfell",
+]
+
+[[package]]
 name = "miden-tx"
 version = "0.9.0"
 dependencies = [
@@ -2146,7 +2162,6 @@ dependencies = [
  "miden-tx",
  "miden-verifier",
  "rand 0.9.0",
- "rand_chacha 0.9.0",
  "thiserror 2.0.12",
  "winter-maybe-async",
 ]
@@ -2155,16 +2170,8 @@ dependencies = [
 name = "miden-tx-batch-prover"
 version = "0.9.0"
 dependencies = [
- "anyhow",
- "miden-core",
- "miden-crypto",
- "miden-lib",
  "miden-objects",
- "miden-processor",
  "miden-tx",
- "rand 0.9.0",
- "thiserror 2.0.12",
- "winterfell",
 ]
 
 [[package]]
@@ -3783,9 +3790,9 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "signal-hook-registry"
-version = "1.4.2"
+version = "1.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9e9e0b4211b72e7b8b6e85c807d36c212bdb33ea8587f7569562a84df5465b1"
+checksum = "9203b8055f63a2a00e2f593bb0510367fe707d7ff1e5c872de2f537b339e5410"
 dependencies = [
  "libc",
 ]
