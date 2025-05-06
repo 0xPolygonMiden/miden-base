@@ -39,6 +39,7 @@
 - Implement user-facing bech32 encoding for `AccountId`s (#1185).
 - Implemented `execute_tx_view_script` procedure for the `TransactionExecutor` (#1197).
 - Enabled nested FPI calls (#1227).
+- Implement `check_notes_consumability` procedure for the `TransactionExecutor` (#1269).
 
 ### Changes
 
