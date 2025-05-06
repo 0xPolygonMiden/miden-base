@@ -1,14 +1,20 @@
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
+use miden_crypto::{
+    dsa::rpo_falcon512::PublicKey,
+    rand::{FeltRng, RpoRandomCoin},
+};
 use miden_lib::{
+    account::{auth::RpoFalcon512, wallets::BasicWallet},
     errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
     transaction::{TransactionKernel, memory::CURRENT_INPUT_NOTE_PTR},
 };
 use miden_objects::{
-    WORD_SIZE,
-    account::AccountId,
+    Digest, WORD_SIZE,
+    account::{AccountBuilder, AccountId},
     note::{
-        Note, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata, NoteTag, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata,
+        NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
     transaction::{ForeignAccountInputs, OutputNote, TransactionArgs},
@@ -677,5 +683,51 @@ pub fn test_timelock() {
     let tx_inputs =
         mock_chain.get_transaction_inputs(account.clone(), None, &[timelock_note.id()], &[]);
     let tx_context = TransactionContextBuilder::new(account).tx_inputs(tx_inputs).build();
+    tx_context.execute().unwrap();
+}
+
+#[test]
+fn test_public_key_as_note_input() {
+    let mock_public_key = PublicKey::new([ZERO, ONE, Felt::new(2), Felt::new(3)]);
+    let rpo_component = RpoFalcon512::new(mock_public_key);
+
+    let mock_seed = Digest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]).as_bytes();
+    let target_account = AccountBuilder::new(mock_seed)
+        .with_component(BasicWallet)
+        .with_component(rpo_component)
+        .build_existing()
+        .unwrap();
+
+    let mock_seed =
+        Digest::from([Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]).as_bytes();
+    let sender_account = AccountBuilder::new(mock_seed)
+        .with_component(BasicWallet)
+        .build_existing()
+        .unwrap();
+
+    let serial_num =
+        RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
+    let tag = NoteTag::from_account_id(target_account.id(), NoteExecutionMode::Local).unwrap();
+    let metadata = NoteMetadata::new(
+        sender_account.id(),
+        NoteType::Public,
+        tag,
+        NoteExecutionHint::always(),
+        Default::default(),
+    )
+    .unwrap();
+    let vault = NoteAssets::new(vec![]).unwrap();
+    let note_script =
+        NoteScript::compile("begin nop end", TransactionKernel::testing_assembler()).unwrap();
+    let recipient = NoteRecipient::new(
+        serial_num,
+        note_script,
+        NoteInputs::new(vec![ZERO, ONE, Felt::new(2), Felt::new(3)]).unwrap(),
+    );
+    let note_with_pub_key = Note::new(vault.clone(), metadata, recipient);
+
+    let tx_context = TransactionContextBuilder::new(target_account)
+        .input_notes(vec![note_with_pub_key])
+        .build();
     tx_context.execute().unwrap();
 }
