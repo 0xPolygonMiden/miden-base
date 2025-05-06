@@ -1,5 +1,4 @@
 use core::{fmt, num::TryFromIntError};
-use std::{print, println};
 
 use miden_crypto::Felt;
 
@@ -13,11 +12,6 @@ use super::{
 const NETWORK_EXECUTION: u8 = 0;
 const LOCAL_EXECUTION: u8 = 1;
 
-// The 2 most significant bits are set to `0b11`.
-const LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED: u32 = 0xc000_0000;
-// The 2 most significant bits are set to `0b10`.
-const PUBLIC_USECASE: u32 = 0x8000_0000;
-
 // The 2 most significant bits are set to `0b00`.
 const NETWORK_ACCOUNT: u32 = 0;
 // The 2 most significant bits are set to `0b01`.
@@ -25,7 +19,7 @@ const NETWORK_USECASE: u32 = 0x4000_0000;
 // The 2 most significant bits are set to `0b10`.
 const LOCAL_ACCOUNT: u32 = 0x8000_0000;
 // The 2 most significant bits are set to `0b11`.
-const LOCAL_USECASE: u32 = 0xC000_0000;
+const LOCAL_USECASE: u32 = 0xc000_0000;
 
 /// [super::Note]'s execution mode hints.
 ///
@@ -72,6 +66,12 @@ pub enum NoteExecutionMode {
 /// intended to be consumed by the network must be public to have all the details available. The
 /// public note for local execution is intended to allow users to search for notes that can be
 /// consumed right away, without requiring an off-band communication channel.
+///
+/// Mapping for each variant:
+/// - NetworkAccount - 0b00
+/// - NetworkUseCase - 0b01
+/// - LocalAccount - 0b10
+/// - LocalUseCase - 0b11
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum NoteTag {
     NetworkAccount(u32),
@@ -91,7 +91,8 @@ impl NoteTag {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [NoteTag] instantiated from the specified account ID and execution mode.
+    /// Returns a new [NoteTag::NetworkAccount] or [NoteTag::LocalAccount] instantiated from the
+    /// specified account ID and execution mode.
     ///
     /// The tag is constructed as follows:
     ///
@@ -123,8 +124,8 @@ impl NoteTag {
                 // [2 zero bits | remaining high bits (30 bits)].
                 let high_bits = high_bits as u32;
 
-                // // Select the upper half of the u32 which then contains the 14 most significant bits
-                // // of the account ID, i.e.:
+                // // Select the upper half of the u32 which then contains the 14 most significant
+                // bits // of the account ID, i.e.:
                 // // [2 zero bits | remaining high bits (14 bits) | 16 zero bits].
                 let high_bits = high_bits & 0xffff0000;
 
@@ -151,7 +152,8 @@ impl NoteTag {
         }
     }
 
-    /// Returns a new [NoteTag] instantiated for a custom use case which requires a public note.
+    /// Returns a new [NoteTag::NetworkUseCase] or [NoteTag::LocalUseCase] instantiated for a custom
+    /// use case which requires a public note.
     ///
     /// The public use_case tag requires a [NoteType::Public] note.
     ///
@@ -182,7 +184,7 @@ impl NoteTag {
         }
     }
 
-    /// Returns a new [NoteTag] instantiated for a custom local use case.
+    /// Returns a new [NoteTag::LocalAccount] instantiated for a custom local use case.
     ///
     /// The local use_case tag is the only tag type that allows for [NoteType::Private] notes.
     ///
@@ -197,18 +199,19 @@ impl NoteTag {
             return Err(NoteError::NoteTagUseCaseTooLarge(use_case_id));
         }
 
-        let use_case_bits = use_case_id;
-        let payload_bits = payload;
+        let use_case_bits = (use_case_id as u32) << 16;
+        let payload_bits = payload as u32;
 
-        Ok(Self::LocalUseCase(0b11 | use_case_bits, payload_bits))
+        Ok(Self::LocalAccount(0b10 | use_case_bits | payload_bits))
     }
 
     // PUBLIC ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns true if the note is intended for execution by a specific account.
+    /// Returns true if the note is intended for execution by a specific account.(network or local)
     ///
-    /// A note is intended for execution by a single account if the first two bits are zeros
+    /// A note is intended for execution by a single account if the first two bits are `0b00` or
+    /// `0b10`
     pub fn is_single_target(&self) -> bool {
         matches!(self, NoteTag::NetworkAccount(_) | NoteTag::LocalAccount(_))
     }
@@ -219,10 +222,8 @@ impl NoteTag {
     /// otherwise, the note is intended for network execution.
     pub fn execution_mode(&self) -> NoteExecutionMode {
         match self {
-            NoteTag::NetworkAccount(_) | NoteTag::NetworkUseCase(_, _) => {
-                NoteExecutionMode::Network
-            },
-            NoteTag::LocalAccount(_) | NoteTag::LocalUseCase(_, _) => NoteExecutionMode::Local,
+            NoteTag::NetworkAccount(_) | NoteTag::NetworkUseCase(..) => NoteExecutionMode::Network,
+            NoteTag::LocalAccount(_) | NoteTag::LocalUseCase(..) => NoteExecutionMode::Local,
         }
     }
 
@@ -231,9 +232,9 @@ impl NoteTag {
         match self {
             NoteTag::NetworkAccount(tag) => *tag,
             NoteTag::NetworkUseCase(use_case_bits, payload_bits) => {
-                0x40000000 | *use_case_bits as u32 | *payload_bits as u32
+                NETWORK_USECASE | *use_case_bits as u32 | *payload_bits as u32
             },
-            NoteTag::LocalAccount(tag) => PUBLIC_USECASE | *tag,
+            NoteTag::LocalAccount(tag) => LOCAL_ACCOUNT | *tag,
             NoteTag::LocalUseCase(use_case_bits, payload_bits) => {
                 LOCAL_USECASE | *use_case_bits as u32 | *payload_bits as u32
             },
@@ -258,6 +259,7 @@ impl NoteTag {
         }
     }
 
+    /// Returns true if this tag is of type [NoteTag::LocalUseCase].
     pub fn is_local_use_case(&self) -> bool {
         matches!(self, NoteTag::LocalUseCase(_, _))
     }
@@ -275,12 +277,12 @@ impl fmt::Display for NoteTag {
 impl From<u32> for NoteTag {
     fn from(value: u32) -> Self {
         let prefix = value >> 30;
-        let lower_30_bits = value & 0x3FFFFFFF; // Mask to get the lower 30 bits
+        let lower_30_bits = value & 0x3fffffff; // Mask to get the lower 30 bits
 
         match value & LOCAL_USECASE {
             NETWORK_ACCOUNT => {
                 // Network, Specific Account (lower 30 bits are the account ID)
-                Self::NetworkAccount(0b00 | lower_30_bits)
+                Self::NetworkAccount(lower_30_bits)
             },
             NETWORK_USECASE => {
                 // NetworkUse case (split lower 30 bits into two u16)
@@ -368,8 +370,6 @@ impl Deserializable for NoteTag {
 #[cfg(test)]
 mod tests {
 
-    use std::{print, println};
-
     use assert_matches::assert_matches;
 
     use super::{NoteExecutionMode, NoteTag};
@@ -450,8 +450,7 @@ mod tests {
         for account_id in private_accounts {
             let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Local)
                 .expect("tag generation must work with local execution and private account ID");
-            println!("tag: {:?}", tag);
-            assert!(!tag.is_single_target());
+            assert!(tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
             tag.validate(NoteType::Public)
@@ -465,7 +464,7 @@ mod tests {
         for account_id in public_accounts {
             let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Local)
                 .expect("Tag generation must work with local execution and public account ID");
-            assert!(!tag.is_single_target());
+            assert!(tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
             tag.validate(NoteType::Public)
@@ -479,7 +478,7 @@ mod tests {
         for account_id in network_accounts {
             let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Local)
                 .expect("Tag generation must work with local execution and network account ID");
-            assert!(!tag.is_single_target());
+            assert!(tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
             tag.validate(NoteType::Public)
@@ -545,11 +544,6 @@ mod tests {
         // NoteExecutionMode::Local
         // ----------------------------------------------------------------------------------------
 
-        println!(
-            "{:?}",
-            NoteTag::from_account_id(private_account_id, NoteExecutionMode::Local).unwrap()
-        );
-        println!("{:?}", expected_private_local_tag);
         assert_eq!(
             NoteTag::from_account_id(private_account_id, NoteExecutionMode::Local).unwrap(),
             expected_private_local_tag,
@@ -636,7 +630,7 @@ mod tests {
     #[test]
     fn test_for_private_use_case() {
         let tag = NoteTag::for_local_use_case(0b0, 0b0).unwrap();
-        assert_eq!(tag, NoteTag::from(0b11000000_00000000_00000000_00000000));
+        assert_eq!(tag, NoteTag::from(0b10000000_00000000_00000000_00000000));
 
         tag.validate(NoteType::Public)
             .expect("local execution should support public notes");
@@ -646,13 +640,13 @@ mod tests {
             .expect("local execution should support encrypted notes");
 
         let tag = NoteTag::for_local_use_case(0b0, 0b1).unwrap();
-        assert_eq!(tag, NoteTag::from(0b11000000_00000000_00000000_00000001));
+        assert_eq!(tag, NoteTag::from(0b10000000_00000000_00000000_00000001));
 
         let tag = NoteTag::for_local_use_case(0b1, 0b0).unwrap();
-        assert_eq!(tag, NoteTag::from(0b11000000_00000001_00000000_00000000));
+        assert_eq!(tag, NoteTag::from(0b10000000_00000001_00000000_00000000));
 
         let tag = NoteTag::for_local_use_case(1 << 13, 0b0).unwrap();
-        assert_eq!(tag, NoteTag::from(0b11100000_00000000_00000000_00000000));
+        assert_eq!(tag, NoteTag::from(0b10100000_00000000_00000000_00000000));
 
         assert_matches!(
           NoteTag::for_local_use_case(1 << 15, 0b0).unwrap_err(),
