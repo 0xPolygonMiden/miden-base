@@ -20,8 +20,8 @@ use miden_objects::{
     asset::{Asset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
     block::{
-        AccountTree, AccountWitness, BlockAccountUpdate, Blockchain, BlockHeader, BlockInputs,
-        BlockNoteTree, BlockNumber, NullifierTree, NullifierWitness, ProposedBlock, ProvenBlock,
+        AccountTree, AccountWitness, BlockAccountUpdate, BlockHeader, BlockInputs, BlockNoteTree,
+        BlockNumber, Blockchain, NullifierTree, NullifierWitness, ProposedBlock, ProvenBlock,
     },
     crypto::merkle::SmtProof,
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
@@ -216,7 +216,7 @@ impl MockChain {
 
     /// Creates a new `MockChain` with a genesis block containing the provided accounts.
     pub fn with_accounts(accounts: &[Account]) -> Self {
-        let genesis_block = create_genesis_block(accounts.iter().cloned());
+        let mut genesis_block = create_genesis_block(accounts.iter().cloned());
 
         let mut chain = MockChain {
             chain: Blockchain::default(),
@@ -232,9 +232,45 @@ impl MockChain {
         };
 
         chain
+            .apply_block_tree_updates(&genesis_block)
+            .context("failed to partially apply genesis block")
+            .unwrap();
+
+        // Update account tree root in the genesis block so the added accounts are committed to.
+        let genesis_header = genesis_block.header();
+        let updated_header = BlockHeader::new(
+            genesis_header.version(),
+            genesis_header.prev_block_commitment(),
+            genesis_header.block_num(),
+            genesis_header.chain_commitment(),
+            chain.account_tree.root(),
+            genesis_header.nullifier_root(),
+            genesis_header.note_root(),
+            genesis_header.tx_commitment(),
+            genesis_header.tx_kernel_commitment(),
+            genesis_header.proof_commitment(),
+            genesis_header.timestamp(),
+        );
+        genesis_block.set_block_header(updated_header);
+
+        chain
             .apply_block(genesis_block)
             .context("failed to apply genesis block")
             .unwrap();
+
+        debug_assert_eq!(chain.blocks.len(), 1);
+        debug_assert_eq!(chain.account_tree.num_accounts(), accounts.len());
+        debug_assert_eq!(chain.available_accounts.len(), accounts.len());
+        for added_account in accounts {
+            debug_assert_eq!(
+                chain.account_tree.get(added_account.id()),
+                added_account.commitment()
+            );
+            debug_assert_eq!(
+                chain.available_account(added_account.id()).commitment(),
+                added_account.commitment(),
+            );
+        }
 
         chain
     }
@@ -531,6 +567,7 @@ impl MockChain {
     ///
     /// This account is added to the available accounts and are immediately available without having
     /// to seal a block.
+    // TODO: Rename to add_pending_account_from_builder
     pub fn add_from_account_builder(
         &mut self,
         auth_method: Auth,
@@ -557,11 +594,16 @@ impl MockChain {
             account_builder.build_existing().map(|account| (account, None)).unwrap()
         };
 
-        // TODO: Check if this is necessary or if we can remove it.
+        // Add account to the available accounts so transaction inputs can be retrieved via the mock
+        // chain APIs.
         self.available_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
-        // self.account_tree.insert(account.id(), account.commitment()).unwrap();
-        self.add_pending_account(account.clone());
+
+        // Only automatically add the account in the next block if it is supposed to already exist.
+        // If it's a new account, it should be committed in other ways.
+        if let AccountState::Exists = account_state {
+            self.add_pending_account(account.clone());
+        }
 
         account
     }
@@ -587,7 +629,7 @@ impl MockChain {
     /// the account is set to authenticate with [Auth::BasicAuth], the executed transaction
     /// script is defaulted to [DEFAULT_AUTH_SCRIPT].
     pub fn build_tx_context(
-        &mut self,
+        &self,
         account_id: AccountId,
         note_ids: &[NoteId],
         unauthenticated_notes: &[Note],
@@ -602,7 +644,7 @@ impl MockChain {
         );
 
         let mut tx_context_builder = TransactionContextBuilder::new(mock_account.account().clone())
-            .authenticator(mock_account.authenticator().clone())
+            .authenticator(mock_account.authenticator().cloned())
             .account_seed(mock_account.seed().cloned())
             .tx_inputs(tx_inputs);
 
@@ -817,21 +859,11 @@ impl MockChain {
     ///
     /// If a `timestamp` is provided, it will be set on the block with `block_num`.
     fn prove_block_inner(&mut self, timestamp: Option<u32>) -> anyhow::Result<ProvenBlock> {
-        // Create batches.
+        // Create batches from pending transactions.
         // ----------------------------------------------------------------------------------------
 
-        let mut batches = Vec::new();
-
-        // If there are any pending objects, create the pending objects batch.
-        // If not, do not include it, so we don't have an empty batch in the block.
-        // if !self.pending_objects.is_empty() {
-        //     batches.push(
-        //         self.pending_objects_to_batch()
-        //             .context("failed to convert pending objects into batch")?,
-        //     );
-        // }
-
-        self.pending_transactions_to_batches(&mut batches)
+        let batches = self
+            .pending_transactions_to_batches()
             .context("failed to convert pending transactions to batch")?;
 
         // Create block.
@@ -848,7 +880,9 @@ impl MockChain {
                     .context("failed to prove proposed block into proven block")
             })?;
 
-        self.apply_block_partially(&proven_block)
+        // We apply the block tree updates here, so that add_pending_objects_to_block can easily
+        // update the block header of this block with the pending accounts and nullifiers.
+        self.apply_block_tree_updates(&proven_block)
             .context("failed to apply account and nullifier tree changes from block")?;
 
         if !self.pending_objects.is_empty() {
@@ -862,7 +896,9 @@ impl MockChain {
         Ok(proven_block)
     }
 
-    pub fn apply_block_partially(&mut self, proven_block: &ProvenBlock) -> anyhow::Result<()> {
+    /// Inserts the given block's account updates and created nullifiers into the account tree and
+    /// nullifier tree, respectively.
+    pub fn apply_block_tree_updates(&mut self, proven_block: &ProvenBlock) -> anyhow::Result<()> {
         for account_update in proven_block.updated_accounts() {
             self.account_tree
                 .insert(account_update.account_id(), account_update.final_state_commitment())
@@ -882,56 +918,39 @@ impl MockChain {
 
     /// Applies the given block to the chain state, which means:
     ///
-    /// - Updated accounts from the block are inserted into the account tree and into the available
-    ///   accounts.
+    /// - Updated accounts from the block are inserted into the available accounts.
     /// - Created notes are inserted into the available notes.
-    /// - Consumed notes are removed from the available notes and their nullifiers are inserted into
-    ///   the nullifier tree.
+    /// - Consumed notes are removed from the available notes.
     /// - The block is appended to the [`BlockChain`] and the list of proven blocks.
     pub fn apply_block(&mut self, proven_block: ProvenBlock) -> anyhow::Result<()> {
         for account_update in proven_block.updated_accounts() {
-            // self.account_tree
-            //     .insert(account_update.account_id(), account_update.final_state_commitment())
-            //     .context("failed to insert account update into account tree")?;
+            match account_update.details() {
+                AccountUpdateDetails::New(account) => {
+                    let committed_account =
+                        self.available_accounts.get(&account_update.account_id());
+                    let authenticator =
+                        committed_account.and_then(|account| account.authenticator());
+                    let seed = committed_account.and_then(|account| account.seed());
 
-            if let Some(mock_account) = self.available_accounts.get(&account_update.account_id()) {
-                // TODO: This ignores deltas and private state
-                match account_update.details() {
-                    AccountUpdateDetails::New(account) => {
-                        self.available_accounts.insert(
-                            account_update.account_id(),
-                            MockAccount::new(
-                                account.clone(),
-                                mock_account.seed().copied(),
-                                mock_account.authenticator().clone(),
-                            ),
-                        );
-                    },
-                    AccountUpdateDetails::Delta(account_delta) => {
-                        match self.available_accounts.get_mut(&account_update.account_id()) {
-                            Some(committed_account) => {
-                                committed_account.apply_delta(account_delta).context(
-                                    "failed to apply account delta to committed account",
-                                )?;
-                            },
-                            None => {
-                                anyhow::bail!("account delta in block for non-existent account")
-                            },
-                        }
-                    },
-                    // TODO: Check what, if anything, we need to properly support private accounts.
-                    AccountUpdateDetails::Private => (),
-                }
+                    self.available_accounts.insert(
+                        account.id(),
+                        MockAccount::new(account.clone(), seed.cloned(), authenticator.cloned()),
+                    );
+                },
+                AccountUpdateDetails::Delta(account_delta) => {
+                    let committed_account =
+                        self.available_accounts.get_mut(&account_update.account_id()).ok_or_else(
+                            || anyhow::anyhow!("account delta in block for non-existent account"),
+                        )?;
+                    committed_account
+                        .apply_delta(account_delta)
+                        .context("failed to apply account delta to committed account")?;
+                },
+                AccountUpdateDetails::Private => {
+                    todo!("private accounts are not yet supported")
+                },
             }
         }
-
-        // for nullifier in proven_block.created_nullifiers() {
-        //     self.nullifiers
-        //         .mark_spent(*nullifier, proven_block.header().block_num())
-        //         .context("failed to mark block nullifier as spent")?;
-
-        //     // TODO: Remove from self.available_notes.
-        // }
 
         let notes_tree = proven_block.build_output_note_tree();
         for (block_note_index, created_note) in proven_block.output_notes() {
@@ -975,14 +994,11 @@ impl MockChain {
         Ok(())
     }
 
-    fn pending_transactions_to_batches(
-        &mut self,
-        batches: &mut Vec<ProvenBatch>,
-    ) -> anyhow::Result<()> {
+    fn pending_transactions_to_batches(&mut self) -> anyhow::Result<Vec<ProvenBatch>> {
         // Batches must contian at least one transaction, so if there are no pending transactions,
         // return early.
         if self.pending_transactions.is_empty() {
-            return Ok(());
+            return Ok(vec![]);
         }
 
         let pending_transactions = core::mem::take(&mut self.pending_transactions);
@@ -996,9 +1012,7 @@ impl MockChain {
             }))
             .map(|proposed_batch| self.prove_transaction_batch(proposed_batch))?;
 
-        batches.push(proven_batch);
-
-        Ok(())
+        Ok(vec![proven_batch])
     }
 
     fn add_pending_objects_to_block(
@@ -1007,27 +1021,6 @@ impl MockChain {
     ) -> anyhow::Result<()> {
         // Add pending accounts to block.
         let pending_account_updates = core::mem::take(&mut self.pending_objects.updated_accounts);
-
-        // let committed_witnesses = self
-        //     .account_tree
-        //     .account_commitments()
-        //     .map(|(committed_id, _)| self.account_tree.open(committed_id));
-        // let mut partial_account_tree = PartialAccountTree::with_witnesses(committed_witnesses)
-        //     .context("failed to rebuild partial account tree from full tree")?;
-        // partial_account_tree
-        //     .upsert_state_commitments(proven_block.updated_accounts().iter().map(|block_update| {
-        //         (block_update.account_id(), block_update.final_state_commitment())
-        //     }))
-        //     .context("failed to apply updates from block to partial account tree")?;
-
-        // partial_account_tree
-        //     .upsert_state_commitments(
-        //         pending_account_updates
-        //             .iter()
-        //             .map(|(id, update)| (*id, update.final_state_commitment())),
-        //     )
-        //     .context("failed to apply pending account updates to partial account tree")?;
-        // let new_account_root = partial_account_tree.root();
 
         let updated_accounts_block: BTreeSet<AccountId> = proven_block
             .updated_accounts()
@@ -1052,12 +1045,6 @@ impl MockChain {
         // Add pending nullifiers to block.
         let pending_created_nullifiers =
             core::mem::take(&mut self.pending_objects.created_nullifiers);
-        // let nullifier_witnesses =
-        //     self.nullifiers.entries().map(|(nullifier, _)| self.nullifiers.open(&nullifier));
-        // let mut partial_nullifier_tree =
-        // PartialNullifierTree::with_witnesses(nullifier_witnesses)     .context("failed to
-        // reconstruct partial nullifier tree from full nullifier tree")?;
-        // partial_nullifier_tree.mark_spent(nullifiers, block_num);
 
         let created_nullifiers_block: BTreeSet<Nullifier> =
             proven_block.created_nullifiers().iter().copied().collect();
@@ -1130,54 +1117,6 @@ impl MockChain {
 
         Ok(())
     }
-
-    // fn pending_objects_to_batch(&mut self) -> anyhow::Result<ProvenBatch> {
-    //     let random_id = self.random_batch_id();
-    //     let latest_block_header = self.latest_block_header();
-    //     let reference_block_commitment = latest_block_header.commitment();
-    //     let reference_block_num = latest_block_header.block_num();
-    //     let account_updates = core::mem::take(&mut self.pending_objects.updated_accounts);
-    //     let created_nullifiers = core::mem::take(&mut self.pending_objects.created_nullifiers);
-    //     let input_notes = InputNotes::new(
-    //         created_nullifiers.into_iter().map(InputNoteCommitment::from).collect(),
-    //     )
-    //     .context("failed to convert pending nullifiers into input notes")?;
-    //     let output_notes = core::mem::take(&mut self.pending_objects.output_notes);
-
-    //     // This special batch never expires.
-    //     let batch_expiration_block_num = BlockNumber::from(u32::MAX);
-
-    //     // We don't have any transactions for pending objects, so this batch's transactions
-    //     // will appear as empty.
-    //     let transactions = OrderedTransactionHeaders::new_unchecked(vec![]);
-
-    //     ProvenBatch::new(
-    //         random_id,
-    //         reference_block_commitment,
-    //         reference_block_num,
-    //         account_updates,
-    //         input_notes,
-    //         output_notes,
-    //         batch_expiration_block_num,
-    //         transactions,
-    //     )
-    //     .map_err(Into::into)
-    // }
-
-    // fn random_batch_id(&self) -> BatchId {
-    //     let mut random_coin = RpoRandomCoin::new([Felt::new(self.blocks.len() as u64); 4]);
-
-    //     let random_tx_id = TransactionId::new(
-    //         random_coin.draw_word().into(),
-    //         random_coin.draw_word().into(),
-    //         random_coin.draw_word().into(),
-    //         random_coin.draw_word().into(),
-    //     );
-
-    //     let random_account_id = AccountIdBuilder::new().build_with_rng(&mut random_coin);
-
-    //     BatchId::from_ids([(random_tx_id, random_account_id)])
-    // }
 
     // ACCESSORS
     // =========================================================================================
@@ -1390,4 +1329,45 @@ impl Default for MockChain {
 pub enum AccountState {
     New,
     Exists,
+}
+
+// TESTS
+// ================================================================================================
+
+#[cfg(test)]
+mod tests {
+    use miden_objects::{
+        account::{AccountStorage, AccountStorageMode},
+        testing::account_component::AccountMockComponent,
+    };
+
+    use super::*;
+
+    #[test]
+    fn with_accounts() {
+        let native_account = AccountBuilder::new([4; 32])
+            .storage_mode(AccountStorageMode::Public)
+            .with_component(
+                AccountMockComponent::new_with_slots(
+                    TransactionKernel::testing_assembler(),
+                    vec![AccountStorage::mock_item_2().slot],
+                )
+                .unwrap(),
+            )
+            .build_existing()
+            .unwrap();
+
+        let mock_chain = MockChain::with_accounts(&[native_account.clone()]);
+
+        assert_eq!(mock_chain.available_account(native_account.id()), &native_account);
+
+        // Check that transaction inputs retrieved from the chain are against the block header with
+        // the current account tree root.
+        let tx_context = mock_chain.build_tx_context(native_account.id(), &[], &[]).build();
+        assert_eq!(tx_context.tx_inputs().block_header().block_num(), BlockNumber::from(0u32));
+        assert_eq!(
+            tx_context.tx_inputs().block_header().account_root(),
+            mock_chain.account_tree.root()
+        );
+    }
 }

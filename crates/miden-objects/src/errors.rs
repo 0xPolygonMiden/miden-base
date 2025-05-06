@@ -1,4 +1,8 @@
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::error::Error;
 
 use assembly::{Report, diagnostics::reporting::PrintDiagnostic};
@@ -806,7 +810,8 @@ pub enum ProposedBlockError {
     MissingAccountWitness(AccountId),
 
     #[error(
-        "account {account_id} with state {state_commitment} cannot transition to any of the remaining states {remaining_state_commitments:?}"
+        "account {account_id} with state {state_commitment} cannot transition to any of the remaining states {}",
+        remaining_state_commitments.iter().map(ToString::to_string).collect::<Vec<_>>().join(", ")
     )]
     InconsistentAccountStateTransition {
         account_id: AccountId,

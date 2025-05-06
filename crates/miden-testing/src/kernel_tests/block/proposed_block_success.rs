@@ -1,8 +1,9 @@
 use std::{collections::BTreeMap, vec::Vec};
 
 use anyhow::Context;
+use assert_matches::assert_matches;
 use miden_objects::{
-    account::AccountId,
+    account::{AccountId, delta::AccountUpdateDetails},
     block::{BlockInputs, ProposedBlock},
     testing::account_id::ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
     transaction::{OutputNote, ProvenTransaction, TransactionHeader},
@@ -184,7 +185,10 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
         [tx2.id(), tx0.id(), tx1.id()]
     );
 
-    assert!(account_update.details().is_private());
+    assert_matches!(account_update.details(), AccountUpdateDetails::Delta(delta) => {
+        assert_eq!(delta.vault().fungible().num_assets(), 1);
+        assert_eq!(delta.vault().fungible().amount(&asset.unwrap_fungible().faucet_id()).unwrap(), 300);
+    });
 
     Ok(())
 }

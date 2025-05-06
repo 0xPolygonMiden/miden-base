@@ -1127,7 +1127,7 @@ fn test_nested_fpi_native_account_invocation() {
     let err = tx_context.execute().unwrap_err();
 
     let TransactionExecutorError::TransactionProgramExecutionFailed(err) = err else {
-        panic!("unexpected error")
+        panic!("unexpected error: {err}")
     };
 
     assert_execution_error!(Err::<(), _>(err), ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT);

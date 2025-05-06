@@ -4,7 +4,7 @@ use miden_crypto::rand::RpoRandomCoin;
 use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
     Felt,
-    account::{Account, AccountId},
+    account::{Account, AccountId, AccountStorageMode},
     asset::{Asset, FungibleAsset},
     batch::ProvenBatch,
     block::BlockNumber,
@@ -24,9 +24,11 @@ pub struct TestSetup {
 }
 
 pub fn generate_account(chain: &mut MockChain) -> Account {
-    let account_builder = Account::builder(rand::rng().random()).with_component(
-        AccountMockComponent::new_with_empty_slots(TransactionKernel::assembler()).unwrap(),
-    );
+    let account_builder = Account::builder(rand::rng().random())
+        .storage_mode(AccountStorageMode::Public)
+        .with_component(
+            AccountMockComponent::new_with_empty_slots(TransactionKernel::assembler()).unwrap(),
+        );
     chain.add_from_account_builder(Auth::NoAuth, account_builder, AccountState::Exists)
 }
 
