@@ -922,6 +922,7 @@ impl MockChain {
 
         self.committed_accounts
             .insert(account.id(), MockAccount::new(account.clone(), None, authenticator));
+        self.add_pending_account(account.clone());
 
         MockFungibleFaucet::new(account)
     }
