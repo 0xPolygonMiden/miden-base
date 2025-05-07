@@ -316,6 +316,8 @@ pub enum NoteAccountCompatibility {
     /// The account has all necessary procedures of one execution branch of the note script. This
     /// means the note may be able to be consumed by the account if that branch is executed.
     Maybe,
+    /// A note could be successfully executed and consumed by the account.
+    Yes,
 }
 
 // HELPER FUNCTIONS
