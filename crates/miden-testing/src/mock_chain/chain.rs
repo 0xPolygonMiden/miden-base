@@ -29,7 +29,7 @@ use miden_objects::{
     transaction::{
         ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes,
         OrderedTransactionHeaders, OutputNote, PartialBlockchain, ProvenTransaction,
-        TransactionHeader, TransactionId, TransactionInputs, TransactionScript,
+        TransactionHeader, TransactionInputs, TransactionScript,
     },
 };
 use rand::{Rng, SeedableRng};
@@ -56,10 +56,6 @@ struct PendingObjects {
 
     /// Nullifiers produced in transactions in the block.
     created_nullifiers: Vec<Nullifier>,
-
-    /// Transaction IDs added to the block.
-    /// TODO: Remove or use in pending objects batch.
-    included_transactions: Vec<(TransactionId, AccountId)>,
 }
 
 impl PendingObjects {
@@ -68,7 +64,6 @@ impl PendingObjects {
             updated_accounts: BTreeMap::new(),
             output_notes: vec![],
             created_nullifiers: vec![],
-            included_transactions: vec![],
         }
     }
 
@@ -77,7 +72,6 @@ impl PendingObjects {
         self.updated_accounts.is_empty()
             && self.output_notes.is_empty()
             && self.created_nullifiers.is_empty()
-            && self.included_transactions.is_empty()
     }
 }
 
