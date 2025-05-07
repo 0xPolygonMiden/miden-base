@@ -686,21 +686,30 @@ pub fn test_timelock() {
     tx_context.execute().unwrap();
 }
 
+/// This test checks the scenario when some public key, which is provided to the RPO component of
+/// the target account, is also provided as an input to the input note.
+///
+/// Previously this setup was leading to the values collision in the advice map, see the
+/// [issue #1267](https://github.com/0xMiden/miden-base/issues/1267) for more details.
 #[test]
 fn test_public_key_as_note_input() {
-    let mock_public_key = PublicKey::new([ZERO, ONE, Felt::new(2), Felt::new(3)]);
+    // this value will be used both as public key in the RPO component of the target account and as
+    // well as the input of the input note
+    let public_key_value: Word = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+
+    let mock_public_key = PublicKey::new(public_key_value);
     let rpo_component = RpoFalcon512::new(mock_public_key);
 
-    let mock_seed = Digest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]).as_bytes();
-    let target_account = AccountBuilder::new(mock_seed)
+    let mock_seed_1 = Digest::from([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]).as_bytes();
+    let target_account = AccountBuilder::new(mock_seed_1)
         .with_component(BasicWallet)
         .with_component(rpo_component)
         .build_existing()
         .unwrap();
 
-    let mock_seed =
-        Digest::from([Felt::new(4), Felt::new(5), Felt::new(6), Felt::new(7)]).as_bytes();
-    let sender_account = AccountBuilder::new(mock_seed)
+    let mock_seed_2 =
+        Digest::from([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]).as_bytes();
+    let sender_account = AccountBuilder::new(mock_seed_2)
         .with_component(BasicWallet)
         .build_existing()
         .unwrap();
@@ -722,7 +731,7 @@ fn test_public_key_as_note_input() {
     let recipient = NoteRecipient::new(
         serial_num,
         note_script,
-        NoteInputs::new(vec![ZERO, ONE, Felt::new(2), Felt::new(3)]).unwrap(),
+        NoteInputs::new(public_key_value.to_vec()).unwrap(),
     );
     let note_with_pub_key = Note::new(vault.clone(), metadata, recipient);
 

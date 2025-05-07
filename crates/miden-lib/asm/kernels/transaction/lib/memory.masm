@@ -1270,7 +1270,7 @@ export.set_input_note_args
     mem_storew
 end
 
-#! Returns the inputs number of the note currently being processed.
+#! Returns the number of inputs of the note currently being processed.
 #!
 #! Inputs:  []
 #! Outputs: [num_inputs]
