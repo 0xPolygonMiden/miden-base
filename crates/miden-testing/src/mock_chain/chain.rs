@@ -42,39 +42,6 @@ use crate::{
     mock_chain::account::MockAccount,
 };
 
-// PENDING OBJECTS
-// ================================================================================================
-
-/// Aggregates all entities that were added to the blockchain in the last block (not yet finalized)
-#[derive(Default, Debug, Clone)]
-struct PendingObjects {
-    /// Account updates for the block.
-    updated_accounts: BTreeMap<AccountId, BlockAccountUpdate>,
-
-    /// Note batches created in transactions in the block.
-    output_notes: Vec<OutputNote>,
-
-    /// Nullifiers produced in transactions in the block.
-    created_nullifiers: Vec<Nullifier>,
-}
-
-impl PendingObjects {
-    pub fn new() -> PendingObjects {
-        PendingObjects {
-            updated_accounts: BTreeMap::new(),
-            output_notes: vec![],
-            created_nullifiers: vec![],
-        }
-    }
-
-    /// Returns `true` if there are no pending objects, `false` otherwise.
-    pub fn is_empty(&self) -> bool {
-        self.updated_accounts.is_empty()
-            && self.output_notes.is_empty()
-            && self.created_nullifiers.is_empty()
-    }
-}
-
 // MOCK CHAIN
 // ================================================================================================
 
@@ -1354,7 +1321,40 @@ impl Default for MockChain {
     }
 }
 
-// HELPER TYPES
+// PENDING OBJECTS
+// ================================================================================================
+
+/// Aggregates all entities that were added using the _pending_ APIs of the [`MockChain`].
+#[derive(Default, Debug, Clone)]
+struct PendingObjects {
+    /// Account updates for the block.
+    updated_accounts: BTreeMap<AccountId, BlockAccountUpdate>,
+
+    /// Note batches created in transactions in the block.
+    output_notes: Vec<OutputNote>,
+
+    /// Nullifiers produced in transactions in the block.
+    created_nullifiers: Vec<Nullifier>,
+}
+
+impl PendingObjects {
+    pub fn new() -> PendingObjects {
+        PendingObjects {
+            updated_accounts: BTreeMap::new(),
+            output_notes: vec![],
+            created_nullifiers: vec![],
+        }
+    }
+
+    /// Returns `true` if there are no pending objects, `false` otherwise.
+    pub fn is_empty(&self) -> bool {
+        self.updated_accounts.is_empty()
+            && self.output_notes.is_empty()
+            && self.created_nullifiers.is_empty()
+    }
+}
+
+// ACCOUNT STATE
 // ================================================================================================
 
 /// Helper type for increased readability at call-sites. Indicates whether to build a new (nonce =
@@ -1363,6 +1363,9 @@ pub enum AccountState {
     New,
     Exists,
 }
+
+// TX CONTEXT INPUT
+// ================================================================================================
 
 /// Helper type to abstract over the inputs to [`MockChain::build_tx_context`]. See that method's
 /// docs for details.
