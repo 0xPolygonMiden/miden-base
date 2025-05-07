@@ -7,7 +7,7 @@ use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string}
 use miden_objects::{
     FieldElement,
     account::{Account, AccountId},
-    assembly::{Assembler, Library},
+    assembly::Assembler,
     asset::{Asset, FungibleAsset, NonFungibleAsset},
     note::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
@@ -76,7 +76,6 @@ pub struct TransactionContextBuilder {
     authenticator: Option<MockAuthenticator>,
     expected_output_notes: Vec<Note>,
     foreign_account_inputs: Vec<ForeignAccountInputs>,
-    libraries: Vec<Library>,
     input_notes: Vec<Note>,
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
@@ -99,7 +98,6 @@ impl TransactionContextBuilder {
             transaction_inputs: None,
             note_args: BTreeMap::new(),
             foreign_account_inputs: vec![],
-            libraries: Default::default(),
         }
     }
 
@@ -127,7 +125,6 @@ impl TransactionContextBuilder {
             transaction_inputs: None,
             note_args: BTreeMap::new(),
             foreign_account_inputs: vec![],
-            libraries: Default::default(),
         }
     }
 
@@ -194,12 +191,6 @@ impl TransactionContextBuilder {
     /// Set the desired transaction inputs
     pub fn tx_inputs(mut self, tx_inputs: TransactionInputs) -> Self {
         self.transaction_inputs = Some(tx_inputs);
-        self
-    }
-
-    /// Set custom libraries to add to the MAST forest store at context creation.
-    pub fn libraries(mut self, libraries: Vec<Library>) -> Self {
-        self.libraries = libraries;
         self
     }
 
@@ -683,9 +674,6 @@ impl TransactionContextBuilder {
                 &tx_args,
             );
 
-            for custom_library in self.libraries {
-                mast_forest_store.insert(custom_library.mast_forest().clone());
-            }
             mast_forest_store
         };
 
