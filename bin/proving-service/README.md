@@ -1,6 +1,6 @@
 # Miden proving service
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > **Due to a transitive dependency compilation error, the only way to install the binary is using `--locked`.**
 
 A service for generating Miden proofs on-demand. The binary enables spawning workers and a proxy for Miden's remote proving service. It currently supports proving individual transactions, transaction batches, and blocks.
@@ -9,7 +9,46 @@ A worker is a gRPC service that can receive transaction witnesses, proposed batc
 
 The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), which provides features to create a modular proxy. It is meant to handle multiple workers with a queue, assigning a worker to each request and retrying if the worker is not available. Further information about Pingora and its features can be found in the [official GitHub repository](https://github.com/cloudflare/pingora).
 
-## Installation
+
+## Debian Installation
+
+#### Prover
+```bash
+set -e
+
+sudo wget https://github.com/0xMiden/miden-base/releases/download/v0.8/miden-prover-v0.8-arm64.deb -O prover.deb
+sudo wget -q -O - https://github.com/0xMiden/miden-base/releases/download/v0.8/miden-prover-v0.8-arm64.deb.checksum | awk '{print $1}' | sudo tee prover.checksum
+sudo sha256sum prover.deb | awk '{print $1}' > prover.sha256
+sudo diff prover.sha256 prover.checksum
+sudo dpkg -i prover.deb
+sudo rm prover.deb
+
+sudo chown -R miden-prover /opt/miden-prover
+
+sudo systemctl daemon-reload
+sudo systemctl enable miden-prover
+sudo systemctl start miden-prover
+```
+
+#### Prover Proxy
+```bash
+set -e
+
+sudo wget https://github.com/0xMiden/miden-base/releases/download/v0.8/miden-prover-proxy-v0.8-arm64.deb -O prover-proxy.deb
+sudo wget -q -O - https://github.com/0xMiden/miden-base/releases/download/v0.8/miden-prover-proxy-v0.8-arm64.deb.checksum | awk '{print $1}' | sudo tee prover-proxy.checksum
+sudo sha256sum prover-proxy.deb | awk '{print $1}' > prover-proxy.sha256
+sudo diff prover-proxy.sha256 prover-proxy.checksum
+sudo dpkg -i prover-proxy.deb
+sudo rm prover-proxy.deb
+
+sudo chown -R miden-prover-proxy /opt/miden-prover-proxy
+
+sudo systemctl daemon-reload
+sudo systemctl enable miden-prover-proxy
+sudo systemctl start miden-prover-proxy
+```
+
+## Source Installation
 
 To build the service from a local version, from the root of the workspace you can run:
 
