@@ -472,7 +472,7 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
     // nullifier tree.
     let mut alternative_chain = chain.clone();
     let transaction = generate_executed_tx_with_authenticated_notes(
-        &mut alternative_chain,
+        &alternative_chain,
         account1.id(),
         &[note0.id()],
     );
@@ -585,33 +585,16 @@ fn proposed_block_fails_on_inconsistent_account_state_transition() -> anyhow::Re
     chain.prove_next_block();
 
     // Create three transactions on the same account that build on top of each other.
-    // The MockChain only updates the account state when sealing a block, but we don't want the
-    // transactions to actually be added to the chain because of unintended side effects like spent
-    // nullifiers. So we create an alternative chain on which we generate the transactions, but
-    // then actually use the transactions on the original chain.
-    let mut alternative_chain = chain.clone();
-    let executed_tx0 = generate_executed_tx_with_authenticated_notes(
-        &mut alternative_chain,
-        account1.id(),
-        &[note0.id()],
-    );
-    alternative_chain.add_pending_executed_transaction(&executed_tx0);
-    alternative_chain.prove_next_block();
+    let executed_tx0 =
+        generate_executed_tx_with_authenticated_notes(&chain, account1.clone(), &[note0.id()]);
 
-    let executed_tx1 = generate_executed_tx_with_authenticated_notes(
-        &mut alternative_chain,
-        account1.id(),
-        &[note1.id()],
-    );
-    alternative_chain.add_pending_executed_transaction(&executed_tx1);
-    alternative_chain.prove_next_block();
+    // Builds a tx on top of the account state from tx0.
+    let executed_tx1 =
+        generate_executed_tx_with_authenticated_notes(&chain, executed_tx0.clone(), &[note1.id()]);
 
-    let executed_tx2 = generate_executed_tx_with_authenticated_notes(
-        &mut alternative_chain,
-        account1.id(),
-        &[note2.id()],
-    );
-    alternative_chain.add_pending_executed_transaction(&executed_tx2);
+    // Builds a tx on top of the account state from tx1.
+    let executed_tx2 =
+        generate_executed_tx_with_authenticated_notes(&chain, executed_tx1.clone(), &[note2.id()]);
 
     // We will only include tx0 and tx2 and leave out tx1, which will trigger the error condition
     // that there is no transition from tx0 -> tx2.

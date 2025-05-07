@@ -119,33 +119,14 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
     chain.prove_next_block();
 
     // Create three transactions on the same account that build on top of each other.
-    // The MockChain only updates the account state when sealing a block, but we don't want the
-    // transactions to actually be added to the chain because of unintended side effects like spent
-    // nullifiers. So we create an alternative chain on which we generate the transactions, but
-    // then actually use the transactions on the original chain.
-    let mut alternative_chain = chain.clone();
-    let executed_tx0 = generate_executed_tx_with_authenticated_notes(
-        &mut alternative_chain,
-        account1.id(),
-        &[note0.id()],
-    );
-    alternative_chain.add_pending_executed_transaction(&executed_tx0);
-    alternative_chain.prove_next_block();
+    let executed_tx0 =
+        generate_executed_tx_with_authenticated_notes(&chain, account1.id(), &[note0.id()]);
 
-    let executed_tx1 = generate_executed_tx_with_authenticated_notes(
-        &mut alternative_chain,
-        account1.id(),
-        &[note1.id()],
-    );
-    alternative_chain.add_pending_executed_transaction(&executed_tx1);
-    alternative_chain.prove_next_block();
+    let executed_tx1 =
+        generate_executed_tx_with_authenticated_notes(&chain, executed_tx0.clone(), &[note1.id()]);
 
-    let executed_tx2 = generate_executed_tx_with_authenticated_notes(
-        &mut alternative_chain,
-        account1.id(),
-        &[note2.id()],
-    );
-    alternative_chain.add_pending_executed_transaction(&executed_tx2);
+    let executed_tx2 =
+        generate_executed_tx_with_authenticated_notes(&chain, executed_tx1.clone(), &[note2.id()]);
 
     let [tx0, tx1, tx2] = [executed_tx0, executed_tx1, executed_tx2]
         .into_iter()

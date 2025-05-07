@@ -117,6 +117,7 @@ fn prove_consume_note_with_new_account() {
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
+
     // Execute the transaction and get the witness
     let executed_transaction = mock_chain
         .build_tx_context(target_account.id(), &[note.id()], &[])

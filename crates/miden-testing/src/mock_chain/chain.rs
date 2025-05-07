@@ -498,17 +498,53 @@ impl MockChain {
 
     /// Initializes a [`TransactionContextBuilder`].
     ///
-    /// This initializes the builder with [`TransactionInputs`] fetched for the requsted account ID.
-    /// The account's seed and authenticator are added to the builder as well. Additionally, if the
-    /// account is set to authenticate with [`Auth::BasicAuth`], the executed transaction script
-    /// is defaulted to [`DEFAULT_AUTH_SCRIPT`].
+    /// Depending on the provided `input`, the builder is initialized differently:
+    /// - [`TxContextInput::AccountId`]: Initialize the builder with [`TransactionInputs`] fetched
+    ///   from the chain for the account identified by the ID.
+    /// - [`TxContextInput::Account`]: Initialize the builder with [`TransactionInputs`] where the
+    ///   account is passed as-is to the inputs.
+    /// - [`TxContextInput::ExecutedTransaction`]: Initialize the builder with [`TransactionInputs`]
+    ///   where the account passed to the inputs is the final account of the executed transaction.
+    ///   This is the initial account of the transaction with the account delta applied.
+    ///
+    /// In all cases, if the chain contains a seed or authenticator for the account, they are added
+    /// to the builder. Additionally, if the account is set to authenticate with
+    /// [`Auth::BasicAuth`], the executed transaction script is defaulted to
+    /// [`DEFAULT_AUTH_SCRIPT`].
+    ///
+    /// [`TxContextInput::Account`] and [`TxContextInput::ExecutedTransaction`] can be used to build
+    /// a chain of transactions against the same account that build on top of each other. For
+    /// example, transaction A modifies an account from state 0 to 1, and transaction B modifies
+    /// it from state 1 to 2.
     pub fn build_tx_context(
         &self,
-        account_id: AccountId,
+        input: impl Into<TxContextInput>,
         note_ids: &[NoteId],
         unauthenticated_notes: &[Note],
     ) -> TransactionContextBuilder {
-        let mock_account = self.committed_accounts.get(&account_id).unwrap().clone();
+        let input = input.into();
+
+        let mock_account = match input {
+            TxContextInput::AccountId(account_id) => {
+                self.committed_accounts.get(&account_id).unwrap().clone()
+            },
+            TxContextInput::Account(account) => {
+                let committed_account = self.committed_accounts.get(&account.id());
+                let authenticator = committed_account.and_then(|account| account.authenticator());
+                let seed = committed_account.and_then(|account| account.seed());
+                MockAccount::new(account, seed.cloned(), authenticator.cloned())
+            },
+            TxContextInput::ExecutedTransaction(executed_transaction) => {
+                let mut initial_account = executed_transaction.initial_account().clone();
+                initial_account
+                    .apply_delta(executed_transaction.account_delta())
+                    .expect("delta from tx should be valid for initial account from tx");
+                let committed_account = self.committed_accounts.get(&initial_account.id());
+                let authenticator = committed_account.and_then(|account| account.authenticator());
+                let seed = committed_account.and_then(|account| account.seed());
+                MockAccount::new(initial_account, seed.cloned(), authenticator.cloned())
+            },
+        };
 
         let tx_inputs = self.get_transaction_inputs(
             mock_account.account().clone(),
@@ -565,6 +601,7 @@ impl MockChain {
                     self.blocks.get(note_block_num.as_usize()).unwrap().header().clone(),
                 );
             }
+
             input_notes.push(input_note);
         }
 
@@ -1325,6 +1362,33 @@ impl Default for MockChain {
 pub enum AccountState {
     New,
     Exists,
+}
+
+/// Helper type to abstract over the inputs to [`MockChain::build_tx_context`]. See that method's
+/// docs for details.
+#[derive(Debug, Clone)]
+pub enum TxContextInput {
+    AccountId(AccountId),
+    Account(Account),
+    ExecutedTransaction(ExecutedTransaction),
+}
+
+impl From<AccountId> for TxContextInput {
+    fn from(account: AccountId) -> Self {
+        Self::AccountId(account)
+    }
+}
+
+impl From<Account> for TxContextInput {
+    fn from(account: Account) -> Self {
+        Self::Account(account)
+    }
+}
+
+impl From<ExecutedTransaction> for TxContextInput {
+    fn from(tx: ExecutedTransaction) -> Self {
+        Self::ExecutedTransaction(tx)
+    }
 }
 
 // TESTS

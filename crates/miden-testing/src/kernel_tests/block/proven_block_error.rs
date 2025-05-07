@@ -44,8 +44,7 @@ fn witness_test_setup() -> WitnessTestSetup {
     // Add note to chain.
     chain.prove_next_block();
 
-    let tx0 =
-        generate_executed_tx_with_authenticated_notes(&mut chain, account0.id(), &[note.id()]);
+    let tx0 = generate_executed_tx_with_authenticated_notes(&chain, account0.id(), &[note.id()]);
     let tx1 = txs.remove(&1).unwrap();
     let tx2 = txs.remove(&2).unwrap();
 

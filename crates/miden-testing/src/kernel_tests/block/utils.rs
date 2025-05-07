@@ -15,7 +15,7 @@ use miden_objects::{
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
 
-use crate::{AccountState, Auth, MockChain, mock_chain::ProvenTransactionExt};
+use crate::{AccountState, Auth, MockChain, TxContextInput, mock_chain::ProvenTransactionExt};
 
 pub struct TestSetup {
     pub chain: MockChain,
@@ -123,12 +123,12 @@ pub fn generate_fungible_asset(amount: u64, faucet_id: AccountId) -> Asset {
 }
 
 pub fn generate_executed_tx_with_authenticated_notes(
-    chain: &mut MockChain,
-    account: AccountId,
+    chain: &MockChain,
+    input: impl Into<TxContextInput>,
     notes: &[NoteId],
 ) -> ExecutedTransaction {
     let tx_context = chain
-        .build_tx_context(account, notes, &[])
+        .build_tx_context(input, notes, &[])
         .tx_script(authenticate_mock_account_tx_script(u16::MAX))
         .build();
     tx_context.execute().unwrap()
