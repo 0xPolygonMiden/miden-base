@@ -478,7 +478,7 @@ fn proposed_block_fails_on_spent_nullifier_witness() -> anyhow::Result<()> {
     );
     alternative_chain.add_pending_executed_transaction(&transaction);
     alternative_chain.prove_next_block();
-    let spent_proof = alternative_chain.nullifiers().open(&note0.nullifier());
+    let spent_proof = alternative_chain.nullifier_tree().open(&note0.nullifier());
 
     let batches = vec![batch0.clone()];
     let mut block_inputs = chain.get_block_inputs(&batches);

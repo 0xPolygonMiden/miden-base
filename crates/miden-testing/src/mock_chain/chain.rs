@@ -236,15 +236,509 @@ impl MockChain {
         chain
     }
 
+    // PUBLIC ACCESSORS
+    // ----------------------------------------------------------------------------------------
+
+    /// Returns a reference to the current [`Blockchain`].
+    pub fn blockchain(&self) -> &Blockchain {
+        &self.chain
+    }
+
+    /// Returns a [`PartialBlockchain`] instantiated from the current [`Blockchain`] and with
+    /// authentication paths for all all blocks in the chain.
+    pub fn latest_partial_blockchain(&self) -> PartialBlockchain {
+        // We have to exclude the latest block because we need to fetch the state of the chain at
+        // that latest block, which does not include itself.
+        let block_headers =
+            self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1).cloned();
+
+        PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap()
+    }
+
+    /// Creates a new [`PartialBlockchain`] with all reference blocks in the given iterator except
+    /// for the latest block header in the chain and returns that latest block header.
+    ///
+    /// The intended use for the latest block header is to become the reference block of a new
+    /// transaction batch or block.
+    pub fn latest_selective_partial_blockchain(
+        &self,
+        reference_blocks: impl IntoIterator<Item = BlockNumber>,
+    ) -> (BlockHeader, PartialBlockchain) {
+        let latest_block_header = self.latest_block_header().clone();
+        // Deduplicate block numbers so each header will be included just once. This is required so
+        // PartialBlockchain::from_blockchain does not panic.
+        let reference_blocks: BTreeSet<_> = reference_blocks.into_iter().collect();
+
+        // Include all block headers of the reference blocks except the latest block.
+        let block_headers: Vec<_> = reference_blocks
+            .into_iter()
+            .map(|block_ref_num| self.block_header(block_ref_num.as_usize()))
+            .filter(|block_header| block_header.commitment() != latest_block_header.commitment())
+            .collect();
+
+        let partial_blockchain =
+            PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap();
+
+        (latest_block_header, partial_blockchain)
+    }
+
+    /// Returns a map of [`AccountWitness`]es for the requested account IDs from the current
+    /// [`AccountTree`] in the chain.
+    pub fn account_witnesses(
+        &self,
+        account_ids: impl IntoIterator<Item = AccountId>,
+    ) -> BTreeMap<AccountId, AccountWitness> {
+        let mut account_witnesses = BTreeMap::new();
+
+        for account_id in account_ids {
+            let witness = self.account_tree.open(account_id);
+            account_witnesses.insert(account_id, witness);
+        }
+
+        account_witnesses
+    }
+
+    /// Returns a map of [`NullifierWitness`]es for the requested nullifiers from the current
+    /// [`NullifierTree`] in the chain.
+    pub fn nullifier_witnesses(
+        &self,
+        nullifiers: impl IntoIterator<Item = Nullifier>,
+    ) -> BTreeMap<Nullifier, NullifierWitness> {
+        let mut nullifier_proofs = BTreeMap::new();
+
+        for nullifier in nullifiers {
+            let witness = self.nullifier_tree.open(&nullifier);
+            nullifier_proofs.insert(nullifier, witness);
+        }
+
+        nullifier_proofs
+    }
+
+    /// Returns all note inclusion proofs for the requested note IDs, **if they are available for
+    /// consumption**. Therefore, not all of the requested notes will be guaranteed to have an entry
+    /// in the returned map.
+    pub fn unauthenticated_note_proofs(
+        &self,
+        notes: impl IntoIterator<Item = NoteId>,
+    ) -> BTreeMap<NoteId, NoteInclusionProof> {
+        let mut proofs = BTreeMap::default();
+        for note in notes {
+            if let Some(input_note) = self.committed_notes.get(&note) {
+                proofs.insert(note, input_note.inclusion_proof().clone());
+            }
+        }
+
+        proofs
+    }
+
+    /// Returns a reference to the latest [`BlockHeader`] in the chain.
+    pub fn latest_block_header(&self) -> BlockHeader {
+        let chain_tip =
+            self.chain.chain_tip().expect("chain should contain at least the genesis block");
+        self.blocks[chain_tip.as_usize()].header().clone()
+    }
+
+    /// Gets a reference to [BlockHeader] with `block_number`.
+    pub fn block_header(&self, block_number: usize) -> BlockHeader {
+        self.blocks[block_number].header().clone()
+    }
+
+    /// Returns a reference to slice of all created proven blocks.
+    pub fn proven_blocks(&self) -> &[ProvenBlock] {
+        &self.blocks
+    }
+
+    /// Returns a reference to the nullifier tree.
+    pub fn nullifier_tree(&self) -> &NullifierTree {
+        &self.nullifier_tree
+    }
+
+    /// Returns the map of note IDs to committed notes.
+    ///
+    /// These notes are available for authenticated consumption.
+    pub fn committed_notes(&self) -> &BTreeMap<NoteId, MockChainNote> {
+        &self.committed_notes
+    }
+
+    /// Returns an [`InputNote`] for the given note ID. If the note does not exist or is not
+    /// public, `None` is returned.
+    pub fn get_public_note(&self, note_id: &NoteId) -> Option<InputNote> {
+        let note = self.committed_notes.get(note_id)?;
+        note.clone().try_into().ok()
+    }
+
+    /// Returns a reference to the account identifed by the given account ID and panics if it does
+    /// not exist.
+    pub fn committed_account(&self, account_id: AccountId) -> &Account {
+        self.committed_accounts
+            .get(&account_id)
+            .expect("account should be available")
+            .account()
+    }
+
+    /// Returns a reference to the [`AccountTree`] of the chain.
+    pub fn account_tree(&self) -> &AccountTree {
+        &self.account_tree
+    }
+
+    // BATCH APIS
+    // ----------------------------------------------------------------------------------------
+
+    /// Proposes a new transaction batch from the provided transactions and returns it.
+    ///
+    /// This method does not modify the chain state.
+    pub fn propose_transaction_batch<I>(
+        &self,
+        txs: impl IntoIterator<Item = ProvenTransaction, IntoIter = I>,
+    ) -> Result<ProposedBatch, ProposedBatchError>
+    where
+        I: Iterator<Item = ProvenTransaction> + Clone,
+    {
+        let transactions: Vec<_> = txs.into_iter().map(alloc::sync::Arc::new).collect();
+
+        let (batch_reference_block, partial_blockchain, unauthenticated_note_proofs) = self
+            .get_batch_inputs(
+                transactions.iter().map(|tx| tx.ref_block_num()),
+                transactions
+                    .iter()
+                    .flat_map(|tx| tx.unauthenticated_notes().map(NoteHeader::id)),
+            );
+
+        ProposedBatch::new(
+            transactions,
+            batch_reference_block,
+            partial_blockchain,
+            unauthenticated_note_proofs,
+        )
+    }
+
+    /// Mock-proves a proposed transaction batch from the provided [`ProposedBatch`] and returns it.
+    ///
+    /// This method does not modify the chain state.
+    pub fn prove_transaction_batch(&self, proposed_batch: ProposedBatch) -> ProvenBatch {
+        let (
+            transactions,
+            block_header,
+            _partial_blockchain,
+            _unauthenticated_note_proofs,
+            id,
+            account_updates,
+            input_notes,
+            output_notes,
+            batch_expiration_block_num,
+        ) = proposed_batch.into_parts();
+
+        // SAFETY: This satisfies the requirements of the ordered tx headers.
+        let tx_headers = OrderedTransactionHeaders::new_unchecked(
+            transactions
+                .iter()
+                .map(AsRef::as_ref)
+                .map(TransactionHeader::from)
+                .collect::<Vec<_>>(),
+        );
+
+        ProvenBatch::new(
+            id,
+            block_header.commitment(),
+            block_header.block_num(),
+            account_updates,
+            input_notes,
+            output_notes,
+            batch_expiration_block_num,
+            tx_headers,
+        )
+        .expect("failed to create ProvenBatch")
+    }
+
+    // BLOCK APIS
+    // ----------------------------------------------------------------------------------------
+
+    /// Proposes a new block from the provided batches with the given timestamp and returns it.
+    ///
+    /// This method does not modify the chain state.
+    pub fn propose_block_at<I>(
+        &self,
+        batches: impl IntoIterator<Item = ProvenBatch, IntoIter = I>,
+        timestamp: u32,
+    ) -> Result<ProposedBlock, ProposedBlockError>
+    where
+        I: Iterator<Item = ProvenBatch> + Clone,
+    {
+        let batches: Vec<_> = batches.into_iter().collect();
+        let block_inputs = self.get_block_inputs(batches.iter());
+
+        let proposed_block = ProposedBlock::new_at(block_inputs, batches, timestamp)?;
+
+        Ok(proposed_block)
+    }
+
+    /// Proposes a new block from the provided batches and returns it.
+    ///
+    /// This method does not modify the chain state.
+    pub fn propose_block<I>(
+        &self,
+        batches: impl IntoIterator<Item = ProvenBatch, IntoIter = I>,
+    ) -> Result<ProposedBlock, ProposedBlockError>
+    where
+        I: Iterator<Item = ProvenBatch> + Clone,
+    {
+        // We can't access system time because the testing feature does not depend on std at this
+        // time. So we use the minimally correct next timestamp.
+        let timestamp = self.latest_block_header().timestamp() + 1;
+
+        self.propose_block_at(batches, timestamp)
+    }
+
+    /// Mock-proves a proposed block into a proven block and returns it.
+    ///
+    /// This method does not modify the chain state.
+    pub fn prove_block(
+        &self,
+        proposed_block: ProposedBlock,
+    ) -> Result<ProvenBlock, ProvenBlockError> {
+        LocalBlockProver::new(0).prove_without_batch_verification(proposed_block)
+    }
+
+    // TRANSACTION APIS
+    // ----------------------------------------------------------------------------------------
+
+    /// Initializes a [`TransactionContextBuilder`].
+    ///
+    /// This initializes the builder with [`TransactionInputs`] fetched for the requsted account ID.
+    /// The account's seed and authenticator are added to the builder as well. Additionally, if the
+    /// account is set to authenticate with [`Auth::BasicAuth`], the executed transaction script
+    /// is defaulted to [`DEFAULT_AUTH_SCRIPT`].
+    pub fn build_tx_context(
+        &self,
+        account_id: AccountId,
+        note_ids: &[NoteId],
+        unauthenticated_notes: &[Note],
+    ) -> TransactionContextBuilder {
+        let mock_account = self.committed_accounts.get(&account_id).unwrap().clone();
+
+        let tx_inputs = self.get_transaction_inputs(
+            mock_account.account().clone(),
+            mock_account.seed().cloned(),
+            note_ids,
+            unauthenticated_notes,
+        );
+
+        let mut tx_context_builder = TransactionContextBuilder::new(mock_account.account().clone())
+            .authenticator(mock_account.authenticator().cloned())
+            .account_seed(mock_account.seed().cloned())
+            .tx_inputs(tx_inputs);
+
+        if mock_account.authenticator().is_some() {
+            let tx_script = TransactionScript::compile(
+                DEFAULT_AUTH_SCRIPT,
+                vec![],
+                TransactionKernel::testing_assembler_with_mock_account(),
+            )
+            .unwrap();
+            tx_context_builder = tx_context_builder.tx_script(tx_script);
+        }
+
+        tx_context_builder
+    }
+
+    // INPUTS APIS
+    // ----------------------------------------------------------------------------------------
+
+    /// Returns a valid [`TransactionInputs`] for the specified entities.
+    pub fn get_transaction_inputs(
+        &self,
+        account: Account,
+        account_seed: Option<Word>,
+        notes: &[NoteId],
+        unauthenticated_notes: &[Note],
+    ) -> TransactionInputs {
+        let block = self.blocks.last().unwrap();
+
+        let mut input_notes = vec![];
+        let mut block_headers_map: BTreeMap<BlockNumber, BlockHeader> = BTreeMap::new();
+        for note in notes {
+            let input_note: InputNote = self
+                .committed_notes
+                .get(note)
+                .expect("Note not found")
+                .clone()
+                .try_into()
+                .expect("Note should be public");
+            let note_block_num = input_note.location().unwrap().block_num();
+            if note_block_num != block.header().block_num() {
+                block_headers_map.insert(
+                    note_block_num,
+                    self.blocks.get(note_block_num.as_usize()).unwrap().header().clone(),
+                );
+            }
+            input_notes.push(input_note);
+        }
+
+        // If the account is new, add the anchor block's header from which the account ID is derived
+        // to the MMR.
+        if account.is_new() {
+            let epoch_block_num = BlockNumber::from_epoch(account.id().anchor_epoch());
+            // The reference block of the transaction is added to the MMR in
+            // prologue::process_chain_data so we can skip adding it to the block headers here.
+            if epoch_block_num != block.header().block_num() {
+                block_headers_map.insert(
+                    epoch_block_num,
+                    self.blocks.get(epoch_block_num.as_usize()).unwrap().header().clone(),
+                );
+            }
+        }
+
+        for note in unauthenticated_notes {
+            input_notes.push(InputNote::Unauthenticated { note: note.clone() })
+        }
+
+        let block_headers = block_headers_map.values().cloned();
+        let mmr = PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap();
+
+        TransactionInputs::new(
+            account,
+            account_seed,
+            block.header().clone(),
+            mmr,
+            InputNotes::new(input_notes).unwrap(),
+        )
+        .unwrap()
+    }
+
+    /// Returns inputs for a transaction batch for all the reference blocks of the provided
+    /// transactions.
+    pub fn get_batch_inputs(
+        &self,
+        tx_reference_blocks: impl IntoIterator<Item = BlockNumber>,
+        unauthenticated_notes: impl Iterator<Item = NoteId>,
+    ) -> (BlockHeader, PartialBlockchain, BTreeMap<NoteId, NoteInclusionProof>) {
+        // Fetch note proofs for notes that exist in the chain.
+        let unauthenticated_note_proofs = self.unauthenticated_note_proofs(unauthenticated_notes);
+
+        // We also need to fetch block inclusion proofs for any of the blocks that contain
+        // unauthenticated notes for which we want to prove inclusion.
+        let required_blocks = tx_reference_blocks.into_iter().chain(
+            unauthenticated_note_proofs
+                .values()
+                .map(|note_proof| note_proof.location().block_num()),
+        );
+
+        let (batch_reference_block, partial_block_chain) =
+            self.latest_selective_partial_blockchain(required_blocks);
+
+        (batch_reference_block, partial_block_chain, unauthenticated_note_proofs)
+    }
+
+    /// Gets foreign account inputs to execute FPI transactions.
+    pub fn get_foreign_account_inputs(&self, account_id: AccountId) -> ForeignAccountInputs {
+        let account = self.committed_account(account_id);
+
+        let account_witness = self.account_tree().open(account_id);
+        assert_eq!(account_witness.state_commitment(), account.commitment());
+
+        let mut storage_map_proofs = vec![];
+        for slot in account.storage().slots() {
+            // if there are storage maps, we populate the merkle store and advice map
+            if let StorageSlot::Map(map) = slot {
+                let proofs: Vec<SmtProof> = map.entries().map(|(key, _)| map.open(key)).collect();
+                storage_map_proofs.extend(proofs);
+            }
+        }
+
+        ForeignAccountInputs::new(
+            AccountHeader::from(account),
+            account.storage().get_header(),
+            account.code().clone(),
+            account_witness,
+            storage_map_proofs,
+        )
+    }
+
+    /// Gets the inputs for a block for the provided batches.
+    pub fn get_block_inputs<'batch, I>(
+        &self,
+        batch_iter: impl IntoIterator<Item = &'batch ProvenBatch, IntoIter = I>,
+    ) -> BlockInputs
+    where
+        I: Iterator<Item = &'batch ProvenBatch> + Clone,
+    {
+        let batch_iterator = batch_iter.into_iter();
+
+        let unauthenticated_note_proofs =
+            self.unauthenticated_note_proofs(batch_iterator.clone().flat_map(|batch| {
+                batch.input_notes().iter().filter_map(|note| note.header().map(NoteHeader::id))
+            }));
+
+        let (block_reference_block, partial_blockchain) = self.latest_selective_partial_blockchain(
+            batch_iterator.clone().map(ProvenBatch::reference_block_num).chain(
+                unauthenticated_note_proofs.values().map(|proof| proof.location().block_num()),
+            ),
+        );
+
+        let account_witnesses =
+            self.account_witnesses(batch_iterator.clone().flat_map(ProvenBatch::updated_accounts));
+
+        let nullifier_proofs =
+            self.nullifier_witnesses(batch_iterator.flat_map(ProvenBatch::created_nullifiers));
+
+        BlockInputs::new(
+            block_reference_block,
+            partial_blockchain,
+            account_witnesses,
+            nullifier_proofs,
+            unauthenticated_note_proofs,
+        )
+    }
+
     // PUBLIC MUTATORS
     // ----------------------------------------------------------------------------------------
+
+    /// Creates the next block in the mock chain.
+    ///
+    /// This will make all the objects currently pending available for use.
+    pub fn prove_next_block(&mut self) -> ProvenBlock {
+        self.prove_block_inner(None).unwrap()
+    }
+
+    /// Proves the next block in the mock chain at the given timestamp.
+    pub fn prove_next_block_at(&mut self, timestamp: u32) -> anyhow::Result<ProvenBlock> {
+        self.prove_block_inner(Some(timestamp))
+    }
+
+    /// Proves new blocks until the block with the given target block number has been created.
+    ///
+    /// For example, if the latest block is `5` and this function is called with `10`, then blocks
+    /// `6..=10` will be created and block 10 will be returned.
+    ///
+    /// # Panics
+    ///
+    /// Panics if:
+    /// - the given block number is smaller or equal to the number of the latest block in the chain.
+    pub fn prove_until_block(
+        &mut self,
+        target_block_num: impl Into<BlockNumber>,
+    ) -> anyhow::Result<ProvenBlock> {
+        let target_block_num = target_block_num.into();
+        let latest_block_num = self.latest_block_header().block_num();
+        assert!(
+            target_block_num > latest_block_num,
+            "target block number must be greater than the number of the latest block in the chain"
+        );
+
+        let mut last_block = None;
+        for _ in latest_block_num.as_usize()..=target_block_num.as_usize() {
+            last_block = Some(self.prove_next_block());
+        }
+
+        Ok(last_block.expect("at least one block should have been created"))
+    }
 
     /// Sets the seed for the internal RNG.
     pub fn set_rng_seed(&mut self, seed: [u8; 32]) {
         self.rng = ChaCha20Rng::from_seed(seed);
     }
 
-    // PENDING APIS
+    // PUBLIC MUTATORS (PENDING APIS)
     // ----------------------------------------------------------------------------------------
 
     /// Adds the given [`ExecutedTransaction`] to the list of pending transactions.
@@ -489,401 +983,12 @@ impl MockChain {
         );
     }
 
-    // BATCH APIS
+    // PRIVATE HELPERS
     // ----------------------------------------------------------------------------------------
-
-    /// Proposes a new transaction batch from the provided transactions and returns it.
-    ///
-    /// This method does not modify the chain state.
-    pub fn propose_transaction_batch<I>(
-        &self,
-        txs: impl IntoIterator<Item = ProvenTransaction, IntoIter = I>,
-    ) -> Result<ProposedBatch, ProposedBatchError>
-    where
-        I: Iterator<Item = ProvenTransaction> + Clone,
-    {
-        let transactions: Vec<_> = txs.into_iter().map(alloc::sync::Arc::new).collect();
-
-        let (batch_reference_block, partial_blockchain, unauthenticated_note_proofs) = self
-            .get_batch_inputs(
-                transactions.iter().map(|tx| tx.ref_block_num()),
-                transactions
-                    .iter()
-                    .flat_map(|tx| tx.unauthenticated_notes().map(NoteHeader::id)),
-            );
-
-        ProposedBatch::new(
-            transactions,
-            batch_reference_block,
-            partial_blockchain,
-            unauthenticated_note_proofs,
-        )
-    }
-
-    /// Mock-proves a proposed transaction batch from the provided [`ProposedBatch`] and returns it.
-    ///
-    /// This method does not modify the chain state.
-    pub fn prove_transaction_batch(&self, proposed_batch: ProposedBatch) -> ProvenBatch {
-        let (
-            transactions,
-            block_header,
-            _partial_blockchain,
-            _unauthenticated_note_proofs,
-            id,
-            account_updates,
-            input_notes,
-            output_notes,
-            batch_expiration_block_num,
-        ) = proposed_batch.into_parts();
-
-        // SAFETY: This satisfies the requirements of the ordered tx headers.
-        let tx_headers = OrderedTransactionHeaders::new_unchecked(
-            transactions
-                .iter()
-                .map(AsRef::as_ref)
-                .map(TransactionHeader::from)
-                .collect::<Vec<_>>(),
-        );
-
-        ProvenBatch::new(
-            id,
-            block_header.commitment(),
-            block_header.block_num(),
-            account_updates,
-            input_notes,
-            output_notes,
-            batch_expiration_block_num,
-            tx_headers,
-        )
-        .expect("failed to create ProvenBatch")
-    }
-
-    // BLOCK APIS
-    // ----------------------------------------------------------------------------------------
-
-    /// Proposes a new block from the provided batches with the given timestamp and returns it.
-    ///
-    /// This method does not modify the chain state.
-    pub fn propose_block_at<I>(
-        &self,
-        batches: impl IntoIterator<Item = ProvenBatch, IntoIter = I>,
-        timestamp: u32,
-    ) -> Result<ProposedBlock, ProposedBlockError>
-    where
-        I: Iterator<Item = ProvenBatch> + Clone,
-    {
-        let batches: Vec<_> = batches.into_iter().collect();
-        let block_inputs = self.get_block_inputs(batches.iter());
-
-        let proposed_block = ProposedBlock::new_at(block_inputs, batches, timestamp)?;
-
-        Ok(proposed_block)
-    }
-
-    /// Proposes a new block from the provided batches and returns it.
-    ///
-    /// This method does not modify the chain state.
-    pub fn propose_block<I>(
-        &self,
-        batches: impl IntoIterator<Item = ProvenBatch, IntoIter = I>,
-    ) -> Result<ProposedBlock, ProposedBlockError>
-    where
-        I: Iterator<Item = ProvenBatch> + Clone,
-    {
-        // We can't access system time because the testing feature does not depend on std at this
-        // time. So we use the minimally correct next timestamp.
-        let timestamp = self.latest_block_header().timestamp() + 1;
-
-        self.propose_block_at(batches, timestamp)
-    }
-
-    /// Proves a proposed block into a proven block and returns it.
-    ///
-    /// This method does not modify the chain state.
-    pub fn prove_block(
-        &self,
-        proposed_block: ProposedBlock,
-    ) -> Result<ProvenBlock, ProvenBlockError> {
-        LocalBlockProver::new(0).prove_without_batch_verification(proposed_block)
-    }
-
-    /// Initializes a [TransactionContextBuilder].
-    ///
-    /// This initializes the builder with the correct [TransactionInputs] based on what is
-    /// requested. The account's seed and authenticator are also introduced. Additionally, if
-    /// the account is set to authenticate with [Auth::BasicAuth], the executed transaction
-    /// script is defaulted to [DEFAULT_AUTH_SCRIPT].
-    pub fn build_tx_context(
-        &self,
-        account_id: AccountId,
-        note_ids: &[NoteId],
-        unauthenticated_notes: &[Note],
-    ) -> TransactionContextBuilder {
-        let mock_account = self.committed_accounts.get(&account_id).unwrap().clone();
-
-        let tx_inputs = self.get_transaction_inputs(
-            mock_account.account().clone(),
-            mock_account.seed().cloned(),
-            note_ids,
-            unauthenticated_notes,
-        );
-
-        let mut tx_context_builder = TransactionContextBuilder::new(mock_account.account().clone())
-            .authenticator(mock_account.authenticator().cloned())
-            .account_seed(mock_account.seed().cloned())
-            .tx_inputs(tx_inputs);
-
-        if mock_account.authenticator().is_some() {
-            let tx_script = TransactionScript::compile(
-                DEFAULT_AUTH_SCRIPT,
-                vec![],
-                TransactionKernel::testing_assembler_with_mock_account(),
-            )
-            .unwrap();
-            tx_context_builder = tx_context_builder.tx_script(tx_script);
-        }
-
-        tx_context_builder
-    }
-
-    /// Returns a valid [TransactionInputs] for the specified entities.
-    pub fn get_transaction_inputs(
-        &self,
-        account: Account,
-        account_seed: Option<Word>,
-        notes: &[NoteId],
-        unauthenticated_notes: &[Note],
-    ) -> TransactionInputs {
-        let block = self.blocks.last().unwrap();
-
-        let mut input_notes = vec![];
-        let mut block_headers_map: BTreeMap<BlockNumber, BlockHeader> = BTreeMap::new();
-        for note in notes {
-            let input_note: InputNote = self
-                .committed_notes
-                .get(note)
-                .expect("Note not found")
-                .clone()
-                .try_into()
-                .expect("Note should be public");
-            let note_block_num = input_note.location().unwrap().block_num();
-            if note_block_num != block.header().block_num() {
-                block_headers_map.insert(
-                    note_block_num,
-                    self.blocks.get(note_block_num.as_usize()).unwrap().header().clone(),
-                );
-            }
-            input_notes.push(input_note);
-        }
-
-        // If the account is new, add the anchor block's header from which the account ID is derived
-        // to the MMR.
-        if account.is_new() {
-            let epoch_block_num = BlockNumber::from_epoch(account.id().anchor_epoch());
-            // The reference block of the transaction is added to the MMR in
-            // prologue::process_chain_data so we can skip adding it to the block headers here.
-            if epoch_block_num != block.header().block_num() {
-                block_headers_map.insert(
-                    epoch_block_num,
-                    self.blocks.get(epoch_block_num.as_usize()).unwrap().header().clone(),
-                );
-            }
-        }
-
-        for note in unauthenticated_notes {
-            input_notes.push(InputNote::Unauthenticated { note: note.clone() })
-        }
-
-        let block_headers = block_headers_map.values().cloned();
-        let mmr = PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap();
-
-        TransactionInputs::new(
-            account,
-            account_seed,
-            block.header().clone(),
-            mmr,
-            InputNotes::new(input_notes).unwrap(),
-        )
-        .unwrap()
-    }
-
-    /// Gets inputs for a transaction batch for all the reference blocks of the provided
-    /// transactions.
-    pub fn get_batch_inputs(
-        &self,
-        tx_reference_blocks: impl IntoIterator<Item = BlockNumber>,
-        unauthenticated_notes: impl Iterator<Item = NoteId>,
-    ) -> (BlockHeader, PartialBlockchain, BTreeMap<NoteId, NoteInclusionProof>) {
-        // Fetch note proofs for notes that exist in the chain.
-        let unauthenticated_note_proofs = self.unauthenticated_note_proofs(unauthenticated_notes);
-
-        // We also need to fetch block inclusion proofs for any of the blocks that contain
-        // unauthenticated notes for which we want to prove inclusion.
-        let required_blocks = tx_reference_blocks.into_iter().chain(
-            unauthenticated_note_proofs
-                .values()
-                .map(|note_proof| note_proof.location().block_num()),
-        );
-
-        let (batch_reference_block, partial_block_chain) =
-            self.latest_selective_partial_blockchain(required_blocks);
-
-        (batch_reference_block, partial_block_chain, unauthenticated_note_proofs)
-    }
-
-    /// Gets foreign account inputs to execute FPI transactions.
-    pub fn get_foreign_account_inputs(&self, account_id: AccountId) -> ForeignAccountInputs {
-        let account = self.committed_account(account_id);
-
-        let account_witness = self.account_tree().open(account_id);
-        assert_eq!(account_witness.state_commitment(), account.commitment());
-
-        let mut storage_map_proofs = vec![];
-        for slot in account.storage().slots() {
-            // if there are storage maps, we populate the merkle store and advice map
-            if let StorageSlot::Map(map) = slot {
-                let proofs: Vec<SmtProof> = map.entries().map(|(key, _)| map.open(key)).collect();
-                storage_map_proofs.extend(proofs);
-            }
-        }
-
-        ForeignAccountInputs::new(
-            AccountHeader::from(account),
-            account.storage().get_header(),
-            account.code().clone(),
-            account_witness,
-            storage_map_proofs,
-        )
-    }
-
-    /// Gets the inputs for a block for the provided batches.
-    pub fn get_block_inputs<'batch, I>(
-        &self,
-        batch_iter: impl IntoIterator<Item = &'batch ProvenBatch, IntoIter = I>,
-    ) -> BlockInputs
-    where
-        I: Iterator<Item = &'batch ProvenBatch> + Clone,
-    {
-        let batch_iterator = batch_iter.into_iter();
-
-        let unauthenticated_note_proofs =
-            self.unauthenticated_note_proofs(batch_iterator.clone().flat_map(|batch| {
-                batch.input_notes().iter().filter_map(|note| note.header().map(NoteHeader::id))
-            }));
-
-        let (block_reference_block, partial_blockchain) = self.latest_selective_partial_blockchain(
-            batch_iterator.clone().map(ProvenBatch::reference_block_num).chain(
-                unauthenticated_note_proofs.values().map(|proof| proof.location().block_num()),
-            ),
-        );
-
-        let account_witnesses =
-            self.account_witnesses(batch_iterator.clone().flat_map(ProvenBatch::updated_accounts));
-
-        let nullifier_proofs =
-            self.nullifier_witnesses(batch_iterator.flat_map(ProvenBatch::created_nullifiers));
-
-        BlockInputs::new(
-            block_reference_block,
-            partial_blockchain,
-            account_witnesses,
-            nullifier_proofs,
-            unauthenticated_note_proofs,
-        )
-    }
-
-    // MODIFIERS
-    // =========================================================================================
-
-    /// Creates the next block in the mock chain.
-    ///
-    /// This will make all the objects currently pending available for use.
-    pub fn prove_next_block(&mut self) -> ProvenBlock {
-        self.prove_block_inner(None).unwrap()
-    }
-
-    /// Proves the next block in the mock chain at the given timestamp.
-    pub fn prove_next_block_at(&mut self, timestamp: u32) -> anyhow::Result<ProvenBlock> {
-        self.prove_block_inner(Some(timestamp))
-    }
-
-    /// Proves new blocks until the block with the given target block number has been created.
-    ///
-    /// For example, if the latest block is `5` and this function is called with `10`, then blocks
-    /// `6..=10` will be created and block 10 will be returned.
-    ///
-    /// # Panics
-    ///
-    /// Panics if:
-    /// - the given block number is smaller or equal to the number of the latest block in the chain.
-    pub fn prove_until_block(
-        &mut self,
-        target_block_num: impl Into<BlockNumber>,
-    ) -> anyhow::Result<ProvenBlock> {
-        let target_block_num = target_block_num.into();
-        let latest_block_num = self.latest_block_header().block_num();
-        assert!(
-            target_block_num > latest_block_num,
-            "target block number must be greater than the number of the latest block in the chain"
-        );
-
-        let mut last_block = None;
-        for _ in latest_block_num.as_usize()..=target_block_num.as_usize() {
-            last_block = Some(self.prove_next_block());
-        }
-
-        Ok(last_block.expect("at least one block should have been created"))
-    }
-
-    /// Creates a new block in the mock chain.
-    ///
-    /// This will make all the objects currently pending available for use.
-    ///
-    /// If `block_num` is `None`, the next block is created, otherwise all blocks from the next
-    /// block up to and including `block_num` will be created.
-    ///
-    /// If a `timestamp` is provided, it will be set on the block with `block_num`.
-    fn prove_block_inner(&mut self, timestamp: Option<u32>) -> anyhow::Result<ProvenBlock> {
-        // Create batches from pending transactions.
-        // ----------------------------------------------------------------------------------------
-
-        let batches = self
-            .pending_transactions_to_batches()
-            .context("failed to convert pending transactions to batch")?;
-
-        // Create block.
-        // ----------------------------------------------------------------------------------------
-
-        let block_timestamp =
-            timestamp.unwrap_or(self.latest_block_header().timestamp() + Self::TIMESTAMP_STEP_SECS);
-
-        let mut proven_block = self
-            .propose_block_at(batches, block_timestamp)
-            .context("failed to propose block")
-            .and_then(|proposed_block| {
-                self.prove_block(proposed_block)
-                    .context("failed to prove proposed block into proven block")
-            })?;
-
-        // We apply the block tree updates here, so that add_pending_objects_to_block can easily
-        // update the block header of this block with the pending accounts and nullifiers.
-        self.apply_block_tree_updates(&proven_block)
-            .context("failed to apply account and nullifier tree changes from block")?;
-
-        if !self.pending_objects.is_empty() {
-            self.add_pending_objects_to_block(&mut proven_block)
-                .context("failed to add pending objects to block")?;
-        }
-
-        self.apply_block(proven_block.clone())
-            .context("failed to apply proven block to chain state")?;
-
-        Ok(proven_block)
-    }
 
     /// Inserts the given block's account updates and created nullifiers into the account tree and
     /// nullifier tree, respectively.
-    pub fn apply_block_tree_updates(&mut self, proven_block: &ProvenBlock) -> anyhow::Result<()> {
+    fn apply_block_tree_updates(&mut self, proven_block: &ProvenBlock) -> anyhow::Result<()> {
         for account_update in proven_block.updated_accounts() {
             self.account_tree
                 .insert(account_update.account_id(), account_update.final_state_commitment())
@@ -907,7 +1012,7 @@ impl MockChain {
     /// - Created notes are inserted into the available notes.
     /// - Consumed notes are removed from the available notes.
     /// - The block is appended to the [`BlockChain`] and the list of proven blocks.
-    pub fn apply_block(&mut self, proven_block: ProvenBlock) -> anyhow::Result<()> {
+    fn apply_block(&mut self, proven_block: ProvenBlock) -> anyhow::Result<()> {
         for account_update in proven_block.updated_accounts() {
             match account_update.details() {
                 AccountUpdateDetails::New(account) => {
@@ -997,7 +1102,7 @@ impl MockChain {
         Ok(vec![proven_batch])
     }
 
-    fn add_pending_objects_to_block(
+    fn apply_pending_objects_to_block(
         &mut self,
         proven_block: &mut ProvenBlock,
     ) -> anyhow::Result<()> {
@@ -1100,146 +1205,50 @@ impl MockChain {
         Ok(())
     }
 
-    // ACCESSORS
-    // =========================================================================================
-
-    /// Returns a refernce to the current [`Blockchain`].
-    pub fn block_chain(&self) -> &Blockchain {
-        &self.chain
-    }
-
-    /// Gets the latest [PartialBlockchain].
-    pub fn latest_partial_blockchain(&self) -> PartialBlockchain {
-        // We have to exclude the latest block because we need to fetch the state of the chain at
-        // that latest block, which does not include itself.
-        let block_headers =
-            self.blocks.iter().map(|b| b.header()).take(self.blocks.len() - 1).cloned();
-
-        PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap()
-    }
-
-    /// Creates a new [`PartialBlockchain`] with all reference blocks in the given iterator except
-    /// for the latest block header in the chain and returns that latest block header.
+    /// Creates a new block in the mock chain.
     ///
-    /// The intended use is for the latest block header to become the reference block of a new
-    /// transaction batch or block.
-    pub fn latest_selective_partial_blockchain(
-        &self,
-        reference_blocks: impl IntoIterator<Item = BlockNumber>,
-    ) -> (BlockHeader, PartialBlockchain) {
-        let latest_block_header = self.latest_block_header().clone();
-        // Deduplicate block numbers so each header will be included just once. This is required so
-        // PartialBlockchain::from_blockchain does not panic.
-        let reference_blocks: BTreeSet<_> = reference_blocks.into_iter().collect();
-
-        // Include all block headers of the reference blocks except the latest block.
-        let block_headers: Vec<_> = reference_blocks
-            .into_iter()
-            .map(|block_ref_num| self.block_header(block_ref_num.as_usize()))
-            .filter(|block_header| block_header.commitment() != latest_block_header.commitment())
-            .collect();
-
-        let partial_blockchain =
-            PartialBlockchain::from_blockchain(&self.chain, block_headers).unwrap();
-
-        (latest_block_header, partial_blockchain)
-    }
-
-    /// Returns the witnesses for the provided account IDs of the current account tree.
-    pub fn account_witnesses(
-        &self,
-        account_ids: impl IntoIterator<Item = AccountId>,
-    ) -> BTreeMap<AccountId, AccountWitness> {
-        let mut account_witnesses = BTreeMap::new();
-
-        for account_id in account_ids {
-            let witness = self.account_tree.open(account_id);
-            account_witnesses.insert(account_id, witness);
-        }
-
-        account_witnesses
-    }
-
-    /// Returns the witnesses for the provided nullifiers of the current nullifier tree.
-    pub fn nullifier_witnesses(
-        &self,
-        nullifiers: impl IntoIterator<Item = Nullifier>,
-    ) -> BTreeMap<Nullifier, NullifierWitness> {
-        let mut nullifier_proofs = BTreeMap::new();
-
-        for nullifier in nullifiers {
-            let witness = self.nullifier_tree.open(&nullifier);
-            nullifier_proofs.insert(nullifier, witness);
-        }
-
-        nullifier_proofs
-    }
-
-    /// Returns all note inclusion proofs for the provided notes, **if they are available for
-    /// consumption**. Therefore, not all of the provided notes will be guaranteed to have an entry
-    /// in the returned map.
-    pub fn unauthenticated_note_proofs(
-        &self,
-        notes: impl IntoIterator<Item = NoteId>,
-    ) -> BTreeMap<NoteId, NoteInclusionProof> {
-        let mut proofs = BTreeMap::default();
-        for note in notes {
-            if let Some(input_note) = self.committed_notes.get(&note) {
-                proofs.insert(note, input_note.inclusion_proof().clone());
-            }
-        }
-
-        proofs
-    }
-
-    /// Returns a reference to the latest [`BlockHeader`].
-    pub fn latest_block_header(&self) -> BlockHeader {
-        let chain_tip =
-            self.chain.chain_tip().expect("chain should contain at least the genesis block");
-        self.blocks[chain_tip.as_usize()].header().clone()
-    }
-
-    /// Gets a reference to [BlockHeader] with `block_number`.
-    pub fn block_header(&self, block_number: usize) -> BlockHeader {
-        self.blocks[block_number].header().clone()
-    }
-
-    /// Returns a reference to the tracked proven blocks.
-    pub fn proven_blocks(&self) -> &[ProvenBlock] {
-        &self.blocks
-    }
-
-    /// Gets a reference to the nullifier tree.
-    pub fn nullifiers(&self) -> &NullifierTree {
-        &self.nullifier_tree
-    }
-
-    /// Returns the map of note IDs to committed notes.
+    /// This will make all the objects currently pending available for use.
     ///
-    /// These notes are available for authenticated consumption.
-    pub fn committed_notes(&self) -> &BTreeMap<NoteId, MockChainNote> {
-        &self.committed_notes
-    }
+    /// If `block_num` is `None`, the next block is created, otherwise all blocks from the next
+    /// block up to and including `block_num` will be created.
+    ///
+    /// If a `timestamp` is provided, it will be set on the block with `block_num`.
+    fn prove_block_inner(&mut self, timestamp: Option<u32>) -> anyhow::Result<ProvenBlock> {
+        // Create batches from pending transactions.
+        // ----------------------------------------------------------------------------------------
 
-    /// Returns an [`InputNote`] for the given note ID. If the note does not exist or is not
-    /// public, `None` is returned.
-    pub fn get_public_note(&self, note_id: &NoteId) -> Option<InputNote> {
-        let note = self.committed_notes.get(note_id)?;
-        note.clone().try_into().ok()
-    }
+        let batches = self
+            .pending_transactions_to_batches()
+            .context("failed to convert pending transactions to batch")?;
 
-    /// Returns a reference to the account identifed by the given account ID and panics if it does
-    /// not exist.
-    pub fn committed_account(&self, account_id: AccountId) -> &Account {
-        self.committed_accounts
-            .get(&account_id)
-            .expect("account should be available")
-            .account()
-    }
+        // Create block.
+        // ----------------------------------------------------------------------------------------
 
-    /// Get the reference to the account tree.
-    pub fn account_tree(&self) -> &AccountTree {
-        &self.account_tree
+        let block_timestamp =
+            timestamp.unwrap_or(self.latest_block_header().timestamp() + Self::TIMESTAMP_STEP_SECS);
+
+        let mut proven_block = self
+            .propose_block_at(batches, block_timestamp)
+            .context("failed to propose block")
+            .and_then(|proposed_block| {
+                self.prove_block(proposed_block)
+                    .context("failed to prove proposed block into proven block")
+            })?;
+
+        // We apply the block tree updates here, so that add_pending_objects_to_block can easily
+        // update the block header of this block with the pending accounts and nullifiers.
+        self.apply_block_tree_updates(&proven_block)
+            .context("failed to apply account and nullifier tree changes from block")?;
+
+        if !self.pending_objects.is_empty() {
+            self.apply_pending_objects_to_block(&mut proven_block)
+                .context("failed to add pending objects to block")?;
+        }
+
+        self.apply_block(proven_block.clone())
+            .context("failed to apply proven block to chain state")?;
+
+        Ok(proven_block)
     }
 }
 

@@ -54,7 +54,7 @@ fn witness_test_setup() -> WitnessTestSetup {
     let stale_block_inputs = chain.get_block_inputs(&batches);
 
     let account_root0 = chain.account_tree().root();
-    let nullifier_root0 = chain.nullifiers().root();
+    let nullifier_root0 = chain.nullifier_tree().root();
 
     // Apply the executed tx and seal a block. This invalidates the block inputs we've just fetched.
     chain.add_pending_executed_transaction(&tx0);
@@ -65,7 +65,7 @@ fn witness_test_setup() -> WitnessTestSetup {
     // Sanity check: This test requires that the tree roots change with the last sealed block so the
     // previously fetched block inputs become invalid.
     assert_ne!(chain.account_tree().root(), account_root0);
-    assert_ne!(chain.nullifiers().root(), nullifier_root0);
+    assert_ne!(chain.nullifier_tree().root(), nullifier_root0);
 
     WitnessTestSetup {
         stale_block_inputs,

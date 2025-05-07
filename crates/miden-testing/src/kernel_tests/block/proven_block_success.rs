@@ -93,7 +93,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // Compute expected nullifier root on the full SMT.
     // --------------------------------------------------------------------------------------------
 
-    let mut expected_nullifier_tree = chain.nullifiers().clone();
+    let mut expected_nullifier_tree = chain.nullifier_tree().clone();
     for nullifier in proposed_block.created_nullifiers().keys() {
         expected_nullifier_tree
             .mark_spent(*nullifier, proposed_block.block_num())
@@ -129,7 +129,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // PartialBlockchain with chain length 2 when the prev block (block2) is added.
     assert_eq!(
         proven_block.header().chain_commitment(),
-        chain.block_chain().peaks().hash_peaks()
+        chain.blockchain().peaks().hash_peaks()
     );
 
     assert_eq!(proven_block.header().note_root(), expected_block_note_tree.root());
@@ -400,7 +400,7 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     // The previous block header should have been added to the chain.
     assert_eq!(
         proven_block.header().chain_commitment(),
-        chain.block_chain().peaks().hash_peaks()
+        chain.blockchain().peaks().hash_peaks()
     );
     assert_eq!(proven_block.header().block_num(), latest_block_header.block_num() + 1);
 
