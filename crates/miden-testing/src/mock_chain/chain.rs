@@ -45,13 +45,33 @@ use crate::{
 // MOCK CHAIN
 // ================================================================================================
 
-/// [MockChain] simulates a simplified blockchain environment for testing purposes.
-/// It allows to create and manage accounts, mint assets, execute transactions, and apply state
-/// updates.
+/// The [`MockChain`] simulates a simplified blockchain environment for testing purposes.
+/// It allows creating and managing accounts, minting assets, executing transactions, and applying
+/// state updates.
 ///
 /// This struct is designed to mock transaction workflows, asset transfers, and
-/// note creation in a test setting. Once entities are set up, [TransactionContextBuilder] objects
+/// note creation in a test setting. Once entities are set up, [`TransactionContextBuilder`] objects
 /// can be obtained in order to execute transactions accordingly.
+///
+/// On a high-level, there are two ways to interact with the mock chain:
+/// - Generating transactions yourself and adding them to the mock chain "mempool" using
+///   [`MockChain::add_pending_executed_transaction`] or
+///   [`MockChain::add_pending_proven_transaction`]. Once some transactions have been added, they
+///   can be proven into a block using [`MockChain::prove_next_block`], which commits them to the
+///   chain state.
+/// - Using any of the other pending APIs to _magically_ add new notes, accounts or nullifiers in
+///   the next block. For example, [`MockChain::add_pending_p2id_note`] will create a new P2ID note
+///   in the next proven block, without actually containing a transaction that creates such a note.
+///
+/// Both approaches can be mixed in the same block, within limits. In particular, avoid modification
+/// of the _same_ entities using both regular transactions and the magic pending APIs.
+///
+/// The mock chain uses the batch and block provers underneath to process pending transactions, so
+/// the generated blocks are realistic and indistinguishable from a real node. The only caveat is
+/// that no real ZK proofs are generated or validated as part of transaction, batch or block
+/// building. If realistic data is important for your use case, avoid using any pending APIs except
+/// for [`MockChain::add_pending_executed_transaction`] and
+/// [`MockChain::add_pending_proven_transaction`].
 ///
 /// # Examples
 ///
@@ -146,7 +166,7 @@ pub struct MockChain {
 
     /// Objects that have not yet been finalized.
     ///
-    /// These will become available once the block is sealed.
+    /// These will become available once the block is proven.
     ///
     /// Note:
     /// - The [Note]s in this container do not have the `proof` set.
@@ -170,12 +190,11 @@ impl MockChain {
     // CONSTANTS
     // ----------------------------------------------------------------------------------------
 
-    /// The timestamp of the genesis of the chain, i.e. the timestamp of the first block, unless
-    /// overwritten when calling [`Self::seal_block`]. Chosen as an easily readable number.
+    /// The timestamp of the genesis block of the chain. Chosen as an easily readable number.
     pub const TIMESTAMP_START_SECS: u32 = 1700000000;
 
     /// The number of seconds by which a block's timestamp increases over the previous block's
-    /// timestamp, unless overwritten when calling [`Self::seal_block`].
+    /// timestamp, unless overwritten when calling [`Self::prove_next_block_at`].
     pub const TIMESTAMP_STEP_SECS: u32 = 10;
 
     // CONSTRUCTORS
@@ -347,7 +366,7 @@ impl MockChain {
 
     /// Returns the map of note IDs to committed notes.
     ///
-    /// These notes are available for authenticated consumption.
+    /// These notes are committed for authenticated consumption.
     pub fn committed_notes(&self) -> &BTreeMap<NoteId, MockChainNote> {
         &self.committed_notes
     }
@@ -995,7 +1014,7 @@ impl MockChain {
             account_builder.build_existing().map(|account| (account, None)).unwrap()
         };
 
-        // Add account to the available accounts so transaction inputs can be retrieved via the mock
+        // Add account to the committed accounts so transaction inputs can be retrieved via the mock
         // chain APIs.
         self.committed_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
@@ -1045,7 +1064,9 @@ impl MockChain {
                 .mark_spent(*nullifier, proven_block.header().block_num())
                 .context("failed to mark block nullifier as spent")?;
 
-            // TODO: Remove from self.available_notes.
+            // TODO: Remove from self.committed_notes. This is not critical to have for now. It is
+            // not straightforward, because committed_notes are indexed by note IDs rather than
+            // nullifiers, so we'll have to create a second index to do this.
         }
 
         Ok(())
@@ -1053,9 +1074,9 @@ impl MockChain {
 
     /// Applies the given block to the chain state, which means:
     ///
-    /// - Updated accounts from the block are updated in the available accounts.
-    /// - Created notes are inserted into the available notes.
-    /// - Consumed notes are removed from the available notes.
+    /// - Updated accounts from the block are updated in the committed accounts.
+    /// - Created notes are inserted into the committed notes.
+    /// - Consumed notes are removed from the committed notes.
     /// - The block is appended to the [`BlockChain`] and the list of proven blocks.
     fn apply_block(&mut self, proven_block: ProvenBlock) -> anyhow::Result<()> {
         for account_update in proven_block.updated_accounts() {
@@ -1254,10 +1275,7 @@ impl MockChain {
     ///
     /// This will make all the objects currently pending available for use.
     ///
-    /// If `block_num` is `None`, the next block is created, otherwise all blocks from the next
-    /// block up to and including `block_num` will be created.
-    ///
-    /// If a `timestamp` is provided, it will be set on the block with `block_num`.
+    /// If a `timestamp` is provided, it will be set on the block.
     fn prove_block_inner(&mut self, timestamp: Option<u32>) -> anyhow::Result<ProvenBlock> {
         // Create batches from pending transactions.
         // ----------------------------------------------------------------------------------------
