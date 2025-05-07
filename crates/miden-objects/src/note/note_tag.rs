@@ -124,13 +124,13 @@ impl NoteTag {
                 // [2 zero bits | remaining high bits (30 bits)].
                 let high_bits = high_bits as u32;
 
-                // // Select the upper half of the u32 which then contains the 14 most significant
-                // bits // of the account ID, i.e.:
-                // // [2 zero bits | remaining high bits (14 bits) | 16 zero bits].
+                // Select the upper half of the u32 which then contains the 14 most significant bits
+                // of the account ID, i.e.:
+                // [2 zero bits | remaining high bits (14 bits) | 16 zero bits].
                 let high_bits = high_bits & 0xffff0000;
 
                 // Set the local execution tag in the two most significant bits.
-                Ok(Self::LocalAccount(high_bits | (LOCAL_ACCOUNT >> 30)))
+                Ok(Self::LocalAccount(high_bits | LOCAL_ACCOUNT))
             },
             NoteExecutionMode::Network => {
                 if !account_id.is_network() {
@@ -174,11 +174,11 @@ impl NoteTag {
 
         match execution {
             NoteExecutionMode::Network => {
-                let use_case_bits = 0b01 | use_case_id;
+                let use_case_bits = (NETWORK_USECASE >> 16) as u16 | use_case_id;
                 Ok(Self::NetworkUseCase(use_case_bits, payload))
             },
             NoteExecutionMode::Local => {
-                let use_case_bits = 0b11 | use_case_id;
+                let use_case_bits = (LOCAL_USECASE >> 16) as u16 | use_case_id;
                 Ok(Self::LocalUseCase(use_case_bits, payload))
             },
         }
@@ -202,7 +202,7 @@ impl NoteTag {
         let use_case_bits = (use_case_id as u32) << 16;
         let payload_bits = payload as u32;
 
-        Ok(Self::LocalAccount(0b10 | use_case_bits | payload_bits))
+        Ok(Self::LocalAccount(LOCAL_ACCOUNT | use_case_bits | payload_bits))
     }
 
     // PUBLIC ACCESSORS
@@ -232,11 +232,11 @@ impl NoteTag {
         match self {
             NoteTag::NetworkAccount(tag) => *tag,
             NoteTag::NetworkUseCase(use_case_bits, payload_bits) => {
-                NETWORK_USECASE | *use_case_bits as u32 | *payload_bits as u32
+                (*use_case_bits as u32) << 16 | *payload_bits as u32
             },
-            NoteTag::LocalAccount(tag) => LOCAL_ACCOUNT | *tag,
+            NoteTag::LocalAccount(tag) => *tag,
             NoteTag::LocalUseCase(use_case_bits, payload_bits) => {
-                LOCAL_USECASE | *use_case_bits as u32 | *payload_bits as u32
+                (*use_case_bits as u32) << 16 | *payload_bits as u32
             },
         }
     }
@@ -276,34 +276,28 @@ impl fmt::Display for NoteTag {
 
 impl From<u32> for NoteTag {
     fn from(value: u32) -> Self {
-        let prefix = value >> 30;
-        let lower_30_bits = value & 0x3fffffff; // Mask to get the lower 30 bits
-
-        match value & LOCAL_USECASE {
+        // Mask out the two most significant bits.
+        match value & 0xC0000000 {
             NETWORK_ACCOUNT => {
                 // Network, Specific Account (lower 30 bits are the account ID)
-                Self::NetworkAccount(lower_30_bits)
+                Self::NetworkAccount(value)
             },
             NETWORK_USECASE => {
                 // NetworkUse case (split lower 30 bits into two u16)
-                let use_case = (lower_30_bits >> 16) as u16;
-                let payload = lower_30_bits as u16;
-                Self::NetworkUseCase((NETWORK_USECASE >> 30) as u16 | use_case, payload)
+                Self::NetworkUseCase((value >> 16) as u16, value as u16)
             },
             LOCAL_ACCOUNT => {
                 // Local, Any (lower 30 bits are the account ID)
-                Self::LocalAccount(LOCAL_ACCOUNT >> 30 | lower_30_bits)
+                Self::LocalAccount(value)
             },
             LOCAL_USECASE => {
                 // Local, Any (split lower 30 bits into two u16)
-                let use_case = (lower_30_bits >> 16) as u16;
-                let payload = lower_30_bits as u16;
-                Self::LocalUseCase((LOCAL_USECASE >> 30) as u16 | use_case, payload)
+                Self::LocalUseCase((value >> 16) as u16, value as u16)
             },
             _ => {
                 // This branch should be unreachable because `prefix` is derived from
                 // the top 2 bits of a u32, which can only be 0, 1, 2, or 3.
-                unreachable!("Invalid prefix encountered: {:b}", prefix);
+                unreachable!("Invalid value encountered: {:b}", value);
             },
         }
     }
