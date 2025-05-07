@@ -724,7 +724,7 @@ impl MockChain {
         );
 
         let mut last_block = None;
-        for _ in latest_block_num.as_usize()..=target_block_num.as_usize() {
+        for _ in latest_block_num.as_usize()..target_block_num.as_usize() {
             last_block = Some(self.prove_next_block());
         }
 
@@ -1433,5 +1433,15 @@ mod tests {
             tx_context.tx_inputs().block_header().account_root(),
             mock_chain.account_tree.root()
         );
+    }
+
+    #[test]
+    fn prove_until_block() -> anyhow::Result<()> {
+        let mut chain = MockChain::new();
+        let block = chain.prove_until_block(5)?;
+        assert_eq!(block.header().block_num(), 5u32.into());
+        assert_eq!(chain.proven_blocks().len(), 6);
+
+        Ok(())
     }
 }
