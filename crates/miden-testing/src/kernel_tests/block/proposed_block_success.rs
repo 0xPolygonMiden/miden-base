@@ -130,12 +130,7 @@ fn proposed_block_aggregates_account_state_transition() -> anyhow::Result<()> {
 
     let [tx0, tx1, tx2] = [executed_tx0, executed_tx1, executed_tx2]
         .into_iter()
-        .map(|tx| {
-            ProvenTransaction::from_executed_transaction_mocked_ref_block(
-                tx,
-                &chain.latest_block_header(),
-            )
-        })
+        .map(ProvenTransaction::from_executed_transaction_mocked)
         .collect::<Vec<_>>()
         .try_into()
         .expect("we should have provided three executed txs");

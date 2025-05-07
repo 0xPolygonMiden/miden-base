@@ -233,7 +233,7 @@ impl FungibleAssetDelta {
         self.add_delta(asset.faucet_id(), -amount)
     }
 
-    /// Returns the fungible asset with the given faucet ID.
+    /// Returns the amount of the fungible asset with the given faucet ID.
     pub fn amount(&self, faucet_id: &AccountId) -> Option<i64> {
         self.0.get(faucet_id).copied()
     }

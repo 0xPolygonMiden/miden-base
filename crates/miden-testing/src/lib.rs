@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate alloc;
 
-// TODO #[cfg(test)]
+#[cfg(test)]
 extern crate std;
 
 mod mock_chain;

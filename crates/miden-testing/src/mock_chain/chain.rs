@@ -61,7 +61,7 @@ use crate::{
 ///   chain state.
 /// - Using any of the other pending APIs to _magically_ add new notes, accounts or nullifiers in
 ///   the next block. For example, [`MockChain::add_pending_p2id_note`] will create a new P2ID note
-///   in the next proven block, without actually containing a transaction that creates such a note.
+///   in the next proven block, without actually containing a transaction that creates that note.
 ///
 /// Both approaches can be mixed in the same block, within limits. In particular, avoid modification
 /// of the _same_ entities using both regular transactions and the magic pending APIs.
@@ -493,8 +493,8 @@ impl MockChain {
     where
         I: Iterator<Item = ProvenBatch> + Clone,
     {
-        // We can't access system time because the testing feature does not depend on std at this
-        // time. So we use the minimally correct next timestamp.
+        // We can't access system time because we are in a no-std environment, so we use the
+        // minimally correct next timestamp.
         let timestamp = self.latest_block_header().timestamp() + 1;
 
         self.propose_block_at(batches, timestamp)
@@ -539,9 +539,7 @@ impl MockChain {
         note_ids: &[NoteId],
         unauthenticated_notes: &[Note],
     ) -> TransactionContextBuilder {
-        let input = input.into();
-
-        let mock_account = match input {
+        let mock_account = match input.into() {
             TxContextInput::AccountId(account_id) => {
                 self.committed_accounts.get(&account_id).unwrap().clone()
             },
@@ -818,7 +816,7 @@ impl MockChain {
         self.pending_transactions.push(transaction);
     }
 
-    /// Adds the given [`OutputNote`] to list of pending notes.
+    /// Adds the given [`OutputNote`] to the list of pending notes.
     ///
     /// A block has to be created to add the note to that block and make it available in the chain
     /// state, e.g. using [`MockChain::prove_next_block`].
@@ -826,7 +824,7 @@ impl MockChain {
         self.pending_objects.output_notes.push(note);
     }
 
-    /// Adds a P2ID [`OutputNote`] to list of pending notes.
+    /// Adds a P2ID [`OutputNote`] to the list of pending notes.
     ///
     /// A block has to be created to add the note to that block and make it available in the chain
     /// state, e.g. using [`MockChain::prove_next_block`].
@@ -866,7 +864,7 @@ impl MockChain {
         Ok(note)
     }
 
-    /// Adds the [`Nullifier`] to list of pending nullifiers.
+    /// Adds the [`Nullifier`] to the list of pending nullifiers.
     ///
     /// A block has to be created to add the nullifier to the nullifier tree as part of that block,
     /// e.g. using [`MockChain::prove_next_block`].
@@ -1151,7 +1149,7 @@ impl MockChain {
     }
 
     fn pending_transactions_to_batches(&mut self) -> anyhow::Result<Vec<ProvenBatch>> {
-        // Batches must contian at least one transaction, so if there are no pending transactions,
+        // Batches must contain at least one transaction, so if there are no pending transactions,
         // return early.
         if self.pending_transactions.is_empty() {
             return Ok(vec![]);
@@ -1276,6 +1274,21 @@ impl MockChain {
     /// This will make all the objects currently pending available for use.
     ///
     /// If a `timestamp` is provided, it will be set on the block.
+    ///
+    /// Block building is divided into a few steps:
+    ///
+    /// 1. Build batches from pending transactions and a block from those batches. This results in a
+    ///    block.
+    /// 2. Take that block and apply only its account/nullifier tree updates to the chain.
+    /// 3. Then take the pending objects and insert them directly into the proven block. This means
+    ///    we have to update the header of the block as well, with the newly inserted pending
+    ///    accounts/nullifiers/notes. This is why we already did step 2, so that we can insert the
+    ///    pending objects directly into the account/nullifier tree to get the latest correct state
+    ///    of those trees. Then take the root of the trees and update them in the header of the
+    ///    block. This should be pretty efficient because we don't have to do any tree insertions
+    ///    multiple times (which would be slow).
+    /// 4. Finally, now the block contains both the updates from the regular transactions/batches as
+    ///    well as the pending objects. Now insert all the remaining updates into the chain state.
     fn prove_block_inner(&mut self, timestamp: Option<u32>) -> anyhow::Result<ProvenBlock> {
         // Create batches from pending transactions.
         // ----------------------------------------------------------------------------------------
@@ -1298,7 +1311,7 @@ impl MockChain {
                     .context("failed to prove proposed block into proven block")
             })?;
 
-        // We apply the block tree updates here, so that add_pending_objects_to_block can easily
+        // We apply the block tree updates here, so that apply_pending_objects_to_block can easily
         // update the block header of this block with the pending accounts and nullifiers.
         self.apply_block_tree_updates(&proven_block)
             .context("failed to apply account and nullifier tree changes from block")?;

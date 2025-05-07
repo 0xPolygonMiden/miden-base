@@ -139,45 +139,29 @@ impl ProvenBlock {
         &self.transactions
     }
 
+    /// Returns a mutable reference to the block's account updates for testing purposes.
     #[cfg(any(feature = "testing", test))]
     pub fn updated_accounts_mut(&mut self) -> &mut Vec<BlockAccountUpdate> {
         &mut self.updated_accounts
     }
 
+    /// Returns a mutable reference to the block's nullifiers for testing purposes.
     #[cfg(any(feature = "testing", test))]
     pub fn created_nullifiers_mut(&mut self) -> &mut Vec<Nullifier> {
         &mut self.created_nullifiers
     }
 
+    /// Returns a mutable reference to the block's output note batches for testing purposes.
     #[cfg(any(feature = "testing", test))]
     pub fn output_note_batches_mut(&mut self) -> &mut Vec<OutputNoteBatch> {
         &mut self.output_note_batches
     }
 
+    /// Sets the block's header for testing purposes.
     #[cfg(any(feature = "testing", test))]
     pub fn set_block_header(&mut self, header: BlockHeader) {
         self.header = header;
     }
-
-    // /// Consumes the block and returns its parts.
-    // pub fn into_parts(
-    //     self,
-    // ) -> (
-    //     BlockHeader,
-    //     Vec<BlockAccountUpdate>,
-    //     Vec<OutputNoteBatch>,
-    //     Vec<Nullifier>,
-    //     OrderedTransactionHeaders,
-    // ) {
-    //     let Self {
-    //         header,
-    //         updated_accounts,
-    //         output_note_batches,
-    //         created_nullifiers,
-    //         transactions,
-    //     } = self;
-    //     (header, updated_accounts, output_note_batches, created_nullifiers, transactions)
-    // }
 }
 
 impl Serializable for ProvenBlock {
