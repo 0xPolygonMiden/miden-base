@@ -34,7 +34,7 @@ fn p2id_script_multiple_assets() {
             .into();
 
     // Create sender and target account
-    let sender_account = mock_chain.add_pending_new_wallet(Auth::BasicAuth);
+    let sender_account = mock_chain.add_new_wallet(Auth::BasicAuth);
     let target_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
 
     // Create the note
@@ -92,7 +92,7 @@ fn p2id_script_multiple_assets() {
 
 /// Consumes an existing note with a new account
 #[test]
-fn prove_consume_note_with_new_account() {
+fn prove_consume_note_with_new_account() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
 
     // Create assets
@@ -100,7 +100,7 @@ fn prove_consume_note_with_new_account() {
 
     // Create faucet account and target account
     let faucet_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
-    let target_account = mock_chain.add_pending_new_wallet(Auth::BasicAuth);
+    let target_account = mock_chain.add_new_wallet(Auth::BasicAuth);
 
     // Create the note
     let note = mock_chain
@@ -120,7 +120,7 @@ fn prove_consume_note_with_new_account() {
 
     // Execute the transaction and get the witness
     let executed_transaction = mock_chain
-        .build_tx_context(target_account.id(), &[note.id()], &[])
+        .build_tx_context(target_account.clone(), &[note.id()], &[])
         .build()
         .execute()
         .unwrap();
@@ -139,6 +139,8 @@ fn prove_consume_note_with_new_account() {
         target_account_after.commitment()
     );
     prove_and_verify_transaction(executed_transaction).unwrap();
+
+    Ok(())
 }
 
 /// Consumes two existing notes (with an asset from a faucet for a combined total of 123 tokens)

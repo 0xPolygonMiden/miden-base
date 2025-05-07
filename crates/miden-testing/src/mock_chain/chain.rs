@@ -32,6 +32,7 @@ use miden_objects::{
         TransactionHeader, TransactionInputs, TransactionScript,
     },
 };
+use miden_tx::auth::BasicAuthenticator;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use vm_processor::{Digest, Felt, Word, ZERO, crypto::RpoRandomCoin};
@@ -182,6 +183,9 @@ pub struct MockChain {
     /// AccountId |-> MockAccount mapping to simplify transaction creation.
     committed_accounts: BTreeMap<AccountId, MockAccount>,
 
+    /// AccountId |-> (seed, authenticator) mapping.
+    account_helpers: BTreeMap<AccountId, (Option<Word>, Option<BasicAuthenticator<ChaCha20Rng>>)>,
+
     // The RNG used to generate note serial numbers, account seeds or cryptographic keys.
     rng: ChaCha20Rng,
 }
@@ -219,6 +223,7 @@ impl MockChain {
             pending_transactions: Vec::new(),
             committed_notes: BTreeMap::new(),
             committed_accounts: BTreeMap::new(),
+            account_helpers: BTreeMap::new(),
             // Initialize RNG with default seed.
             rng: ChaCha20Rng::from_seed(Default::default()),
         };
@@ -546,20 +551,20 @@ impl MockChain {
                 self.committed_accounts.get(&account_id).unwrap().clone()
             },
             TxContextInput::Account(account) => {
-                let committed_account = self.committed_accounts.get(&account.id());
-                let authenticator = committed_account.and_then(|account| account.authenticator());
-                let seed = committed_account.and_then(|account| account.seed());
-                MockAccount::new(account, seed.cloned(), authenticator.cloned())
+                let helpers = self.account_helpers.get(&account.id());
+                let authenticator = helpers.and_then(|(_, authenticator)| authenticator.clone());
+                let seed = helpers.and_then(|(seed, _)| *seed);
+                MockAccount::new(account, seed, authenticator)
             },
             TxContextInput::ExecutedTransaction(executed_transaction) => {
                 let mut initial_account = executed_transaction.initial_account().clone();
                 initial_account
                     .apply_delta(executed_transaction.account_delta())
                     .expect("delta from tx should be valid for initial account from tx");
-                let committed_account = self.committed_accounts.get(&initial_account.id());
-                let authenticator = committed_account.and_then(|account| account.authenticator());
-                let seed = committed_account.and_then(|account| account.seed());
-                MockAccount::new(initial_account, seed.cloned(), authenticator.cloned())
+                let helpers = self.account_helpers.get(&initial_account.id());
+                let authenticator = helpers.and_then(|(_, authenticator)| authenticator.clone());
+                let seed = helpers.and_then(|(seed, _)| *seed);
+                MockAccount::new(initial_account, seed, authenticator)
             },
         };
 
@@ -878,7 +883,7 @@ impl MockChain {
     ///
     /// A block has to be created to add the account to the chain state as part of that block,
     /// e.g. using [`MockChain::prove_next_block`].
-    pub fn add_pending_new_wallet(&mut self, auth_method: Auth) -> Account {
+    pub fn add_new_wallet(&mut self, auth_method: Auth) -> Account {
         let account_builder = AccountBuilder::new(self.rng.random())
             .storage_mode(AccountStorageMode::Public)
             .with_component(BasicWallet);
@@ -1014,10 +1019,12 @@ impl MockChain {
             account_builder.build_existing().map(|account| (account, None)).unwrap()
         };
 
+        self.account_helpers.insert(account.id(), (seed, authenticator));
+
         // Add account to the committed accounts so transaction inputs can be retrieved via the mock
         // chain APIs.
-        self.committed_accounts
-            .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
+        // self.committed_accounts
+        //     .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
 
         // Do not add new accounts to the pending accounts. Usually, new accounts are added in tests
         // to create transactions that create these new accounts in the chain. If we add them to the
@@ -1026,9 +1033,9 @@ impl MockChain {
         // to the chain which means the account-creating transaction fails because the
         // account already exists. So new accounts are added only to the committed accounts
         // so the transaction context APIs work as expected.
-        if let AccountState::Exists = account_state {
-            self.add_pending_account(account.clone());
-        }
+        // if let AccountState::Exists = account_state {
+        //     self.add_pending_account(account.clone());
+        // }
 
         account
     }
