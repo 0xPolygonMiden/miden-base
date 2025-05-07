@@ -277,7 +277,7 @@ impl fmt::Display for NoteTag {
 impl From<u32> for NoteTag {
     fn from(value: u32) -> Self {
         // Mask out the two most significant bits.
-        match value & 0xC0000000 {
+        match value & 0xc0000000 {
             NETWORK_ACCOUNT => {
                 // Network, Specific Account (lower 30 bits are the account ID)
                 Self::NetworkAccount(value)
