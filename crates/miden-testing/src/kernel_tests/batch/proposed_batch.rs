@@ -7,18 +7,20 @@ use miden_crypto::merkle::MerkleError;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     BatchAccountUpdateError, ProposedBatchError,
-    account::{Account, AccountId},
+    account::{Account, AccountId, AccountStorageMode},
     batch::ProposedBatch,
     block::BlockNumber,
     note::{Note, NoteType},
-    testing::{account_id::AccountIdBuilder, note::NoteBuilder},
+    testing::{
+        account_component::AccountMockComponent, account_id::AccountIdBuilder, note::NoteBuilder,
+    },
     transaction::{InputNote, InputNoteCommitment, OutputNote, PartialBlockchain},
 };
-use rand::{SeedableRng, rngs::SmallRng};
+use rand::{Rng, SeedableRng, rngs::SmallRng};
 use vm_processor::Digest;
 
 use super::proven_tx_builder::MockProvenTxBuilder;
-use crate::{Auth, MockChain};
+use crate::{AccountState, Auth, MockChain};
 
 fn mock_account_id(num: u8) -> AccountId {
     AccountIdBuilder::new().build_with_rng(&mut SmallRng::from_seed([num; 32]))
@@ -43,11 +45,20 @@ struct TestSetup {
 
 fn setup_chain() -> TestSetup {
     let mut chain = MockChain::new();
-    let account1 = chain.add_pending_new_wallet(Auth::NoAuth);
-    let account2 = chain.add_pending_new_wallet(Auth::NoAuth);
+    let account1 = generate_account(&mut chain);
+    let account2 = generate_account(&mut chain);
     chain.prove_next_block();
 
     TestSetup { chain, account1, account2 }
+}
+
+fn generate_account(chain: &mut MockChain) -> Account {
+    let account_builder = Account::builder(rand::rng().random())
+        .storage_mode(AccountStorageMode::Private)
+        .with_component(
+            AccountMockComponent::new_with_empty_slots(TransactionKernel::assembler()).unwrap(),
+        );
+    chain.add_pending_account_from_builder(Auth::NoAuth, account_builder, AccountState::Exists)
 }
 
 /// Tests that a note created and consumed in the same batch are erased from the input and
