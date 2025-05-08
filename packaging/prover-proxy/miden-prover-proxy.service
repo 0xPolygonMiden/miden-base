@@ -1,0 +1,13 @@
+[Unit]
+Description=Miden delegated prover proxy
+Wants=network-online.target
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=execExecStart=/usr/bin/miden-proving-service start-proxy --port 50051 63.176.73.108:50052 --status-port 8080
+WorkingDirectory=/opt/miden/miden-prover-proxy
+User=miden-prover-proxy
+RestartSec=5
+Restart=always
