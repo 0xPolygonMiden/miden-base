@@ -64,29 +64,8 @@ impl OutputNoteBuilder {
             let inputs_data = adv_provider.get_mapped_values(&inputs_commitment);
             let inputs = match inputs_data {
                 None => NoteInputs::default(),
-                Some(inputs) => {
-                    if inputs.is_empty() {
-                        return Err(TransactionKernelError::MissingNoteInputs);
-                    }
-
-                    let num_inputs = u64::from(inputs[0]) as usize;
-
-                    // There must be at least `num_inputs` elements in the advice provider data,
-                    // otherwise it is an error.
-                    //
-                    // It is possible to have more elements because of padding. The extra elements
-                    // will be discarded below, and later their contents will be validated by
-                    // computing the commitment and checking against the expected value.
-                    if num_inputs > (inputs.len() - 1) {
-                        return Err(TransactionKernelError::TooFewElementsForNoteInputs {
-                            specified: num_inputs as u64,
-                            actual: (inputs.len() - 1) as u64,
-                        });
-                    }
-
-                    NoteInputs::new(inputs[1..=num_inputs].to_vec())
-                        .map_err(TransactionKernelError::MalformedNoteInputs)?
-                },
+                Some(inputs) => NoteInputs::new(inputs.to_vec())
+                    .map_err(TransactionKernelError::MalformedNoteInputs)?,
             };
 
             if inputs.commitment() != inputs_commitment {

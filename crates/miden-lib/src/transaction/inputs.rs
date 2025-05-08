@@ -261,6 +261,9 @@ fn add_input_notes_to_advice_inputs(
         note_data.extend(Word::from(*note_arg));
         note_data.extend(Word::from(note.metadata()));
 
+        // NOTE: keep in sync with the `prologue::process_note_inputs_length` kernel procedure
+        note_data.push(recipient.inputs().num_values().into());
+
         // NOTE: keep in sync with the `prologue::process_note_assets` kernel procedure
         note_data.push((assets.num_assets() as u32).into());
         note_data.extend(assets.to_padded_assets());
