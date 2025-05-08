@@ -12,6 +12,12 @@
 - [BREAKING] Add `NetworkAccount` configuration (#1275).
 - Added support for environment variables to set up the `miden-proving-service` worker (#1281).
 - Added field identifier structs for component metadata (#1292).
+- Move `NullifierTree` and `BlockChain` from node to base (#1304).
+- Rename `ChainMmr` to `PartialBlockchain` (#1305).
+- Add safe `PartialBlockchain` constructor (#1308).
+- Fix error when creating accounts with empty storage (#1307).
+- [BREAKING] Move `MockChain` and `TransactionContext` to new `miden-testing` crate (#1309).
+- [BREAKING] Add support for private notes in `MockChain` (#1310).
 
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 
@@ -29,12 +35,14 @@
 ## 0.8.0 (2025-03-21)
 
 ### Features
+
 - Added an endpoint to the `miden-proving-service` to update the workers (#1107).
 - [BREAKING] Added the `get_block_timestamp` procedure to the `miden` library (#1138).
 - Implemented `AccountInterface` structure (#1171).
 - Implement user-facing bech32 encoding for `AccountId`s (#1185).
 - Implemented `execute_tx_view_script` procedure for the `TransactionExecutor` (#1197).
 - Enabled nested FPI calls (#1227).
+- Implement `check_notes_consumability` procedure for the `TransactionExecutor` (#1269).
 
 ### Changes
 

@@ -37,10 +37,8 @@ mod test {
         },
         transaction::{ProvenTransaction, TransactionScript, TransactionWitness},
     };
-    use miden_tx::{
-        testing::{Auth, MockChain},
-        utils::Serializable,
-    };
+    use miden_testing::{Auth, MockChain};
+    use miden_tx::utils::Serializable;
     use tokio::net::TcpListener;
     use tonic::Request;
 

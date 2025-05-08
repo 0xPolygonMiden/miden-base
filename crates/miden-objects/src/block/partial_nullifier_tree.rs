@@ -1,19 +1,23 @@
 use crate::{
-    Digest, EMPTY_WORD, Felt, FieldElement, Word,
-    block::{BlockNumber, NullifierWitness},
+    Digest,
+    block::{BlockNumber, NullifierTree, NullifierWitness},
     crypto::merkle::PartialSmt,
     errors::NullifierTreeError,
     note::Nullifier,
 };
 
 /// The partial sparse merkle tree containing the nullifiers of consumed notes.
+///
+/// A nullifier can only ever be spent once and its value in the tree is the block number at which
+/// it was spent.
+///
+/// The tree guarantees that once a nullifier has been inserted into the tree, its block number does
+/// not change. Note that inserting the nullifier multiple times with the same block number is
+/// valid.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialNullifierTree(PartialSmt);
 
 impl PartialNullifierTree {
-    /// The leaf value of an unspent nullifier.
-    pub const UNSPENT_NULLIFIER: Word = EMPTY_WORD;
-
     /// Creates a new, empty partial nullifier tree.
     pub fn new() -> Self {
         PartialNullifierTree(PartialSmt::new())
@@ -42,7 +46,7 @@ impl PartialNullifierTree {
     ///   [`NullifierWitness`] was not added to the tree previously.
     pub fn mark_spent(
         &mut self,
-        nullifiers: impl Iterator<Item = Nullifier>,
+        nullifiers: impl IntoIterator<Item = Nullifier>,
         block_num: BlockNumber,
     ) -> Result<(), NullifierTreeError> {
         for nullifier in nullifiers {
@@ -69,10 +73,10 @@ impl PartialNullifierTree {
     ) -> Result<(), NullifierTreeError> {
         let prev_nullifier_value = self
             .0
-            .insert(nullifier.inner(), block_num_to_leaf_value(block_num))
+            .insert(nullifier.inner(), NullifierTree::block_num_to_leaf_value(block_num))
             .map_err(|source| NullifierTreeError::UntrackedNullifier { nullifier, source })?;
 
-        if prev_nullifier_value != Self::UNSPENT_NULLIFIER {
+        if prev_nullifier_value != NullifierTree::UNSPENT_NULLIFIER {
             Err(NullifierTreeError::NullifierAlreadySpent(nullifier))
         } else {
             Ok(())
@@ -86,14 +90,6 @@ impl Default for PartialNullifierTree {
     }
 }
 
-// HELPER FUNCTIONS
-// ================================================================================================
-
-/// Returns the nullifier's leaf value in the SMT by its block number.
-fn block_num_to_leaf_value(block: BlockNumber) -> Word {
-    [Felt::from(block), Felt::ZERO, Felt::ZERO, Felt::ZERO]
-}
-
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
@@ -101,6 +97,7 @@ mod tests {
     use winter_rand_utils::rand_array;
 
     use super::*;
+    use crate::{EMPTY_WORD, Word};
 
     /// Test that using a stale nullifier witness together with a current one results in a different
     /// tree root and thus an error.
@@ -131,5 +128,54 @@ mod tests {
         let error = partial.track_nullifier(NullifierWitness::new(proof2)).unwrap_err();
 
         assert_matches!(error, NullifierTreeError::TreeRootConflict(_));
+    }
+
+    #[test]
+    fn nullifier_already_spent() {
+        let nullifier1 = Nullifier::dummy(1);
+
+        let block1 = BlockNumber::from(1);
+        let block2 = BlockNumber::from(2);
+
+        let tree = NullifierTree::with_entries([(nullifier1, block1)]).unwrap();
+
+        let witness = tree.open(&nullifier1);
+
+        let mut partial_tree = PartialNullifierTree::new();
+        partial_tree.track_nullifier(witness).unwrap();
+
+        // Attempt to insert nullifier 1 again at a different block number.
+        let err = partial_tree.mark_spent([nullifier1], block2).unwrap_err();
+
+        assert_matches!(err, NullifierTreeError::NullifierAlreadySpent(nullifier) if nullifier == nullifier1);
+    }
+
+    #[test]
+    fn full_and_partial_nullifier_tree_consistency() {
+        let nullifier1 = Nullifier::dummy(1);
+        let nullifier2 = Nullifier::dummy(2);
+        let nullifier3 = Nullifier::dummy(3);
+
+        let block1 = BlockNumber::from(1);
+        let block2 = BlockNumber::from(2);
+        let block3 = BlockNumber::from(3);
+
+        let mut tree =
+            NullifierTree::with_entries([(nullifier1, block1), (nullifier2, block2)]).unwrap();
+
+        let mut partial_tree = PartialNullifierTree::new();
+
+        for nullifier in [nullifier1, nullifier2, nullifier3] {
+            let witness = tree.open(&nullifier);
+            partial_tree.track_nullifier(witness).unwrap();
+        }
+
+        assert_eq!(tree.root(), partial_tree.root());
+
+        // Insert a new value into partial and full tree and assert the root is the same.
+        tree.mark_spent(nullifier3, block3).unwrap();
+        partial_tree.mark_spent([nullifier3], block3).unwrap();
+
+        assert_eq!(tree.root(), partial_tree.root());
     }
 }
