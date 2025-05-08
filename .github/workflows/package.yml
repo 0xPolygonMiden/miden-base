@@ -26,7 +26,7 @@ jobs:
       matrix:
         arch: [amd64, arm64]
     runs-on:
-      labels: "ubuntu-latest"
+      labels: ${{ matrix.arch == 'arm64' && 'ubuntu24-arm-4core' || 'ubuntu-latest' }}
     steps:
       # Note that this checkout is _not_ used as the source for the package.
       # Instead this is required to access the workflow actions. Package source
