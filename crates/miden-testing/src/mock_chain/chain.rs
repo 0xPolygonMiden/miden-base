@@ -378,7 +378,7 @@ impl MockChain {
         note.clone().try_into().ok()
     }
 
-    /// Returns a reference to the account identifed by the given account ID and panics if it does
+    /// Returns a reference to the account identified by the given account ID and panics if it does
     /// not exist.
     pub fn committed_account(&self, account_id: AccountId) -> &Account {
         self.committed_accounts

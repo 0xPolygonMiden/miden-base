@@ -83,7 +83,7 @@ As with [accounts](account.md), `Note`s can be stored either publicly or private
 
 Once created, a `Note` must be validated by a Miden operator. Validation involves checking the transaction proof that produced the `Note` to ensure it meets all protocol requirements.
 
-After validation `Note`s become “live” and eligible for consumption. If creation and consumption happens within the same block, there is no entry in the Notes DB. All other notes, are being added either as a commitment or fully public.
+After validation `Note`s become "live" and eligible for consumption. If creation and consumption happens within the same block, there is no entry in the Notes DB. All other notes, are being added either as a commitment or fully public.
 
 ### Note discovery
 
@@ -97,7 +97,7 @@ To consume a `Note`, the consumer must know its data, including the inputs neede
 
 Upon successful verification of the transaction:
 
-1. The Miden operator records the `Note`’s nullifier as “consumed” in the nullifier database.
+1. The Miden operator records the `Note`’s nullifier as "consumed" in the nullifier database.
 2. The `Note`’s one-time claim is thus extinguished, preventing reuse.
 
 #### Note recipient restricting consumption
@@ -112,7 +112,7 @@ Only those who know the RECIPIENT’s pre-image can consume the `Note`. For priv
 
 The [transaction prologue](transaction.md) requires all necessary data to compute the `Note` hash. This setup allows scenario-specific restrictions on who may consume a `Note`.
 
-For a practical example, refer to the [SWAP note script](https://github.com/0xPolygonMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm), where the RECIPIENT ensures that only a defined target can consume the swapped asset.
+For a practical example, refer to the [SWAP note script](https://github.com/0xMiden/miden-base/blob/main/miden-lib/asm/note_scripts/SWAP.masm), where the RECIPIENT ensures that only a defined target can consume the swapped asset.
 
 #### Note nullifier ensuring private consumption
 
