@@ -349,7 +349,7 @@ impl MockChain {
         self.blocks[chain_tip.as_usize()].header().clone()
     }
 
-    /// Gets a reference to [BlockHeader] with `block_number`.
+    /// Returns the [`BlockHeader`] with the specified `block_number`.
     pub fn block_header(&self, block_number: usize) -> BlockHeader {
         self.blocks[block_number].header().clone()
     }
@@ -973,6 +973,8 @@ impl MockChain {
                 .unwrap();
         }
 
+        // We have to insert these into the committed accounts so the authenticator is available.
+        // Without this, the account couldn't be authenticated.
         self.committed_accounts
             .insert(account.id(), MockAccount::new(account.clone(), None, authenticator));
         self.add_pending_account(account.clone());
@@ -984,8 +986,11 @@ impl MockChain {
     /// `auth_method` to the account in the builder and builds a new or existing account
     /// depending on `account_state`.
     ///
-    /// The account is added to the list of committed accounts _and_ is added to the list of pending
-    /// accounts. This means the next block that is created will add the pending accounts.
+    /// The account is added to the list of committed accounts _and_, if [`AccountState::Exists`] is
+    /// passed, is also added to the list of pending accounts. Adding it to committed accounts
+    /// makes the account seed and authenticator available for account creation and
+    /// authentication, respectively. If the account exists, then the next block that is created
+    /// will add the pending accounts to the chain state.
     pub fn add_pending_account_from_builder(
         &mut self,
         auth_method: Auth,
@@ -1014,6 +1019,9 @@ impl MockChain {
 
         // Add account to the committed accounts so transaction inputs can be retrieved via the mock
         // chain APIs.
+        // We also have to insert these into the committed accounts so the account seed and
+        // authenticator are available. Without this, the account couldn't be created or
+        // authenticated.
         self.committed_accounts
             .insert(account.id(), MockAccount::new(account.clone(), seed, authenticator));
 
