@@ -31,7 +31,7 @@ use miden_lib::{
 use miden_objects::{
     account::{
         Account, AccountBuilder, AccountId, AccountIdAnchor, AccountIdVersion,
-        AccountProcedureInfo, AccountStorageMode, AccountType, NetworkAccount, StorageSlot,
+        AccountProcedureInfo, AccountStorageMode, AccountType, StorageSlot,
     },
     block::{BlockHeader, BlockNumber},
     testing::{
@@ -505,7 +505,10 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
     // block.
     mock_chain.prove_next_block();
 
-    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)?;
+
+    // Test account creation with network storage mode.
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Network)
 }
 
 /// Tests that a valid account of each type can be created successfully with an epoch block whose
@@ -543,7 +546,6 @@ fn compute_valid_account_id(
         init_seed,
         account.account_type(),
         AccountStorageMode::Public,
-        NetworkAccount::Disabled,
         AccountIdVersion::Version0,
         account.code().commitment(),
         account.storage().commitment(),

@@ -108,21 +108,22 @@ impl ProvenTransaction {
     // --------------------------------------------------------------------------------------------
 
     fn validate(self) -> Result<Self, ProvenTransactionError> {
-        if self.account_id().is_public() {
+        // If the account is on-chain, then the account update details must be present.
+        if self.account_id().is_onchain() {
             self.account_update.validate()?;
 
             let is_new_account =
                 self.account_update.initial_state_commitment() == Digest::default();
             match self.account_update.details() {
                 AccountUpdateDetails::Private => {
-                    return Err(ProvenTransactionError::PublicAccountMissingDetails(
+                    return Err(ProvenTransactionError::OnChainAccountMissingDetails(
                         self.account_id(),
                     ));
                 },
                 AccountUpdateDetails::New(account) => {
                     if !is_new_account {
                         return Err(
-                            ProvenTransactionError::ExistingPublicAccountRequiresDeltaDetails(
+                            ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
                                 self.account_id(),
                             ),
                         );
@@ -142,7 +143,7 @@ impl ProvenTransaction {
                 },
                 AccountUpdateDetails::Delta(_) => {
                     if is_new_account {
-                        return Err(ProvenTransactionError::NewPublicAccountRequiresFullDetails(
+                        return Err(ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
                             self.account_id(),
                         ));
                     }
@@ -551,8 +552,7 @@ mod tests {
         ACCOUNT_UPDATE_MAX_SIZE, Digest, EMPTY_WORD, ONE, ProvenTransactionError, ZERO,
         account::{
             AccountDelta, AccountId, AccountIdVersion, AccountStorageDelta, AccountStorageMode,
-            AccountType, AccountVaultDelta, NetworkAccount, StorageMapDelta,
-            delta::AccountUpdateDetails,
+            AccountType, AccountVaultDelta, StorageMapDelta, delta::AccountUpdateDetails,
         },
         block::BlockNumber,
         testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
@@ -638,7 +638,6 @@ mod tests {
             AccountIdVersion::Version0,
             AccountType::FungibleFaucet,
             AccountStorageMode::Private,
-            NetworkAccount::Disabled,
         );
         let initial_account_commitment =
             [2; 32].try_into().expect("failed to create initial account commitment");
