@@ -78,8 +78,7 @@ pub fn get_account_with_basic_authenticated_wallet(
         .unwrap()
 }
 
-pub fn get_new_pk_and_authenticator() -> (PublicKey, Arc<dyn TransactionAuthenticator + Send + Sync>)
-{
+pub fn get_new_pk_and_authenticator() -> (PublicKey, Arc<dyn TransactionAuthenticator>) {
     let mut rng = ChaCha20Rng::from_seed(Default::default());
     let sec_key = SecretKey::with_rng(&mut rng);
     let pub_key = sec_key.public_key();
@@ -89,10 +88,7 @@ pub fn get_new_pk_and_authenticator() -> (PublicKey, Arc<dyn TransactionAuthenti
         rng,
     );
 
-    (
-        pub_key,
-        Arc::new(authenticator) as Arc<dyn TransactionAuthenticator + Send + Sync>,
-    )
+    (pub_key, Arc::new(authenticator) as Arc<dyn TransactionAuthenticator>)
 }
 
 pub fn write_bench_results_to_json(

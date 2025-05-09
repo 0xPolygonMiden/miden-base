@@ -108,7 +108,7 @@ impl TransactionContext {
         let authenticator = self
             .authenticator()
             .cloned()
-            .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator + Send + Sync>);
+            .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
 
         let tx_executor = TransactionExecutor::new(Arc::new(self), authenticator);
 

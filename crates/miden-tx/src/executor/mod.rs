@@ -38,8 +38,8 @@ pub use notes_checker::{NoteConsumptionChecker, NoteInputsCheck};
 /// [TransactionAuthenticator], allowing it to be used with different backend implementations.
 /// At the moment of execution, the [DataStore] is expected to provide all required MAST nodes.
 pub struct TransactionExecutor {
-    data_store: Arc<dyn DataStore + Send + Sync>,
-    authenticator: Option<Arc<dyn TransactionAuthenticator + Send + Sync>>,
+    data_store: Arc<dyn DataStore>,
+    authenticator: Option<Arc<dyn TransactionAuthenticator>>,
     exec_options: ExecutionOptions,
 }
 
@@ -50,8 +50,8 @@ impl TransactionExecutor {
     /// Creates a new [TransactionExecutor] instance with the specified [DataStore] and
     /// [TransactionAuthenticator].
     pub fn new(
-        data_store: Arc<dyn DataStore + Send + Sync>,
-        authenticator: Option<Arc<dyn TransactionAuthenticator + Send + Sync>>,
+        data_store: Arc<dyn DataStore>,
+        authenticator: Option<Arc<dyn TransactionAuthenticator>>,
     ) -> Self {
         const _: () = assert!(MIN_TX_EXECUTION_CYCLES <= MAX_TX_EXECUTION_CYCLES);
 
@@ -134,7 +134,7 @@ impl TransactionExecutor {
             tx_inputs.account().into(),
             advice_recorder,
             self.data_store.clone(),
-            self.authenticator.clone().map(|auth| auth as Arc<dyn TransactionAuthenticator>),
+            self.authenticator.clone(),
             tx_args.foreign_account_code_commitments(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
@@ -196,7 +196,7 @@ impl TransactionExecutor {
             tx_inputs.account().into(),
             advice_recorder,
             self.data_store.clone(),
-            self.authenticator.clone().map(|auth| auth as Arc<dyn TransactionAuthenticator>),
+            self.authenticator.clone(),
             tx_args.foreign_account_code_commitments(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
@@ -255,7 +255,7 @@ impl TransactionExecutor {
             tx_inputs.account().into(),
             advice_provider,
             self.data_store.clone(),
-            self.authenticator.clone().map(|auth| auth as Arc<dyn TransactionAuthenticator>),
+            self.authenticator.clone(),
             tx_args.foreign_account_code_commitments(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
