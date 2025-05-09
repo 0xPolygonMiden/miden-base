@@ -21,9 +21,6 @@ const.EXPIRY_UPPER_LIMIT=0xFFFF+1
 # The note type must be PUBLIC, unless the high bits are `0b11`. (See the table below.)
 const.ALL_NOTE_TYPES_ALLOWED=3 # 0b11
 
-# The note tag prefix for network execution mode with a specific target. (See the table below.)
-const.NETWORK_EXECUTION_SPECIFIC_TARGET=0 # 0b00
-
 # Max U32 value, used for initializing the expiration block number
 const.MAX_BLOCK_NUM=0xFFFFFFFF
 
@@ -70,9 +67,6 @@ const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020240
 
 # Failed to find note at the given index; index must be within [0, num_of_notes]
 const.ERR_NOTE_INVALID_INDEX=0x00020105
-
-# Network execution mode with a specific target can only target network accounts.
-const.ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT=0x0002010a
 
 # Transaction expiration block delta must be within 0x1 and 0xFFFF.
 const.ERR_TX_INVALID_EXPIRATION_DELTA=0x000200c0
@@ -401,29 +395,9 @@ export.build_note_metadata
     # => [tag, note_type, public_note, note_type, tag, aux, note_type, execution_hint]
 
     # enforce the note type depending on the tag' bits
-    u32shr.30 dup movdn.4
-    # => [tag_prefix, note_type, public_note, note_type, tag_prefix, tag, aux, note_type, execution_hint]
-
-    push.ALL_NOTE_TYPES_ALLOWED eq cdrop
+    u32shr.30 push.ALL_NOTE_TYPES_ALLOWED eq cdrop
     assert_eq.err=ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX
-    # => [tag_prefix, tag, aux, note_type, execution_hint]
-
-    # Validate that network execution mode with specific target only targets network accounts.
-    # --------------------------------------------------------------------------------------------
-
-    # enforce that notes with network execution mode target a network account
-    # assert that !(is_network_execution_mode_specific && !is_network_account_target)
-    push.NETWORK_EXECUTION_SPECIFIC_TARGET eq
-    # => [is_network_execution_mode_specific, tag, aux, note_type, execution_hint]
-
-    # NOTE: note tag is already validated to be u32
-    # extract the 30th bit which indicates whether the target is a network account
-    # note that the value we extract does not matter if the tag does not have the
-    # NETWORK_EXECUTION_SPECIFIC_TARGET prefix
-    dup.1 u32and.1 not
-
-    # => [!is_network_account_target, is_network_execution_mode_specific, tag, aux, note_type, execution_hint]
-    and assertz.err=ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT
+    # => [tag, aux, note_type, execution_hint]
 
     # Split execution hint into its tag and payload parts as they are encoded in separate elements
     # of the metadata.
