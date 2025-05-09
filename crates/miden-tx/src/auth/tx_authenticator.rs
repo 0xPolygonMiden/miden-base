@@ -43,13 +43,13 @@ pub trait TransactionAuthenticator {
 
 #[derive(Clone, Debug)]
 /// Represents a signer for [AuthSecretKey] keys.
-pub struct BasicAuthenticator<R> {
+pub struct BasicAuthenticator<R: Send + Sync> {
     /// pub_key |-> secret_key mapping
     keys: BTreeMap<Digest, AuthSecretKey>,
     rng: Arc<RwLock<R>>,
 }
 
-impl<R: Rng> BasicAuthenticator<R> {
+impl<R: Rng + Send + Sync> BasicAuthenticator<R> {
     #[cfg(feature = "std")]
     pub fn new(keys: &[(Word, AuthSecretKey)]) -> BasicAuthenticator<rand::rngs::StdRng> {
         use rand::{SeedableRng, rngs::StdRng};
@@ -71,7 +71,7 @@ impl<R: Rng> BasicAuthenticator<R> {
     }
 }
 
-impl<R: Rng> TransactionAuthenticator for BasicAuthenticator<R> {
+impl<R: Rng + Send + Sync> TransactionAuthenticator for BasicAuthenticator<R> {
     /// Gets a signature over a message, given a public key.
     /// The key should be included in the `keys` map and should be a variant of [AuthSecretKey].
     ///
