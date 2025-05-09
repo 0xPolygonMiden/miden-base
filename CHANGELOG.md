@@ -17,6 +17,8 @@
 - Add safe `PartialBlockchain` constructor (#1308).
 - Fix error when creating accounts with empty storage (#1307).
 - [BREAKING] Move `MockChain` and `TransactionContext` to new `miden-testing` crate (#1309).
+- [BREAKING] Add support for private notes in `MockChain` (#1310).
+- [BREAKING] Refactor `MockChain` to use batch and block provers (#1315).
 
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 
@@ -34,6 +36,7 @@
 ## 0.8.0 (2025-03-21)
 
 ### Features
+
 - Added an endpoint to the `miden-proving-service` to update the workers (#1107).
 - [BREAKING] Added the `get_block_timestamp` procedure to the `miden` library (#1138).
 - Implemented `AccountInterface` structure (#1171).
