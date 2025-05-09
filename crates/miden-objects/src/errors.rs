@@ -819,7 +819,8 @@ pub enum ProposedBlockError {
     MissingAccountWitness(AccountId),
 
     #[error(
-        "account {account_id} with state {state_commitment} cannot transition to any of the remaining states {remaining_state_commitments:?}"
+        "account {account_id} with state {state_commitment} cannot transition to any of the remaining states {}",
+        remaining_state_commitments.iter().map(Digest::to_hex).collect::<Vec<_>>().join(", ")
     )]
     InconsistentAccountStateTransition {
         account_id: AccountId,

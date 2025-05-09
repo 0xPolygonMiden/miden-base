@@ -41,7 +41,7 @@ impl MockAccount {
         self.seed.as_ref()
     }
 
-    pub fn authenticator(&self) -> &Option<BasicAuthenticator<ChaCha20Rng>> {
-        &self.authenticator
+    pub fn authenticator(&self) -> Option<&BasicAuthenticator<ChaCha20Rng>> {
+        self.authenticator.as_ref()
     }
 }

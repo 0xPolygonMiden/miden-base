@@ -76,14 +76,14 @@ mod test {
 
         // Create a mock transaction to send to the server
         let mut mock_chain = MockChain::new();
-        let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+        let account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
 
         let fungible_asset_1: Asset =
             FungibleAsset::new(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET.try_into().unwrap(), 100)
                 .unwrap()
                 .into();
         let note_1 = mock_chain
-            .add_p2id_note(
+            .add_pending_p2id_note(
                 ACCOUNT_ID_SENDER.try_into().unwrap(),
                 account.id(),
                 &[fungible_asset_1],
