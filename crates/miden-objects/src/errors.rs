@@ -547,7 +547,7 @@ pub enum ProvenTransactionError {
     #[error("new on-chain account {0} is missing its account details")]
     NewOnChainAccountRequiresFullDetails(AccountId),
     #[error(
-        "existing public account {0} should only provide delta updates instead of full details"
+        "existing on-chain account {0} should only provide delta updates instead of full details"
     )]
     ExistingOnChainAccountRequiresDeltaDetails(AccountId),
     #[error("failed to construct output notes for proven transaction")]
