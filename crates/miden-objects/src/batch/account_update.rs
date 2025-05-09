@@ -47,6 +47,7 @@ impl BatchAccountUpdate {
     }
 
     /// Creates a [`BatchAccountUpdate`] from the provided parts without checking any consistency.
+    #[cfg(any(feature = "testing", test))]
     pub fn new_unchecked(
         account_id: AccountId,
         initial_state_commitment: Digest,
