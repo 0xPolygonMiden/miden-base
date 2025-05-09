@@ -138,31 +138,10 @@ impl ProvenBlock {
     pub fn transactions(&self) -> &OrderedTransactionHeaders {
         &self.transactions
     }
-
-    /// Returns a mutable reference to the block's account updates for testing purposes.
-    #[cfg(any(feature = "testing", test))]
-    pub fn updated_accounts_mut(&mut self) -> &mut Vec<BlockAccountUpdate> {
-        &mut self.updated_accounts
-    }
-
-    /// Returns a mutable reference to the block's nullifiers for testing purposes.
-    #[cfg(any(feature = "testing", test))]
-    pub fn created_nullifiers_mut(&mut self) -> &mut Vec<Nullifier> {
-        &mut self.created_nullifiers
-    }
-
-    /// Returns a mutable reference to the block's output note batches for testing purposes.
-    #[cfg(any(feature = "testing", test))]
-    pub fn output_note_batches_mut(&mut self) -> &mut Vec<OutputNoteBatch> {
-        &mut self.output_note_batches
-    }
-
-    /// Sets the block's header for testing purposes.
-    #[cfg(any(feature = "testing", test))]
-    pub fn set_block_header(&mut self, header: BlockHeader) {
-        self.header = header;
-    }
 }
+
+// SERIALIZATION
+// ================================================================================================
 
 impl Serializable for ProvenBlock {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -185,5 +164,31 @@ impl Deserializable for ProvenBlock {
         };
 
         Ok(block)
+    }
+}
+
+// TESTING
+// ================================================================================================
+
+#[cfg(any(feature = "testing", test))]
+impl ProvenBlock {
+    /// Returns a mutable reference to the block's account updates for testing purposes.
+    pub fn updated_accounts_mut(&mut self) -> &mut Vec<BlockAccountUpdate> {
+        &mut self.updated_accounts
+    }
+
+    /// Returns a mutable reference to the block's nullifiers for testing purposes.
+    pub fn created_nullifiers_mut(&mut self) -> &mut Vec<Nullifier> {
+        &mut self.created_nullifiers
+    }
+
+    /// Returns a mutable reference to the block's output note batches for testing purposes.
+    pub fn output_note_batches_mut(&mut self) -> &mut Vec<OutputNoteBatch> {
+        &mut self.output_note_batches
+    }
+
+    /// Sets the block's header for testing purposes.
+    pub fn set_block_header(&mut self, header: BlockHeader) {
+        self.header = header;
     }
 }
