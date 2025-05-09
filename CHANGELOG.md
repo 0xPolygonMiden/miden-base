@@ -18,7 +18,7 @@
 - Fix error when creating accounts with empty storage (#1307).
 - [BREAKING] Move `MockChain` and `TransactionContext` to new `miden-testing` crate (#1309).
 - [BREAKING] Add support for private notes in `MockChain` (#1310).
-- Change Token Symbol encoding (#1334).
+- [BREAKING] Change Token Symbol encoding (#1334).
 
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 
