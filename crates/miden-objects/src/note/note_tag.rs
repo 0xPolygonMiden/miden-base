@@ -100,7 +100,7 @@ impl NoteTag {
     // CONSTRUCTORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns a new [NoteTag::NetworkAccount] or [NoteTag::LocalAccount] instantiated from the
+    /// Returns a new [NoteTag::NetworkAccount] or [NoteTag::LocalAny] instantiated from the
     /// specified account ID and execution mode.
     ///
     /// The tag is constructed as follows:
@@ -218,9 +218,9 @@ impl NoteTag {
     // --------------------------------------------------------------------------------------------
 
     /// Returns true if the note is intended for execution by a specific account, i.e.
-    /// [`NoteTag::NetworkAccount`] or [`NoteTag::LocalAccount`].
+    /// [`NoteTag::NetworkAccount`]
     pub fn is_single_target(&self) -> bool {
-        matches!(self, NoteTag::NetworkAccount(_) | NoteTag::LocalAny(_))
+        matches!(self, NoteTag::NetworkAccount(_))
     }
 
     /// Returns note execution mode defined by this tag.
@@ -418,7 +418,7 @@ mod tests {
         for account_id in private_accounts {
             let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Local)
                 .expect("tag generation must work with local execution and private account ID");
-            assert!(tag.is_single_target());
+            assert!(!tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
             tag.validate(NoteType::Public)
@@ -432,7 +432,7 @@ mod tests {
         for account_id in public_accounts {
             let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Local)
                 .expect("Tag generation must work with local execution and public account ID");
-            assert!(tag.is_single_target());
+            assert!(!tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
             tag.validate(NoteType::Public)
@@ -446,7 +446,7 @@ mod tests {
         for account_id in network_accounts {
             let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Local)
                 .expect("Tag generation must work with local execution and network account ID");
-            assert!(tag.is_single_target());
+            assert!(!tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
 
             tag.validate(NoteType::Public)
