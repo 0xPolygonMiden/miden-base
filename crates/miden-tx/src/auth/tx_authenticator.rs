@@ -18,7 +18,7 @@ use crate::errors::AuthenticationError;
 /// private key pairs, and can be requested to generate signatures against any of the managed keys.
 ///
 /// The public keys are defined by [Digest]'s which are the hashes of the actual public keys.
-pub trait TransactionAuthenticator {
+pub trait TransactionAuthenticator: Send + Sync {
     /// Retrieves a signature for a specific message as a list of [Felt].
     ///
     /// The request is initiated by the VM as a consequence of the SigToStack advice
@@ -43,13 +43,13 @@ pub trait TransactionAuthenticator {
 
 #[derive(Clone, Debug)]
 /// Represents a signer for [AuthSecretKey] keys.
-pub struct BasicAuthenticator<R: Send + Sync> {
+pub struct BasicAuthenticator<R> {
     /// pub_key |-> secret_key mapping
     keys: BTreeMap<Digest, AuthSecretKey>,
     rng: Arc<RwLock<R>>,
 }
 
-impl<R: Rng + Send + Sync> BasicAuthenticator<R> {
+impl<R: Rng> BasicAuthenticator<R> {
     #[cfg(feature = "std")]
     pub fn new(keys: &[(Word, AuthSecretKey)]) -> BasicAuthenticator<rand::rngs::StdRng> {
         use rand::{SeedableRng, rngs::StdRng};
