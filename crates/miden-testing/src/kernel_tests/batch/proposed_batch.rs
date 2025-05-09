@@ -7,18 +7,20 @@ use miden_crypto::merkle::MerkleError;
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     BatchAccountUpdateError, ProposedBatchError,
-    account::{Account, AccountId},
+    account::{Account, AccountId, AccountStorageMode},
     batch::ProposedBatch,
     block::BlockNumber,
     note::{Note, NoteType},
-    testing::{account_id::AccountIdBuilder, note::NoteBuilder},
+    testing::{
+        account_component::AccountMockComponent, account_id::AccountIdBuilder, note::NoteBuilder,
+    },
     transaction::{InputNote, InputNoteCommitment, OutputNote, PartialBlockchain},
 };
-use rand::{SeedableRng, rngs::SmallRng};
+use rand::{Rng, SeedableRng, rngs::SmallRng};
 use vm_processor::Digest;
 
 use super::proven_tx_builder::MockProvenTxBuilder;
-use crate::{Auth, MockChain};
+use crate::{AccountState, Auth, MockChain};
 
 fn mock_account_id(num: u8) -> AccountId {
     AccountIdBuilder::new().build_with_rng(&mut SmallRng::from_seed([num; 32]))
@@ -43,11 +45,20 @@ struct TestSetup {
 
 fn setup_chain() -> TestSetup {
     let mut chain = MockChain::new();
-    let account1 = chain.add_new_wallet(Auth::NoAuth);
-    let account2 = chain.add_new_wallet(Auth::NoAuth);
-    chain.seal_next_block();
+    let account1 = generate_account(&mut chain);
+    let account2 = generate_account(&mut chain);
+    chain.prove_next_block();
 
     TestSetup { chain, account1, account2 }
+}
+
+fn generate_account(chain: &mut MockChain) -> Account {
+    let account_builder = Account::builder(rand::rng().random())
+        .storage_mode(AccountStorageMode::Private)
+        .with_component(
+            AccountMockComponent::new_with_empty_slots(TransactionKernel::assembler()).unwrap(),
+        );
+    chain.add_pending_account_from_builder(Auth::NoAuth, account_builder, AccountState::Exists)
 }
 
 /// Tests that a note created and consumed in the same batch are erased from the input and
@@ -72,7 +83,7 @@ fn empty_transaction_batch() -> anyhow::Result<()> {
 fn note_created_and_consumed_in_same_batch() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
     let block1 = chain.block_header(1);
-    let block2 = chain.seal_next_block();
+    let block2 = chain.prove_next_block();
 
     let note = mock_note(40);
     let tx1 =
@@ -143,9 +154,10 @@ fn duplicate_unauthenticated_input_notes() -> anyhow::Result<()> {
 #[test]
 fn duplicate_authenticated_input_notes() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
-    let note = chain.add_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
+    let note =
+        chain.add_pending_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
     let block1 = chain.block_header(1);
-    let block2 = chain.seal_next_block();
+    let block2 = chain.prove_next_block();
 
     let tx1 =
         MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
@@ -183,9 +195,10 @@ fn duplicate_authenticated_input_notes() -> anyhow::Result<()> {
 #[test]
 fn duplicate_mixed_input_notes() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
-    let note = chain.add_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
+    let note =
+        chain.add_pending_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
     let block1 = chain.block_header(1);
-    let block2 = chain.seal_next_block();
+    let block2 = chain.prove_next_block();
 
     let tx1 =
         MockProvenTxBuilder::with_account(account1.id(), Digest::default(), account1.commitment())
@@ -261,12 +274,14 @@ fn duplicate_output_notes() -> anyhow::Result<()> {
 #[test]
 fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
-    let note0 = chain.add_p2id_note(account2.id(), account1.id(), &[], NoteType::Private, None)?;
-    let note1 = chain.add_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
+    let note0 =
+        chain.add_pending_p2id_note(account2.id(), account1.id(), &[], NoteType::Private, None)?;
+    let note1 =
+        chain.add_pending_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
     // The just created note will be provable against block2.
-    let block2 = chain.seal_next_block();
-    let block3 = chain.seal_next_block();
-    let block4 = chain.seal_next_block();
+    let block2 = chain.prove_next_block();
+    let block3 = chain.prove_next_block();
+    let block4 = chain.prove_next_block();
 
     // Consume the authenticated note as an unauthenticated one in the transaction.
     let tx1 =
@@ -370,9 +385,10 @@ fn unauthenticated_note_converted_to_authenticated() -> anyhow::Result<()> {
 #[test]
 fn authenticated_note_created_in_same_batch() -> anyhow::Result<()> {
     let TestSetup { mut chain, account1, account2 } = setup_chain();
-    let note = chain.add_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
+    let note =
+        chain.add_pending_p2id_note(account1.id(), account2.id(), &[], NoteType::Private, None)?;
     let block1 = chain.block_header(1);
-    let block2 = chain.seal_next_block();
+    let block2 = chain.prove_next_block();
 
     let note0 = mock_note(50);
     let tx1 =

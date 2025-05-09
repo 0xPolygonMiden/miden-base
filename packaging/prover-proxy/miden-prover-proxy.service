@@ -6,8 +6,9 @@ Wants=network-online.target
 WantedBy=multi-user.target
 
 [Service]
-Type=execExecStart=/usr/bin/miden-proving-service start-proxy --port 50051 63.176.73.108:50052 --status-port 8080
-WorkingDirectory=/opt/miden/miden-prover-proxy
+Type=exec
+ExecStart=/usr/bin/miden-proving-service start-proxy --port 50051 10.0.1.254:50052
+WorkingDirectory=/opt/miden-prover-proxy
 User=miden-prover-proxy
 RestartSec=5
 Restart=always
