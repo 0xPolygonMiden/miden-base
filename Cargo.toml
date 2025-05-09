@@ -17,7 +17,7 @@ edition = "2024"
 rust-version = "1.86"
 license = "MIT"
 authors = ["Miden contributors"]
-homepage = "https://polygon.technology/polygon-miden"
+homepage = "https://miden.xyz"
 repository = "https://github.com/0xMiden/miden-base"
 exclude = [".github/"]
 
