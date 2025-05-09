@@ -143,7 +143,7 @@ pub const fn account_id(
 /// # Example
 ///
 /// ```
-/// # use miden_objects::account::{AccountType, AccountStorageMode, AccountId, NetworkAccount};
+/// # use miden_objects::account::{AccountType, AccountStorageMode, AccountId};
 /// # use miden_objects::testing::account_id::{AccountIdBuilder};
 ///
 /// let mut rng = rand::rng();

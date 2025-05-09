@@ -25,7 +25,6 @@ use crate::{
 /// - The `account_type` set to [`AccountType::RegularAccountUpdatableCode`].
 /// - The `storage_mode` set to [`AccountStorageMode::Private`].
 /// - The `version` set to [`AccountIdVersion::Version0`].
-/// - The `network_account` set to [`NetworkAccount::Disabled`].
 ///
 /// The methods that are required to be called are:
 ///
