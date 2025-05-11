@@ -30,6 +30,7 @@ miden-objects = { workspace = true, features = ["testing"] }
 vm-processor = { workspace = true, features = ["testing"] }
 
 [build-dependencies]
+vm-core = { workspace = true }
 assembly = { workspace = true }
 miden-stdlib = { workspace = true }
 regex = { version = "1.11" }
