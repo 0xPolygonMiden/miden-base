@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 
-use miden_objects::{Felt, assembly::mast::error_code_from_msg};
+use miden_objects::Felt;
 
 /// A convenience wrapper around an error extracted from Miden Assembly source files.
 pub struct MasmError {
@@ -27,7 +27,7 @@ impl MasmError {
 
     /// Returns the code of this error.
     pub fn code(&self) -> Felt {
-        error_code_from_msg(&self.message)
+        miden_objects::assembly::mast::error_code_from_msg(&self.message)
     }
 }
 

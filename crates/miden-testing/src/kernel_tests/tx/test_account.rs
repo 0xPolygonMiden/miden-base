@@ -1,6 +1,7 @@
 use std::borrow::ToOwned;
 
 use anyhow::Context;
+use assembly::diagnostics::{WrapErr, miette};
 use miden_lib::{
     errors::tx_kernel_errors::{
         ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX,
@@ -218,7 +219,7 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_is_faucet_procedure() {
+fn test_is_faucet_procedure() -> miette::Result<()> {
     let test_cases = [
         ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
@@ -247,7 +248,7 @@ fn test_is_faucet_procedure() {
 
         let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
             .run(&code)
-            .unwrap();
+            .wrap_err("failed to execute is_faucet procedure")?;
 
         let is_faucet = account_id.is_faucet();
         assert_eq!(
@@ -257,6 +258,8 @@ fn test_is_faucet_procedure() {
             account_id
         );
     }
+
+    Ok(())
 }
 
 // ACCOUNT STORAGE TESTS

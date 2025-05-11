@@ -5,7 +5,7 @@ use alloc::{sync::Arc, vec::Vec};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::delta::AccountUpdateDetails,
-    assembly::DefaultSourceManager,
+    assembly::SourceManager,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 pub use miden_prover::ProvingOptions;
@@ -35,6 +35,7 @@ pub trait TransactionProver {
     fn prove(
         &self,
         tx_witness: TransactionWitness,
+        source_manager: Arc<dyn SourceManager>,
     ) -> Result<ProvenTransaction, TransactionProverError>;
 }
 
@@ -74,6 +75,7 @@ impl TransactionProver for LocalTransactionProver {
     fn prove(
         &self,
         tx_witness: TransactionWitness,
+        source_manager: Arc<dyn SourceManager>,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         let TransactionWitness { tx_inputs, tx_args, advice_witness } = tx_witness;
 
@@ -109,8 +111,7 @@ impl TransactionProver for LocalTransactionProver {
             stack_inputs,
             &mut host,
             self.proof_options.clone(),
-            // TODO: How should we handle this?
-            Arc::new(DefaultSourceManager::default()),
+            source_manager
         ))
         .map_err(TransactionProverError::TransactionProgramExecutionFailed)?;
 

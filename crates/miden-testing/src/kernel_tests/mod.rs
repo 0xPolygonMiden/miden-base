@@ -761,9 +761,10 @@ fn executed_transaction_output_notes() {
 
 #[test]
 fn prove_witness_and_verify() {
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE)
-        .with_mock_notes_preserved()
-        .build();
+    let tx_context_builder =
+        TransactionContextBuilder::with_standard_account(ONE).with_mock_notes_preserved();
+    let source_manager = tx_context_builder.source_manager();
+    let tx_context = tx_context_builder.build();
 
     let account_id = tx_context.tx_inputs().account().id();
 
@@ -777,7 +778,7 @@ fn prove_witness_and_verify() {
 
     let proof_options = ProvingOptions::default();
     let prover = LocalTransactionProver::new(proof_options);
-    let proven_transaction = prover.prove(executed_transaction.into()).unwrap();
+    let proven_transaction = prover.prove(executed_transaction.into(), source_manager).unwrap();
 
     assert_eq!(proven_transaction.id(), executed_transaction_id);
 

@@ -1,8 +1,9 @@
 // TRANSACTION CONTEXT BUILDER
 // ================================================================================================
 
-use alloc::{collections::BTreeMap, vec::Vec};
+use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 
+use miden_objects::assembly::SourceManager;
 use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string};
 use miden_objects::{
     FieldElement,
@@ -150,6 +151,11 @@ impl TransactionContextBuilder {
         );
 
         Self { account, ..Self::default() }
+    }
+
+    /// Returns the source manager used by the contained assembler.
+    pub fn source_manager(&self) -> Arc<dyn SourceManager> {
+        self.assembler.source_manager()
     }
 
     /// Override and set the account seed manually

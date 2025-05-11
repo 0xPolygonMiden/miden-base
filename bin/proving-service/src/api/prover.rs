@@ -1,7 +1,7 @@
+use std::sync::Arc;
 use miden_block_prover::LocalBlockProver;
 use miden_objects::{
-    MIN_PROOF_SECURITY_LEVEL, batch::ProposedBatch, block::ProposedBlock,
-    transaction::TransactionWitness, utils::Serializable,
+    assembly::DefaultSourceManager, batch::ProposedBatch, block::ProposedBlock, transaction::TransactionWitness, utils::Serializable, MIN_PROOF_SECURITY_LEVEL
 };
 use miden_tx::{LocalTransactionProver, TransactionProver};
 use miden_tx_batch_prover::LocalBatchProver;
@@ -72,7 +72,7 @@ impl ProverRpcApi {
         let proof = prover
             .try_lock()
             .map_err(|_| Status::resource_exhausted("Server is busy handling another request"))?
-            .prove(transaction_witness)
+            .prove(transaction_witness, Arc::new(DefaultSourceManager::default()))
             .map_err(internal_error)?;
 
         // Record the transaction_id in the current tracing span

@@ -67,8 +67,8 @@ impl TransactionContext {
 
         let test_lib = TransactionKernel::kernel_as_library();
 
+        let source_manager = assembler.source_manager();
         let program = assembler
-            .clone()
             .with_debug_mode(true)
             .assemble_program(code)
             .expect("compilation of the provided code failed");
@@ -86,7 +86,7 @@ impl TransactionContext {
             self.tx_args.foreign_account_code_commitments(),
         ))
         .stack_inputs(stack_inputs)
-        .execute_program(program)
+        .execute_program(program, source_manager)
     }
 
     /// Executes arbitrary code with a testing assembler ([TransactionKernel::testing_assembler()]).

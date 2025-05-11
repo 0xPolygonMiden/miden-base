@@ -54,12 +54,17 @@ macro_rules! assert_transaction_executor_error {
 pub fn prove_and_verify_transaction(
     executed_transaction: ExecutedTransaction,
 ) -> Result<(), TransactionVerifierError> {
+    use alloc::sync::Arc;
+    use assembly::DefaultSourceManager;
+
     let executed_transaction_id = executed_transaction.id();
     // Prove the transaction
 
     let proof_options = ProvingOptions::default();
     let prover = LocalTransactionProver::new(proof_options);
-    let proven_transaction = prover.prove(executed_transaction.into()).unwrap();
+    let proven_transaction = prover
+        .prove(executed_transaction.into(), Arc::new(DefaultSourceManager::default()))
+        .unwrap();
 
     assert_eq!(proven_transaction.id(), executed_transaction_id);
 
