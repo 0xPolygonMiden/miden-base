@@ -11,11 +11,9 @@ use std::{
 use assembly::{
     Assembler, DefaultSourceManager, KernelLibrary, Library, LibraryNamespace, Report,
     diagnostics::{IntoDiagnostic, Result, WrapErr},
-    mast::error_code_from_msg,
     utils::Serializable,
 };
 use regex::Regex;
-use vm_core::Felt;
 use walkdir::WalkDir;
 
 /// A map where the key is the error name and the value is the error code with the message.
@@ -541,11 +539,7 @@ fn extract_all_masm_errors(asm_source_dir: &Path) -> Result<ErrorCategoryMap> {
     for (error_name, error) in errors.into_iter() {
         let category = ErrorCategory::match_category(&error_name)?;
 
-        let named_error = NamedError {
-            name: error_name,
-            code: error.code,
-            message: error.message,
-        };
+        let named_error = NamedError { name: error_name, message: error.message };
 
         category_map.entry(category).or_default().push(named_error);
     }
@@ -574,8 +568,6 @@ fn extract_masm_errors(
             .trim()
             .to_owned();
 
-        let error_code = error_code_from_msg(error_message.as_str());
-
         if let Some(ExtractedError { message: existing_error_message, .. }) =
             errors.get(&error_name)
         {
@@ -593,7 +585,7 @@ fn extract_masm_errors(
             )));
         }
 
-        errors.insert(error_name, ExtractedError { code: error_code, message: error_message });
+        errors.insert(error_name, ExtractedError { message: error_message });
     }
 
     Ok(())
@@ -620,7 +612,7 @@ fn is_new_error_category<'a>(last_error: &mut Option<&'a str>, current_error: &'
 fn generate_error_file_content(category: ErrorCategory, errors: Vec<NamedError>) -> Result<String> {
     let mut output = String::new();
 
-    writeln!(output, "use miden_objects::Felt;\n").unwrap();
+    writeln!(output, "use crate::errors::MasmError;\n").unwrap();
 
     writeln!(
         output,
@@ -645,7 +637,7 @@ fn generate_error_file_content(category: ErrorCategory, errors: Vec<NamedError>)
 
     let mut last_error = None;
     for named_error in errors.iter() {
-        let NamedError { name, code, message } = named_error;
+        let NamedError { name, message } = named_error;
 
         // Group errors into blocks separate by newlines.
         if is_new_error_category(&mut last_error, name) {
@@ -653,27 +645,26 @@ fn generate_error_file_content(category: ErrorCategory, errors: Vec<NamedError>)
         }
 
         writeln!(output, "/// Error Message: \"{message}\"").into_diagnostic()?;
-        writeln!(output, "pub const ERR_{name}: Felt = Felt::new({code});").into_diagnostic()?;
+        writeln!(
+            output,
+            r#"pub const ERR_{name}: MasmError = MasmError::from_static_str("{message}");"#
+        )
+        .into_diagnostic()?;
     }
     writeln!(output).into_diagnostic()?;
 
-    writeln!(
-        output,
-        "pub const {}: [(Felt, &str); {}] = [",
-        category.array_name(),
-        errors.len()
-    )
-    .into_diagnostic()?;
+    writeln!(output, "pub const {}: [MasmError; {}] = [", category.array_name(), errors.len())
+        .into_diagnostic()?;
 
     let mut last_error = None;
     for named_error in errors.iter() {
-        let NamedError { name, message, .. } = named_error;
+        let NamedError { name, .. } = named_error;
 
         // Group errors into blocks separate by newlines.
         if is_new_error_category(&mut last_error, name) {
             writeln!(output).into_diagnostic()?;
         }
-        writeln!(output, r#"    (ERR_{name}, "{message}"),"#).into_diagnostic()?;
+        writeln!(output, r#"    ERR_{name},"#).into_diagnostic()?;
     }
 
     writeln!(output, "];").into_diagnostic()?;
@@ -685,14 +676,12 @@ type ErrorName = String;
 
 #[derive(Debug, Clone)]
 struct ExtractedError {
-    code: Felt,
     message: String,
 }
 
 #[derive(Debug, Clone)]
 struct NamedError {
     name: ErrorName,
-    code: Felt,
     message: String,
 }
 

@@ -97,6 +97,7 @@ fn transaction_executor_witness() {
         stack_inputs,
         &mut host,
         Default::default(),
+        Arc::new(DefaultSourceManager::default()),
     )
     .unwrap();
 
@@ -838,12 +839,13 @@ fn test_tx_script() {
 /// `tx script -> account code -> external library`
 #[test]
 fn transaction_executor_account_code_using_custom_library() {
-    const EXTERNAL_LIBRARY_CODE: &str = "
+    const EXTERNAL_LIBRARY_CODE: &str = r#"
       use.miden::account
 
       export.incr_nonce_by_four
-        dup eq.4 assert.err=42 exec.account::incr_nonce
-      end";
+        dup eq.4 assert.err="nonce increment is not 4"
+        exec.account::incr_nonce
+      end"#;
 
     const ACCOUNT_COMPONENT_CODE: &str = "
       use.external_library::external_module
@@ -1064,7 +1066,6 @@ fn test_check_note_consumability() {
         TransactionExecutor::new(Arc::new(tx_context), None).with_tracing();
     let notes_checker = NoteConsumptionChecker::new(&executor);
 
-    // let notes_checker = NoteConsumptionChecker::new(account_id, input_notes.clone().into_vec());
     let execution_check_result = notes_checker
         .check_notes_consumability(account_id, block_ref, input_notes, tx_args)
         .unwrap();
@@ -1075,7 +1076,9 @@ fn test_check_note_consumability() {
         error: Some(e)} => {
             assert_eq!(failed_note_id, failing_note_2.id());
             assert_eq!(successful_notes, input_note_ids[..2].to_vec());
-            assert_matches!(e, TransactionExecutorError::TransactionProgramExecutionFailed(ExecutionError::DivideByZero(_)));
+            assert_matches!(e, TransactionExecutorError::TransactionProgramExecutionFailed(
+              ExecutionError::DivideByZero { .. }
+            ));
         }
     );
 }

@@ -5,6 +5,7 @@ use alloc::{sync::Arc, vec::Vec};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::delta::AccountUpdateDetails,
+    assembly::DefaultSourceManager,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 pub use miden_prover::ProvingOptions;
@@ -107,7 +108,9 @@ impl TransactionProver for LocalTransactionProver {
             &TransactionKernel::main(),
             stack_inputs,
             &mut host,
-            self.proof_options.clone()
+            self.proof_options.clone(),
+            // TODO: How should we handle this?
+            Arc::new(DefaultSourceManager::default()),
         ))
         .map_err(TransactionProverError::TransactionProgramExecutionFailed)?;
 

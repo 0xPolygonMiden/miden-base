@@ -4,6 +4,7 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
     account::AccountId,
+    assembly::DefaultSourceManager,
     block::{BlockHeader, BlockNumber},
     note::NoteId,
     transaction::{
@@ -74,7 +75,7 @@ impl TransactionExecutor {
     /// account code) will be compiled and executed in debug mode. This will ensure that all debug
     /// instructions present in the original source code are executed.
     pub fn with_debug_mode(mut self) -> Self {
-        self.exec_options = self.exec_options.with_debugging();
+        self.exec_options = self.exec_options.with_debugging(true);
         self
     }
 
@@ -145,6 +146,8 @@ impl TransactionExecutor {
             stack_inputs,
             &mut host,
             self.exec_options,
+            // TODO: How should we handle this?
+            Arc::new(DefaultSourceManager::default()),
         )
         .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
 
@@ -266,6 +269,8 @@ impl TransactionExecutor {
             stack_inputs,
             &mut host,
             self.exec_options,
+            // TODO: How should we handle this?
+            Arc::new(DefaultSourceManager::default()),
         )
         .map_err(TransactionExecutorError::TransactionProgramExecutionFailed);
 

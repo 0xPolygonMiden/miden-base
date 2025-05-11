@@ -1,3 +1,5 @@
+use std::borrow::ToOwned;
+
 use anyhow::Context;
 use miden_lib::{
     errors::tx_kernel_errors::{
@@ -162,7 +164,10 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
         ),
     ];
 
-    let error_map = alloc::collections::BTreeMap::from(TX_KERNEL_ERRORS);
+    let error_map = alloc::collections::BTreeMap::from(
+        TX_KERNEL_ERRORS.map(|error| (error.code().as_int(), error.message().to_owned())),
+    );
+
     for (account_id, expected_error) in test_cases.iter() {
         // Manually split the account ID into prefix and suffix since we can't use AccountId methods
         // on invalid ids.
@@ -181,17 +186,22 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
             .stack_inputs(StackInputs::new(vec![suffix, prefix]).unwrap())
             .run(code);
 
+        // TODO: Refactor to not use the error map?
         match (result, expected_error) {
             (Ok(_), None) => (),
             (Ok(_), Some(err)) => {
-                anyhow::bail!("expected error {} but validation was successful", error_map[err])
+                anyhow::bail!(
+                    "expected error {} but validation was successful",
+                    error_map[&err.code().as_int()]
+                )
             },
             (Err(ExecutionError::FailedAssertion { err_code, .. }), Some(err)) => {
-                if err_code != *err {
+                if err_code != err.code() {
                     anyhow::bail!(
-                        "actual error {err_code} ({}) did not match expected error {err} ({})",
-                        error_map[&err_code],
-                        error_map[err]
+                        "actual error {err_code} ({}) did not match expected error {} ({})",
+                        error_map[&err_code.as_int()],
+                        err.code(),
+                        error_map[&err.code().as_int()]
                     );
                 }
             },
