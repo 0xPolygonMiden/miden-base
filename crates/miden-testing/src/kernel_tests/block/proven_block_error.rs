@@ -20,10 +20,10 @@ use miden_objects::{
 use winterfell::Proof;
 
 use super::utils::{
-    ProvenTransactionExt, TestSetup, generate_batch, generate_executed_tx_with_authenticated_notes,
+    TestSetup, generate_batch, generate_executed_tx_with_authenticated_notes,
     generate_tracked_note, setup_chain,
 };
-use crate::{MockChain, TransactionContextBuilder};
+use crate::{MockChain, ProvenTransactionExt, TransactionContextBuilder};
 
 struct WitnessTestSetup {
     stale_block_inputs: BlockInputs,
@@ -42,10 +42,9 @@ fn witness_test_setup() -> WitnessTestSetup {
 
     let note = generate_tracked_note(&mut chain, account1.id(), account0.id());
     // Add note to chain.
-    chain.seal_next_block();
+    chain.prove_next_block();
 
-    let tx0 =
-        generate_executed_tx_with_authenticated_notes(&mut chain, account0.id(), &[note.id()]);
+    let tx0 = generate_executed_tx_with_authenticated_notes(&chain, account0.id(), &[note.id()]);
     let tx1 = txs.remove(&1).unwrap();
     let tx2 = txs.remove(&2).unwrap();
 
@@ -53,19 +52,19 @@ fn witness_test_setup() -> WitnessTestSetup {
     let batches = vec![batch1];
     let stale_block_inputs = chain.get_block_inputs(&batches);
 
-    let account_root0 = chain.accounts().root();
-    let nullifier_root0 = chain.nullifiers().root();
+    let account_root0 = chain.account_tree().root();
+    let nullifier_root0 = chain.nullifier_tree().root();
 
     // Apply the executed tx and seal a block. This invalidates the block inputs we've just fetched.
-    chain.apply_executed_transaction(&tx0);
-    chain.seal_next_block();
+    chain.add_pending_executed_transaction(&tx0);
+    chain.prove_next_block();
 
     let valid_block_inputs = chain.get_block_inputs(&batches);
 
     // Sanity check: This test requires that the tree roots change with the last sealed block so the
     // previously fetched block inputs become invalid.
-    assert_ne!(chain.accounts().root(), account_root0);
-    assert_ne!(chain.nullifiers().root(), nullifier_root0);
+    assert_ne!(chain.account_tree().root(), account_root0);
+    assert_ne!(chain.nullifier_tree().root(), nullifier_root0);
 
     WitnessTestSetup {
         stale_block_inputs,
@@ -299,7 +298,7 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
     let existing_account =
         Account::mock(existing_id.into(), Felt::ZERO, TransactionKernel::testing_assembler());
     mock_chain.add_pending_account(existing_account.clone());
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // Execute the account-creating transaction.
     // --------------------------------------------------------------------------------------------
@@ -310,8 +309,7 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
         .tx_inputs(tx_inputs)
         .build();
     let tx = tx_context.execute().context("failed to execute account creating tx")?;
-    let tx =
-        ProvenTransaction::from_executed_transaction_mocked(tx, &mock_chain.latest_block_header());
+    let tx = ProvenTransaction::from_executed_transaction_mocked(tx);
 
     let batch = generate_batch(&mut mock_chain, vec![tx]);
     let batches = [batch];
@@ -319,8 +317,11 @@ fn proven_block_fails_on_creating_account_with_existing_account_id_prefix() -> a
     let block_inputs = mock_chain.get_block_inputs(batches.iter());
     // Sanity check: The mock chain account tree root should match the previous block header's
     // account tree root.
-    assert_eq!(mock_chain.accounts().root(), block_inputs.prev_block_header().account_root());
-    assert_eq!(mock_chain.accounts().num_accounts(), 1);
+    assert_eq!(
+        mock_chain.account_tree().root(),
+        block_inputs.prev_block_header().account_root()
+    );
+    assert_eq!(mock_chain.account_tree().num_accounts(), 1);
 
     // Sanity check: The block inputs should contain an account witness whose ID matches the
     // existing ID.
