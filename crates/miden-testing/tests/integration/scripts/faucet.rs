@@ -26,7 +26,7 @@ fn prove_faucet_contract_mint_fungible_asset_succeeds() {
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------
     let mut mock_chain = MockChain::new();
-    let faucet = mock_chain.add_existing_faucet(Auth::BasicAuth, "TST", 200, None);
+    let faucet = mock_chain.add_pending_existing_faucet(Auth::BasicAuth, "TST", 200, None);
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let tag = NoteTag::for_local_use_case(0, 0).unwrap();
@@ -102,7 +102,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
     // --------------------------------------------------------------------------------------------
     let mut mock_chain = MockChain::new();
     let faucet: MockFungibleFaucet =
-        mock_chain.add_existing_faucet(Auth::BasicAuth, "TST", 200u64, None);
+        mock_chain.add_pending_existing_faucet(Auth::BasicAuth, "TST", 200u64, None);
 
     let recipient = [Felt::new(0), Felt::new(1), Felt::new(2), Felt::new(3)];
     let aux = Felt::new(27);
@@ -159,7 +159,7 @@ fn faucet_contract_mint_fungible_asset_fails_exceeds_max_supply() {
 #[test]
 fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     let mut mock_chain = MockChain::new();
-    let faucet = mock_chain.add_existing_faucet(Auth::BasicAuth, "TST", 200, Some(100));
+    let faucet = mock_chain.add_pending_existing_faucet(Auth::BasicAuth, "TST", 200, Some(100));
 
     let fungible_asset = FungibleAsset::new(faucet.account().id(), 100).unwrap();
 
@@ -196,7 +196,7 @@ fn prove_faucet_contract_burn_fungible_asset_succeeds() {
     let note = get_note_with_fungible_asset_and_script(fungible_asset, note_script);
 
     mock_chain.add_pending_note(OutputNote::Full(note.clone()));
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // CONSTRUCT AND EXECUTE TX (Success)
     // --------------------------------------------------------------------------------------------

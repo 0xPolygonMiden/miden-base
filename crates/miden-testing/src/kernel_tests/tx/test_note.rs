@@ -1,5 +1,6 @@
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
+use anyhow::Context;
 use miden_lib::{
     errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
     transaction::{TransactionKernel, memory::CURRENT_INPUT_NOTE_PTR},
@@ -615,9 +616,9 @@ fn test_build_note_metadata() {
 
 /// This serves as a test that setting a custom timestamp on mock chain blocks works.
 #[test]
-pub fn test_timelock() {
+pub fn test_timelock() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    let account = mock_chain.add_existing_wallet(Auth::NoAuth, vec![]);
+    let account = mock_chain.add_pending_existing_wallet(Auth::NoAuth, vec![]);
     const TIMESTAMP_ERROR: u32 = 123;
 
     let code = format!(
@@ -656,7 +657,9 @@ pub fn test_timelock() {
         .unwrap();
 
     mock_chain.add_pending_note(OutputNote::Full(timelock_note.clone()));
-    mock_chain.seal_block(None, Some(lock_timestamp - 100));
+    mock_chain
+        .prove_next_block_at(lock_timestamp - 100)
+        .context("failed to prove next block at lock timestamp - 100")?;
 
     // Attempt to consume note too early.
     // ----------------------------------------------------------------------------------------
@@ -673,9 +676,14 @@ pub fn test_timelock() {
 
     // Consume note where lock timestamp matches the block timestamp.
     // ----------------------------------------------------------------------------------------
-    mock_chain.seal_block(None, Some(lock_timestamp));
+    mock_chain
+        .prove_next_block_at(lock_timestamp)
+        .context("failed to prove next block at lock timestamp")?;
+
     let tx_inputs =
         mock_chain.get_transaction_inputs(account.clone(), None, &[timelock_note.id()], &[]);
     let tx_context = TransactionContextBuilder::new(account).tx_inputs(tx_inputs).build();
     tx_context.execute().unwrap();
+
+    Ok(())
 }
