@@ -5,7 +5,7 @@ use alloc::{collections::BTreeSet, rc::Rc, sync::Arc, vec::Vec};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::{Account, AccountId},
-    assembly::Assembler,
+    assembly::{Assembler, SourceManager},
     block::{BlockHeader, BlockNumber},
     note::Note,
     transaction::{
@@ -39,6 +39,7 @@ pub struct TransactionContext {
     pub(super) mast_store: TransactionMastStore,
     pub(super) advice_inputs: AdviceInputs,
     pub(super) authenticator: Option<MockAuthenticator>,
+    pub(super) source_manager: Arc<dyn SourceManager>,
 }
 
 impl TransactionContext {
@@ -98,6 +99,7 @@ impl TransactionContext {
     }
 
     /// Executes the transaction through a [TransactionExecutor]
+    #[allow(clippy::arc_with_non_send_sync)]
     #[maybe_async]
     pub fn execute(self) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let account_id = self.account().id();
@@ -110,9 +112,16 @@ impl TransactionContext {
             .cloned()
             .map(|auth| Arc::new(auth) as Arc<dyn TransactionAuthenticator>);
 
+        let source_manager = Arc::clone(&self.source_manager);
         let tx_executor = TransactionExecutor::new(Arc::new(self), authenticator);
 
-        maybe_await!(tx_executor.execute_transaction(account_id, block_num, notes, tx_args))
+        maybe_await!(tx_executor.execute_transaction(
+            account_id,
+            block_num,
+            notes,
+            tx_args,
+            source_manager
+        ))
     }
 
     pub fn account(&self) -> &Account {
@@ -141,6 +150,11 @@ impl TransactionContext {
 
     pub fn authenticator(&self) -> Option<&BasicAuthenticator<ChaCha20Rng>> {
         self.authenticator.as_ref()
+    }
+
+    /// Returns the source manager used in the assembler of the transaction context builder.
+    pub fn source_manager(&self) -> Arc<dyn SourceManager> {
+        Arc::clone(&self.source_manager)
     }
 }
 

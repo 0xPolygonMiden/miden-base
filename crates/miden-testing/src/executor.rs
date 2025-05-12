@@ -1,4 +1,5 @@
 use alloc::sync::Arc;
+
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::assembly::SourceManager;
 use vm_processor::{

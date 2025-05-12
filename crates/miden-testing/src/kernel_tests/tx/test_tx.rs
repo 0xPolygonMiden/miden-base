@@ -69,6 +69,7 @@ fn test_fpi_anchoring_validations() {
     );
 }
 
+#[allow(clippy::arc_with_non_send_sync)]
 #[test]
 fn test_future_input_note_fails() -> anyhow::Result<()> {
     // Create a chain with an account
@@ -97,6 +98,7 @@ fn test_future_input_note_fails() -> anyhow::Result<()> {
 
     // Attempt to execute with a note created in the future
     let tx_context = mock_chain.build_tx_context(account.id(), &[], &[]).build();
+    let source_manager = tx_context.source_manager();
 
     let tx_executor = TransactionExecutor::new(Arc::new(tx_context), None);
     // Try to execute with block_ref==1
@@ -105,6 +107,7 @@ fn test_future_input_note_fails() -> anyhow::Result<()> {
         BlockNumber::from(1),
         InputNotes::new(vec![input_note]).unwrap(),
         TransactionArgs::default(),
+        source_manager,
     );
 
     assert_matches::assert_matches!(

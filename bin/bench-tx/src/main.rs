@@ -61,10 +61,12 @@ fn main() -> Result<(), String> {
 // ================================================================================================
 
 /// Runs the default transaction with empty transaction script and two default notes.
+#[allow(clippy::arc_with_non_send_sync)]
 pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
+    let source_manager = tx_context.source_manager();
 
     let account_id = tx_context.account().id();
 
@@ -74,13 +76,14 @@ pub fn benchmark_default_tx() -> Result<TransactionMeasurements, String> {
     let executor: TransactionExecutor =
         TransactionExecutor::new(Arc::new(tx_context), None).with_tracing();
     let executed_transaction = executor
-        .execute_transaction(account_id, block_ref, notes, tx_args)
+        .execute_transaction(account_id, block_ref, notes, tx_args, source_manager)
         .map_err(|e| e.to_string())?;
 
     Ok(executed_transaction.into())
 }
 
 /// Runs the transaction which consumes a P2ID note into a basic wallet.
+#[allow(clippy::arc_with_non_send_sync)]
 pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
     // Create assets
     let faucet_id = AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap();
@@ -118,6 +121,8 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
         .input_notes(vec![note.clone()])
         .tx_script(tx_script_target.clone())
         .build();
+    let source_manager = tx_context.source_manager();
+
     let block_ref = tx_context.tx_inputs().block_header().block_num();
 
     let notes = tx_context.tx_inputs().input_notes().clone();
@@ -129,7 +134,7 @@ pub fn benchmark_p2id() -> Result<TransactionMeasurements, String> {
 
     // execute transaction
     let executed_transaction = executor
-        .execute_transaction(target_account.id(), block_ref, notes, tx_args_target)
+        .execute_transaction(target_account.id(), block_ref, notes, tx_args_target, source_manager)
         .unwrap();
 
     Ok(executed_transaction.into())

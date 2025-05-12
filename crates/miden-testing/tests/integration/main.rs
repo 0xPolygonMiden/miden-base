@@ -55,6 +55,7 @@ pub fn prove_and_verify_transaction(
     executed_transaction: ExecutedTransaction,
 ) -> Result<(), TransactionVerifierError> {
     use alloc::sync::Arc;
+
     use assembly::DefaultSourceManager;
 
     let executed_transaction_id = executed_transaction.id();

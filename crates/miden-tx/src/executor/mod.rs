@@ -4,7 +4,7 @@ use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
     account::AccountId,
-    assembly::DefaultSourceManager,
+    assembly::SourceManager,
     block::{BlockHeader, BlockNumber},
     note::NoteId,
     transaction::{
@@ -93,15 +93,26 @@ impl TransactionExecutor {
     // --------------------------------------------------------------------------------------------
 
     /// Prepares and executes a transaction specified by the provided arguments and returns an
-    /// [ExecutedTransaction].
+    /// [`ExecutedTransaction`].
     ///
-    /// The method first fetches the data required to execute the transaction from the [DataStore]
-    /// and compile the transaction into an executable program. Then, it executes the transaction
-    /// program and creates an [ExecutedTransaction] object.
+    /// The method first fetches the data required to execute the transaction from the [`DataStore`]
+    /// and compile the transaction into an executable program. In particular, it fetches the
+    /// account identified by the account ID from the store as well as `block_ref`, the header of
+    /// the reference block of the transaction and the set of headers from the blocks in which the
+    /// provided `notes` were created. Then, it executes the transaction program and creates an
+    /// [`ExecutedTransaction`].
+    ///
+    /// The `source_manager` is used to map potential errors back to their source code. To get the
+    /// most value out of it, use the source manager from the
+    /// [`Assembler`](miden_objects::assembly::Assembler) that assembled the Miden Assembly code
+    /// that should be debugged, e.g. account components, note scripts or transaction scripts. If
+    /// no error-to-source mapping is desired, a default source manager can be passed, e.g.
+    /// [`DefaultSourceManager::default`](miden_objects::assembly::DefaultSourceManager::default).
     ///
     /// # Errors:
+    ///
     /// Returns an error if:
-    /// - If required data can not be fetched from the [DataStore].
+    /// - If required data can not be fetched from the [`DataStore`].
     /// - If the transaction arguments contain foreign account data not anchored in the reference
     ///   block.
     /// - If any input notes were created in block numbers higher than the reference block.
@@ -112,6 +123,7 @@ impl TransactionExecutor {
         block_ref: BlockNumber,
         notes: InputNotes<InputNote>,
         tx_args: TransactionArgs,
+        source_manager: Arc<dyn SourceManager>,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
         let mut ref_blocks = validate_input_notes(&notes, block_ref)?;
         ref_blocks.insert(block_ref);
@@ -146,8 +158,7 @@ impl TransactionExecutor {
             stack_inputs,
             &mut host,
             self.exec_options,
-            // TODO: How should we handle this?
-            Arc::new(DefaultSourceManager::default()),
+            source_manager,
         )
         .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
 
@@ -235,6 +246,7 @@ impl TransactionExecutor {
         block_ref: BlockNumber,
         notes: InputNotes<InputNote>,
         tx_args: TransactionArgs,
+        source_manager: Arc<dyn SourceManager>,
     ) -> Result<NoteAccountExecution, TransactionExecutorError> {
         let mut ref_blocks = validate_input_notes(&notes, block_ref)?;
         ref_blocks.insert(block_ref);
@@ -269,8 +281,7 @@ impl TransactionExecutor {
             stack_inputs,
             &mut host,
             self.exec_options,
-            // TODO: How should we handle this?
-            Arc::new(DefaultSourceManager::default()),
+            source_manager,
         )
         .map_err(TransactionExecutorError::TransactionProgramExecutionFailed);
 

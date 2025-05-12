@@ -1,7 +1,9 @@
 use std::sync::Arc;
+
 use miden_block_prover::LocalBlockProver;
 use miden_objects::{
-    assembly::DefaultSourceManager, batch::ProposedBatch, block::ProposedBlock, transaction::TransactionWitness, utils::Serializable, MIN_PROOF_SECURITY_LEVEL
+    MIN_PROOF_SECURITY_LEVEL, assembly::DefaultSourceManager, batch::ProposedBatch,
+    block::ProposedBlock, transaction::TransactionWitness, utils::Serializable,
 };
 use miden_tx::{LocalTransactionProver, TransactionProver};
 use miden_tx_batch_prover::LocalBatchProver;

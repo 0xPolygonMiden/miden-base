@@ -1,9 +1,8 @@
 // TRANSACTION CONTEXT BUILDER
 // ================================================================================================
 
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, vec::Vec};
 
-use miden_objects::assembly::SourceManager;
 use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string};
 use miden_objects::{
     FieldElement,
@@ -151,11 +150,6 @@ impl TransactionContextBuilder {
         );
 
         Self { account, ..Self::default() }
-    }
-
-    /// Returns the source manager used by the contained assembler.
-    pub fn source_manager(&self) -> Arc<dyn SourceManager> {
-        self.assembler.source_manager()
     }
 
     /// Override and set the account seed manually
@@ -636,6 +630,8 @@ impl TransactionContextBuilder {
     /// If no transaction inputs were provided manually, an ad-hoc MockChain is created in order
     /// to generate valid block data for the required notes.
     pub fn build(self) -> TransactionContext {
+        let source_manager = self.assembler.source_manager();
+
         let tx_inputs = match self.transaction_inputs {
             Some(tx_inputs) => tx_inputs,
             None => {
@@ -690,6 +686,7 @@ impl TransactionContextBuilder {
             mast_store,
             authenticator: self.authenticator,
             advice_inputs: self.advice_inputs,
+            source_manager,
         }
     }
 }
