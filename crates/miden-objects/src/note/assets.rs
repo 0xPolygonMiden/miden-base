@@ -2,7 +2,6 @@ use alloc::vec::Vec;
 
 use crate::{
     Digest, Felt, Hasher, MAX_ASSETS_PER_NOTE, WORD_SIZE, Word, ZERO,
-    account::AccountId,
     asset::{Asset, FungibleAsset, NonFungibleAsset},
     errors::NoteError,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -108,40 +107,19 @@ impl NoteAssets {
         padded_assets
     }
 
-    /// Returns all Fungible Assets as an Iterator.
+    /// Returns an iterator over all [`FungibleAsset`].
     pub fn iter_fungible(&self) -> impl Iterator<Item = FungibleAsset> {
-        self.assets.iter().filter_map(|asset| {
-            if asset.is_fungible() {
-                Some(asset.unwrap_fungible())
-            } else {
-                None
-            }
+        self.assets.iter().filter_map(|asset| match asset {
+            Asset::Fungible(fungible_asset) => Some(*fungible_asset),
+            Asset::NonFungible(_) => None,
         })
     }
 
-    /// Returns all NonFungible Assets as an Iterator.
+    /// Returns iterator over all [`NonFungibleAsset`].
     pub fn iter_non_fungible(&self) -> impl Iterator<Item = NonFungibleAsset> {
-        self.assets.iter().filter_map(|asset| {
-            if asset.is_non_fungible() {
-                Some(asset.unwrap_non_fungible())
-            } else {
-                None
-            }
-        })
-    }
-
-    /// Returns total amount of fungible assets for a specific `Faucet ID`.
-    pub fn amount(&self, faucet_id: AccountId) -> u64 {
-        self.iter().fold(0, |acc, asset| {
-            if let Asset::Fungible(fungible_asset) = asset {
-                if fungible_asset.faucet_id() == faucet_id {
-                    acc + fungible_asset.amount()
-                } else {
-                    acc
-                }
-            } else {
-                acc
-            }
+        self.assets.iter().filter_map(|asset| match asset {
+            Asset::Fungible(_) => None,
+            Asset::NonFungible(non_fungible_asset) => Some(*non_fungible_asset),
         })
     }
 
