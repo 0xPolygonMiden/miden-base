@@ -109,7 +109,7 @@ fn encode_symbol_to_felt(s: &str) -> Result<Felt, TokenSymbolError> {
     Ok(Felt::new(encoded_value))
 }
 
-/// Decodes the [`TokenSymbol`] into a token symbol string.
+/// Decodes a [Felt] representation of the token symbol into a string.
 ///
 /// The alphabet used in the decoding process consists of the Latin capital letters as defined in
 /// the ASCII table, having the length of 26 characters.
