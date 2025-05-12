@@ -1,7 +1,6 @@
-use alloc::vec::Vec;
 
 use vm_core::{
-    Felt, ZERO,
+    Felt,
     utils::{Deserializable, Serializable},
 };
 
@@ -63,43 +62,31 @@ impl PartialAccount {
     }
 
     /// Returns a reference to the partial storage representation of the account.
-    pub fn partial_storage(&self) -> &PartialStorage {
+    pub fn storage(&self) -> &PartialStorage {
         &self.partial_storage
     }
 
     /// Returns a reference to the partial vault representation of the account.
-    pub fn partial_vault(&self) -> &PartialVault {
+    pub fn vault(&self) -> &PartialVault {
         &self.partial_vault
-    }
-
-    /// Converts the account header into a vector of field elements.
-    ///
-    /// This is done by first converting the account header data into an array of Words as follows:
-    /// ```text
-    /// [
-    ///     [account_id_suffix, account_id_prefix, 0, account_nonce]
-    ///     [VAULT_ROOT]
-    ///     [STORAGE_COMMITMENT]
-    ///     [CODE_COMMITMENT]
-    /// ]
-    /// ```
-    /// And then concatenating the resulting elements into a single vector.
-    pub fn as_elements(&self) -> Vec<Felt> {
-        [
-            &[self.id.suffix(), self.id.prefix().as_felt(), ZERO, self.nonce],
-            self.partial_vault.root().as_elements(),
-            self.partial_storage.commitment().as_elements(),
-            self.account_code.commitment().as_elements(),
-        ]
-        .concat()
     }
 }
 
 impl From<Account> for PartialAccount {
-    fn from(value: Account) -> Self {
-        let (id, vault, storage, code, nonce) = value.into_parts();
+    fn from(account: Account) -> Self {
+        PartialAccount::from(&account)
+    }
+}
 
-        PartialAccount::new(id, nonce, code, storage.into(), vault.into())
+impl From<&Account> for PartialAccount {
+    fn from(account: &Account) -> Self {
+        PartialAccount::new(
+            account.id(),
+            account.nonce(),
+            account.code().clone(),
+            account.storage().into(),
+            account.vault().into(),
+        )
     }
 }
 
@@ -119,14 +106,14 @@ impl Deserializable for PartialAccount {
     ) -> Result<Self, vm_processor::DeserializationError> {
         let account_id = source.read()?;
         let nonce = source.read()?;
-        let code_header = source.read()?;
+        let account_code = source.read()?;
         let partial_storage = source.read()?;
         let partial_vault = source.read()?;
 
         Ok(PartialAccount {
             id: account_id,
             nonce,
-            account_code: code_header,
+            account_code,
             partial_storage,
             partial_vault,
         })

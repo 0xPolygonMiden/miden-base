@@ -101,7 +101,7 @@ impl AccountStorage {
     }
 
     /// Returns an [AccountStorageHeader] for this account storage.
-    pub fn get_header(&self) -> AccountStorageHeader {
+    pub fn to_header(&self) -> AccountStorageHeader {
         AccountStorageHeader::new(
             self.slots.iter().map(|slot| (slot.slot_type(), slot.value())).collect(),
         )

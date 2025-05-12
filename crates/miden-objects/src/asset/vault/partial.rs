@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 
-use miden_crypto::merkle::{InnerNodeInfo, SmtLeaf, SmtProof};
+use miden_crypto::merkle::{InnerNodeInfo, LeafIndex, SmtLeaf, SmtProof};
 use vm_core::utils::{Deserializable, Serializable};
-use vm_processor::Digest;
+use vm_processor::{Digest, SMT_DEPTH};
 
 use super::AssetVault;
 
@@ -15,7 +15,7 @@ use super::AssetVault;
 pub struct PartialVault {
     /// Root of the asset vault tree.
     root: Digest,
-    /// Merkle proofs for different assets.
+    /// Merkle proofs for assets in an account, typically a subset of all assets.
     vault_proofs: Vec<SmtProof>,
 }
 
@@ -44,15 +44,13 @@ impl PartialVault {
     /// Returns an iterator over all leaves in the Sparse Merkle Tree proofs.
     ///
     /// Each item returned is a tuple containing the leaf index and a reference to the leaf.
-    pub fn leaves(&self) -> impl Iterator<Item = (u64, &SmtLeaf)> {
-        self.vault_proofs
-            .iter()
-            .map(|proof| (proof.leaf().index().value(), proof.leaf()))
+    pub fn leaves(&self) -> impl Iterator<Item = (LeafIndex<SMT_DEPTH>, &SmtLeaf)> {
+        self.vault_proofs.iter().map(|proof| (proof.leaf().index(), proof.leaf()))
     }
 }
 
-impl From<AssetVault> for PartialVault {
-    fn from(value: AssetVault) -> Self {
+impl From<&AssetVault> for PartialVault {
+    fn from(value: &AssetVault) -> Self {
         let root = value.root();
         let vault_proofs: Vec<SmtProof> = value
             .asset_tree()

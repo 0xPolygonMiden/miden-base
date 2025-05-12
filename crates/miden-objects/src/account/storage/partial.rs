@@ -5,6 +5,7 @@ use vm_core::utils::{Deserializable, Serializable};
 use vm_processor::Digest;
 
 use super::{AccountStorage, AccountStorageHeader, StorageSlot};
+use crate::AccountError;
 
 /// A partial representation of an account storage, containing only a subset of the storage data.
 ///
@@ -45,15 +46,23 @@ impl PartialStorage {
         self.commitment
     }
 
+    /// Returns the top- item from the storage at the specified index.
+    ///
+    /// # Errors:
+    /// - If the index is out of bounds
+    pub fn get_item(&self, index: u8) -> Result<Digest, AccountError> {
+        self.header.slot(index as usize).map(|(_type, value)| value.into())
+    }
+    
     // TODO: Add from account storage with (slot/[key])?
 }
 
-impl From<AccountStorage> for PartialStorage {
+impl From<&AccountStorage> for PartialStorage {
     /// Converts a full account storage into a partial storage representation.
     ///
     /// This creates a partial storage that contains proofs for all key-value pairs
     /// in all map slots of the account storage.
-    fn from(account_storage: AccountStorage) -> Self {
+    fn from(account_storage: &AccountStorage) -> Self {
         let mut storage_map_proofs = Vec::with_capacity(account_storage.slots().len());
         for slot in account_storage.slots() {
             if let StorageSlot::Map(map) = slot {
@@ -62,7 +71,7 @@ impl From<AccountStorage> for PartialStorage {
             }
         }
 
-        let header: AccountStorageHeader = account_storage.into();
+        let header: AccountStorageHeader = account_storage.to_header();
         let commitment = header.compute_commitment();
         PartialStorage { header, storage_map_proofs, commitment }
     }

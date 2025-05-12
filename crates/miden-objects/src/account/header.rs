@@ -121,8 +121,8 @@ impl From<&PartialAccount> for AccountHeader {
         Self {
             id: account.id(),
             nonce: account.nonce(),
-            vault_root: account.partial_vault().root(),
-            storage_commitment: account.partial_storage().commitment(),
+            vault_root: account.vault().root(),
+            storage_commitment: account.storage().commitment(),
             code_commitment: account.code().commitment(),
         }
     }

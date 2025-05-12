@@ -48,7 +48,7 @@ impl TransactionArgs {
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
         advice_map: AdviceMap,
-        account_inputs: Vec<AccountInputs>,
+        foreign_account_inputs: Vec<AccountInputs>,
     ) -> Self {
         let mut advice_inputs = AdviceInputs::default().with_map(advice_map);
         // add transaction script inputs to the advice inputs' map
@@ -61,7 +61,7 @@ impl TransactionArgs {
             tx_script,
             note_args: note_args.unwrap_or_default(),
             advice_inputs,
-            foreign_account_inputs: account_inputs,
+            foreign_account_inputs,
         }
     }
 
@@ -97,7 +97,7 @@ impl TransactionArgs {
         &self.advice_inputs
     }
 
-    /// Returns a reference to the account inputs in the transaction args.
+    /// Returns a reference to the foreign account inputs in the transaction args.
     pub fn foreign_account_inputs(&self) -> &[AccountInputs] {
         &self.foreign_account_inputs
     }
@@ -182,13 +182,13 @@ impl Deserializable for TransactionArgs {
         let tx_script = Option::<TransactionScript>::read_from(source)?;
         let note_args = BTreeMap::<NoteId, Word>::read_from(source)?;
         let advice_inputs = AdviceInputs::read_from(source)?;
-        let account_inputs = Vec::<AccountInputs>::read_from(source)?;
+        let foreign_account_inputs = Vec::<AccountInputs>::read_from(source)?;
 
         Ok(Self {
             tx_script,
             note_args,
             advice_inputs,
-            foreign_account_inputs: account_inputs,
+            foreign_account_inputs,
         })
     }
 }

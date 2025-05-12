@@ -75,7 +75,7 @@ pub struct TransactionContextBuilder {
     advice_inputs: AdviceInputs,
     authenticator: Option<MockAuthenticator>,
     expected_output_notes: Vec<Note>,
-    foreign_account_inputs: Vec<ForeignAccountInputs>,
+    foreign_account_inputs: Vec<AccountInputs>,
     input_notes: Vec<Note>,
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,

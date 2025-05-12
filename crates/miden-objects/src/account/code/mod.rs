@@ -8,9 +8,6 @@ use super::{
 };
 use crate::account::{AccountComponent, AccountType};
 
-mod header;
-pub use header::AccountCodeHeader;
-
 pub mod procedure;
 use procedure::{AccountProcedureInfo, PrintableProcedure};
 

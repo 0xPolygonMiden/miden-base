@@ -130,15 +130,12 @@ impl TransactionExecutor {
 
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
-        let mut code_commitments = tx_args.foreign_account_code_commitments();
-        code_commitments.insert(tx_inputs.account().code().commitment());
-
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
             advice_recorder,
             self.data_store.clone(),
             self.authenticator.clone(),
-            code_commitments,
+            tx_args.foreign_account_code_commitments(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
@@ -195,14 +192,12 @@ impl TransactionExecutor {
                 .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
-        let account_code_commitments = tx_args.foreign_account_code_commitments();
-
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
             advice_recorder,
             self.data_store.clone(),
             self.authenticator.clone(),
-            account_code_commitments,
+            tx_args.foreign_account_code_commitments(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 

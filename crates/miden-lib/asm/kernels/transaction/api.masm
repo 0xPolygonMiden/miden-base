@@ -952,7 +952,7 @@ end
 #! - STORAGE_ROOT is the commitment of the foreign account's storage.
 #! - STORAGE_SLOT_DATA is the data contained in the storage slot which is constructed as follows:
 #!   [SLOT_VALUE, slot_type, 0, 0, 0].
-#! - CODE_ROOT is the commitment of the foreign account's code.
+#! - CODE_COMMITMENT is the commitment of the foreign account's code.
 #! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as
 #!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0].
 #!

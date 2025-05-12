@@ -542,7 +542,7 @@ pub fn validate_account_seed(
 ///
 /// `AccountInputs` combines a partial account representation with the merkle proof that verifies
 /// the account's inclusion in the account tree. The partial account should contain verifiable
-/// access to the segements of the state of the account of which the transaction will make use
+/// access to the parts of the state of the account of which the transaction will make use.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AccountInputs {
     /// Partial representation of the account's state.
@@ -563,7 +563,7 @@ impl AccountInputs {
     }
 
     /// Returns a reference to the partial account representation.
-    pub fn partial_account(&self) -> &PartialAccount {
+    pub fn account(&self) -> &PartialAccount {
         &self.partial_account
     }
 
@@ -573,13 +573,13 @@ impl AccountInputs {
     }
 
     /// Returns a reference to the partial representation of the account storage.
-    pub fn partial_storage(&self) -> &PartialStorage {
-        self.partial_account.partial_storage()
+    pub fn storage(&self) -> &PartialStorage {
+        self.partial_account.storage()
     }
 
     /// Returns a reference to the partial vault representation of the account.
-    pub fn partial_vault(&self) -> &PartialVault {
-        self.partial_account.partial_vault()
+    pub fn vault(&self) -> &PartialVault {
+        self.partial_account.vault()
     }
 
     /// Returns a reference to the account's witness.

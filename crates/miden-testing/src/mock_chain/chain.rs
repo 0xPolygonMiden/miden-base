@@ -14,8 +14,7 @@ use miden_objects::{
     MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH, NoteError, ProposedBatchError,
     ProposedBlockError,
     account::{
-        Account, AccountBuilder, AccountHeader, AccountId, AccountIdAnchor, AccountStorageMode,PartialAccount
-        AccountType, StorageSlot, delta::AccountUpdateDetails,
+        Account, AccountBuilder, AccountId, AccountIdAnchor, AccountStorageMode, AccountType, StorageSlot, delta::AccountUpdateDetails,
     },
     asset::{Asset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},
@@ -27,9 +26,8 @@ use miden_objects::{
     note::{Note, NoteHeader, NoteId, NoteInclusionProof, NoteType, Nullifier},
     testing::account_code::DEFAULT_AUTH_SCRIPT,
     transaction::{
-        ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes,
-        OrderedTransactionHeaders, OutputNote, PartialBlockchain, ProvenTransaction,
-        ToInputNoteCommitments, TransactionHeader, TransactionId, TransactionInputs,
+        AccountInputs, ExecutedTransaction, InputNote, InputNotes, OrderedTransactionHeaders,
+        OutputNote, PartialBlockchain, ProvenTransaction, TransactionHeader, TransactionInputs,
         TransactionScript,
     },
 };
@@ -677,7 +675,7 @@ impl MockChain {
     }
 
     /// Gets foreign account inputs to execute FPI transactions.
-    pub fn get_foreign_account_inputs(&self, account_id: AccountId) -> ForeignAccountInputs {
+    pub fn get_foreign_account_inputs(&self, account_id: AccountId) -> AccountInputs {
         let account = self.committed_account(account_id);
 
         let account_witness = self.account_tree().open(account_id);
@@ -692,7 +690,7 @@ impl MockChain {
             }
         }
 
-        AccountInputs::new(PartialAccount::from(account.clone()), account_witness)
+        AccountInputs::new(account.into(), account_witness)
     }
 
     /// Gets the inputs for a block for the provided batches.
