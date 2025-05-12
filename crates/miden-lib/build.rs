@@ -485,14 +485,11 @@ fn is_masm_file(path: &Path) -> io::Result<bool> {
 /// following content:
 ///
 /// ```rust
-/// pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: Felt = Felt::new(16216989818707091362);
+/// pub const ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY: MasmError =
+///     MasmError::from_static_str("new account must have an empty vault");
 /// ```
 ///
-/// and add an entry in the constant -> error mapping array:
-///
-/// ```rust
-/// (ERR_PROLOGUE_NEW_ACCOUNT_VAULT_MUST_BE_EMPTY, "new account must have an empty vault"),
-/// ```
+/// and add the constant to the error constants array.
 ///
 /// The function ensures that a constant is not defined twice, except if their error message is the
 /// same. This can happen across multiple files.

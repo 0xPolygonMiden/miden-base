@@ -1948,7 +1948,6 @@ name = "miden-lib"
 version = "0.9.0"
 dependencies = [
  "miden-assembly",
- "miden-core",
  "miden-objects",
  "miden-processor",
  "miden-stdlib",

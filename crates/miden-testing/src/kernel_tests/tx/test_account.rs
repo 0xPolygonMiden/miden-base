@@ -1,5 +1,3 @@
-use std::borrow::ToOwned;
-
 use anyhow::Context;
 use assembly::diagnostics::{WrapErr, miette};
 use miden_lib::{
@@ -8,7 +6,7 @@ use miden_lib::{
         ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO,
         ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT, ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE,
         ERR_ACCOUNT_ID_UNKNOWN_VERSION, ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS,
-        ERR_FAUCET_INVALID_STORAGE_OFFSET, TX_KERNEL_ERRORS,
+        ERR_FAUCET_INVALID_STORAGE_OFFSET,
     },
     transaction::TransactionKernel,
     utils::word_to_masm_push_string,
@@ -165,10 +163,6 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
         ),
     ];
 
-    let error_map = alloc::collections::BTreeMap::from(
-        TX_KERNEL_ERRORS.map(|error| (error.code().as_int(), error.message().to_owned())),
-    );
-
     for (account_id, expected_error) in test_cases.iter() {
         // Manually split the account ID into prefix and suffix since we can't use AccountId methods
         // on invalid ids.
@@ -187,22 +181,16 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
             .stack_inputs(StackInputs::new(vec![suffix, prefix]).unwrap())
             .run(code);
 
-        // TODO: Refactor to not use the error map?
         match (result, expected_error) {
             (Ok(_), None) => (),
             (Ok(_), Some(err)) => {
-                anyhow::bail!(
-                    "expected error {} but validation was successful",
-                    error_map[&err.code().as_int()]
-                )
+                anyhow::bail!("expected error {err} but validation was successful")
             },
-            (Err(ExecutionError::FailedAssertion { err_code, .. }), Some(err)) => {
+            (Err(ExecutionError::FailedAssertion { err_code, err_msg, .. }), Some(err)) => {
                 if err_code != err.code() {
                     anyhow::bail!(
-                        "actual error {err_code} ({}) did not match expected error {} ({})",
-                        error_map[&err_code.as_int()],
-                        err.code(),
-                        error_map[&err.code().as_int()]
+                        "actual error \"{}\" (code: {err_code}) did not match expected error {err}",
+                        err_msg.as_ref().map(AsRef::as_ref).unwrap_or("<no message>")
                     );
                 }
             },

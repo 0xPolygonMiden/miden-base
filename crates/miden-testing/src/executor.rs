@@ -39,7 +39,7 @@ impl<H: Host> CodeExecutor<H> {
 
     /// Compiles and runs the desired code in the host and returns the [Process] state
     pub fn run(self, code: &str) -> Result<Process, ExecutionError> {
-        let assembler = TransactionKernel::testing_assembler().with_debug_mode(true);
+        let assembler = TransactionKernel::testing_assembler();
         let source_manager = assembler.source_manager();
         let program = assembler.assemble_program(code).unwrap();
         self.execute_program(program, source_manager)
