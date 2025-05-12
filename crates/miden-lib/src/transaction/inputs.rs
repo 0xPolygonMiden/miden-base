@@ -38,11 +38,19 @@ pub(super) fn extend_advice_inputs(
 
     // inject account data
     let partial_account = PartialAccount::from(tx_inputs.account());
-    add_account_to_advice_inputs(&partial_account, tx_inputs.account_seed(), advice_inputs)?;
+    add_account_to_advice_inputs(
+        &partial_account,
+        AccountInputsType::Native(tx_inputs.account_seed()),
+        advice_inputs,
+    )?;
 
     // inject foreign account data
     for account_inputs in tx_args.foreign_account_inputs() {
-        add_account_to_advice_inputs(account_inputs.account(), None, advice_inputs)?;
+        add_account_to_advice_inputs(
+            account_inputs.account(),
+            AccountInputsType::Foreign,
+            advice_inputs,
+        )?;
         add_account_witness_to_advice_inputs(account_inputs.witness(), advice_inputs)?;
     }
 
@@ -156,6 +164,20 @@ fn add_partial_blockchain_to_advice_inputs(mmr: &PartialBlockchain, inputs: &mut
 // ACCOUNT DATA INJECTOR
 // ------------------------------------------------------------------------------------------------
 
+/// Describes the type of account inputs that should be injected to the advice map:
+///
+/// - For a native account that is new, a seed must be provided and an account_id |-> [SEED] is
+///   injected. For an existing native account, no extra inputs need to be provided.
+/// - For foreign accounts, account_id |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT,
+///   CODE_COMMITMENT] is injected
+pub enum AccountInputsType {
+    /// Inputs for the native (executor) account that is new. The inner value is the seed of the
+    /// new account.
+    Native(Option<Word>),
+    /// Inputs for a foreign account
+    Foreign,
+}
+
 /// Inserts account data into the provided advice inputs.
 ///
 /// Inserts the following items into the Merkle store:
@@ -166,13 +188,13 @@ fn add_partial_blockchain_to_advice_inputs(mmr: &PartialBlockchain, inputs: &mut
 /// - The account storage commitment |-> storage slots and types vector.
 /// - The account code commitment |-> procedures vector.
 /// - The leaf hash |-> (key, value), for all leaves of the partial vault.
-/// - account_id |-> account_seed, when account seed is provided.
-/// - account_id |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT, CODE_COMMITMENT] when the seed
-///   is not provided.
 /// - If present, the Merkle leaves associated with the account storage maps.
+/// - account_id |-> account_seed, when `account_inputs_type` is [`AccountInputsType::NativeNew`].
+/// - account_id |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT, CODE_COMMITMENT] when
+///   `account_inputs_type` is [`AccountInputsType::Foreign`].
 pub fn add_account_to_advice_inputs(
     account: &PartialAccount,
-    account_seed: Option<Word>,
+    account_inputs_type: AccountInputsType,
     advice_inputs: &mut AdviceInputs,
 ) -> Result<(), TransactionInputError> {
     let storage_header = account.storage().header();
@@ -229,20 +251,24 @@ pub fn add_account_to_advice_inputs(
         Digest::from([account_id.suffix(), account_id.prefix().as_felt(), ZERO, ZERO]);
 
     // if a seed was provided, extend the map; otherwise inject the state
-    if let Some(seed) = account_seed {
-        advice_inputs.extend_map([(
+    match account_inputs_type {
+        AccountInputsType::Native(Some(seed)) => advice_inputs.extend_map([(
             // ACCOUNT_ID -> ACCOUNT_SEED
             account_id_key,
             seed.to_vec(),
-        )]);
-    } else {
+        )]),
+        AccountInputsType::Foreign =>
         // Note: keep in sync with the start_foreign_context kernel procedure
-        advice_inputs.extend_map([(
-            // ACCOUNT_ID -> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT, CODE_COMMITMENT]
-            account_id_key,
-            account_header.as_elements(),
-        )]);
+        {
+            advice_inputs.extend_map([(
+                // ACCOUNT_ID -> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT, CODE_COMMITMENT]
+                account_id_key,
+                account_header.as_elements(),
+            )])
+        },
+        AccountInputsType::Native(None) => {},
     }
+
     Ok(())
 }
 
@@ -313,6 +339,9 @@ fn add_input_notes_to_advice_inputs(
         // NOTE: keep in sync with the `prologue::process_note_args_and_metadata` kernel procedure
         note_data.extend(Word::from(*note_arg));
         note_data.extend(Word::from(note.metadata()));
+
+        // NOTE: keep in sync with the `prologue::process_note_inputs_length` kernel procedure
+        note_data.push(recipient.inputs().num_values().into());
 
         // NOTE: keep in sync with the `prologue::process_note_assets` kernel procedure
         note_data.push((assets.num_assets() as u32).into());
