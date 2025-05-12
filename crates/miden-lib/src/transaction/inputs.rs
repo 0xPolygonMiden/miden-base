@@ -170,7 +170,7 @@ fn add_account_to_advice_inputs(
     let storage = account.storage();
 
     for slot in storage.slots() {
-        // if there are storage maps, we populate the merkle store and advice map
+        // if there are storage maps, populate the merkle store and advice map with them
         if let StorageSlot::Map(map) = slot {
             // extend the merkle store and map with the storage maps
             inputs.extend_merkle_store(map.inner_nodes());
@@ -179,7 +179,7 @@ fn add_account_to_advice_inputs(
         }
     }
 
-    // extend advice map with storage commitment |-> length, storage slots and types vector
+    // extend advice map with storage commitment |-> storage slots and types vector
     inputs.extend_map([(storage.commitment(), storage.as_elements())]);
 
     // --- account vault ------------------------------------------------------
