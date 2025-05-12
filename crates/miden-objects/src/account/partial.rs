@@ -1,4 +1,3 @@
-
 use vm_core::{
     Felt,
     utils::{Deserializable, Serializable},

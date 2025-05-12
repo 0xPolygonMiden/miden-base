@@ -14,7 +14,8 @@ use miden_objects::{
     MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH, NoteError, ProposedBatchError,
     ProposedBlockError,
     account::{
-        Account, AccountBuilder, AccountId, AccountIdAnchor, AccountStorageMode, AccountType, StorageSlot, delta::AccountUpdateDetails,
+        Account, AccountBuilder, AccountId, AccountIdAnchor, AccountStorageMode, AccountType,
+        StorageSlot, delta::AccountUpdateDetails,
     },
     asset::{Asset, TokenSymbol},
     batch::{ProposedBatch, ProvenBatch},

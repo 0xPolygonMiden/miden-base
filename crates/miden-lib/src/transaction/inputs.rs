@@ -250,8 +250,6 @@ fn add_account_witness_to_advice_inputs(
     witness: &AccountWitness,
     advice_inputs: &mut AdviceInputs,
 ) -> Result<(), TransactionInputError> {
-    let account_id = witness.id();
-
     let account_leaf = witness.leaf();
     let account_leaf_hash = account_leaf.hash();
 

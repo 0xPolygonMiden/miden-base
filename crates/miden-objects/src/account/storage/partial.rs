@@ -53,7 +53,7 @@ impl PartialStorage {
     pub fn get_item(&self, index: u8) -> Result<Digest, AccountError> {
         self.header.slot(index as usize).map(|(_type, value)| value.into())
     }
-    
+
     // TODO: Add from account storage with (slot/[key])?
 }
 
