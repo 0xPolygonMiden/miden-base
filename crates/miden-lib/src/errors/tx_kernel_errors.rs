@@ -94,8 +94,8 @@ pub const ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT: u32 = 0x20108;
 pub const ERR_NOTE_TAG_MUST_BE_U32: u32 = 0x20109;
 /// Network execution mode with a specific target can only target network accounts.
 pub const ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT: u32 = 0x2010a;
-/// Note input data in advice provider contains fewer elements than specified by its inputs length.
-pub const ERR_NOTE_TOO_FEW_ELEMENTS_FOR_NOTE_INPUTS: u32 = 0x2010b;
+/// The specified number of note inputs does not match the actual number.
+pub const ERR_NOTE_INVALID_NUMBER_OF_NOTE_INPUTS: u32 = 0x2010b;
 
 /// Anchor block commitment must not be empty.
 pub const ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY: u32 = 0x20140;
@@ -255,7 +255,7 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 91] = [
     (ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT, "Number of assets in a note exceed 255"),
     (ERR_NOTE_TAG_MUST_BE_U32, "The note's tag must fit into a u32 so the 32 most significant bits must be zero."),
     (ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT, "Network execution mode with a specific target can only target network accounts."),
-    (ERR_NOTE_TOO_FEW_ELEMENTS_FOR_NOTE_INPUTS, "Note input data in advice provider contains fewer elements than specified by its inputs length."),
+    (ERR_NOTE_INVALID_NUMBER_OF_NOTE_INPUTS, "The specified number of note inputs does not match the actual number."),
 
     (ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY, "Anchor block commitment must not be empty."),
     (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment."),
