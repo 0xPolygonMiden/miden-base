@@ -21,6 +21,7 @@ testing = ["miden-objects/testing", "miden-lib/testing", "vm-processor/testing"]
 
 [dependencies]
 async-trait = "0.1"
+assembly = { workspace = true }
 miden-lib = { workspace = true }
 miden-objects = { workspace = true }
 miden-prover = { workspace = true }
@@ -32,7 +33,6 @@ winter-maybe-async = { version = "0.12" }
 
 [dev-dependencies]
 anyhow = { version = "1.0", default-features = false, features = ["std", "backtrace"]}
-assembly = { workspace = true }
 assert_matches = { workspace = true }
 miden-tx = { path = ".", features = ["testing"] }
 

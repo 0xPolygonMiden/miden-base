@@ -7,7 +7,7 @@ use miden_lib::{transaction::TransactionKernel, utils::word_to_masm_push_string}
 use miden_objects::{
     FieldElement,
     account::{Account, AccountId},
-    assembly::Assembler,
+    assembly::{Assembler, SourceManager},
     asset::{Asset, FungibleAsset, NonFungibleAsset},
     note::{Note, NoteExecutionHint, NoteId, NoteType},
     testing::{
@@ -110,10 +110,11 @@ impl TransactionContextBuilder {
             TransactionKernel::testing_assembler(),
         );
 
-        let assembler = TransactionKernel::testing_assembler_with_mock_account();
+        let assembler =
+            TransactionKernel::testing_assembler_with_mock_account().with_debug_mode(true);
 
         Self {
-            assembler: assembler.clone(),
+            assembler,
             account,
             account_seed: None,
             authenticator: None,
@@ -340,7 +341,9 @@ impl TransactionContextBuilder {
 
                 call.wallet::create_note
                 # => [note_idx_1, pad(15)]
-                
+
+                push.4.3.2.1.25 mem_storew
+
                 push.{asset1}
                 call.account::add_asset_to_note
                 # => [ASSET_1, note_idx_1, pad(15)]

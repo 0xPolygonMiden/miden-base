@@ -9,6 +9,7 @@ use ::assembly::{
     LibraryPath,
     ast::{Module, ModuleKind},
 };
+use anyhow::Context;
 use assert_matches::assert_matches;
 use miden_lib::{
     note::{create_p2id_note, create_p2idr_note},
@@ -761,7 +762,7 @@ fn executed_transaction_output_notes() {
 
 #[allow(clippy::arc_with_non_send_sync)]
 #[test]
-fn prove_witness_and_verify() {
+fn prove_witness_and_verify() -> anyhow::Result<()> {
     let tx_context = TransactionContextBuilder::with_standard_account(ONE)
         .with_mock_notes_preserved()
         .build();
@@ -772,10 +773,11 @@ fn prove_witness_and_verify() {
     let block_ref = tx_context.tx_inputs().block_header().block_num();
     let notes = tx_context.tx_inputs().input_notes().clone();
     let tx_args = tx_context.tx_args().clone();
-    let executor = TransactionExecutor::new(Arc::new(tx_context), None);
+    let executor = TransactionExecutor::new(Arc::new(tx_context), None).with_debug_mode();
+
     let executed_transaction = executor
         .execute_transaction(account_id, block_ref, notes, tx_args, Arc::clone(&source_manager))
-        .unwrap();
+        .context("failed to execute transaction")?;
     let executed_transaction_id = executed_transaction.id();
 
     let proof_options = ProvingOptions::default();
@@ -788,6 +790,8 @@ fn prove_witness_and_verify() {
     let proven_transaction = ProvenTransaction::read_from_bytes(&serialized_transaction).unwrap();
     let verifier = TransactionVerifier::new(MIN_PROOF_SECURITY_LEVEL);
     assert!(verifier.verify(&proven_transaction).is_ok());
+
+    Ok(())
 }
 
 // TEST TRANSACTION SCRIPT
