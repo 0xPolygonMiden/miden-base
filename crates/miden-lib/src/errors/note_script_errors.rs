@@ -26,15 +26,3 @@ pub const ERR_P2ID_WRONG_NUMBER_OF_INPUTS: MasmError = MasmError::from_static_st
 pub const ERR_SWAP_WRONG_NUMBER_OF_ASSETS: MasmError = MasmError::from_static_str("SWAP script requires exactly 1 note asset");
 /// Error Message: "SWAP script expects exactly 10 note inputs"
 pub const ERR_SWAP_WRONG_NUMBER_OF_INPUTS: MasmError = MasmError::from_static_str("SWAP script expects exactly 10 note inputs");
-
-pub const NOTE_SCRIPT_ERRORS: [MasmError; 7] = [
-    ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER,
-    ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED,
-    ERR_P2IDR_WRONG_NUMBER_OF_INPUTS,
-
-    ERR_P2ID_TARGET_ACCT_MISMATCH,
-    ERR_P2ID_WRONG_NUMBER_OF_INPUTS,
-
-    ERR_SWAP_WRONG_NUMBER_OF_ASSETS,
-    ERR_SWAP_WRONG_NUMBER_OF_INPUTS,
-];

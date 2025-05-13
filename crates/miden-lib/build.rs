@@ -648,23 +648,6 @@ fn generate_error_file_content(category: ErrorCategory, errors: Vec<NamedError>)
         )
         .into_diagnostic()?;
     }
-    writeln!(output).into_diagnostic()?;
-
-    writeln!(output, "pub const {}: [MasmError; {}] = [", category.array_name(), errors.len())
-        .into_diagnostic()?;
-
-    let mut last_error = None;
-    for named_error in errors.iter() {
-        let NamedError { name, .. } = named_error;
-
-        // Group errors into blocks separate by newlines.
-        if is_new_error_category(&mut last_error, name) {
-            writeln!(output).into_diagnostic()?;
-        }
-        writeln!(output, r#"    ERR_{name},"#).into_diagnostic()?;
-    }
-
-    writeln!(output, "];").into_diagnostic()?;
 
     Ok(output)
 }
