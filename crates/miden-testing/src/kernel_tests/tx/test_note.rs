@@ -6,9 +6,11 @@ use miden_crypto::{
     rand::{FeltRng, RpoRandomCoin},
 };
 use miden_lib::{
-    account::{auth::RpoFalcon512, wallets::BasicWallet}, errors::{
-        tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT, MasmError
-    }, transaction::{memory::CURRENT_INPUT_NOTE_PTR, TransactionKernel}
+    account::{auth::RpoFalcon512, wallets::BasicWallet},
+    errors::{
+        MasmError, tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
+    },
+    transaction::{TransactionKernel, memory::CURRENT_INPUT_NOTE_PTR},
 };
 use miden_objects::{
     Digest, WORD_SIZE,
