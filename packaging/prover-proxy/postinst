@@ -21,6 +21,11 @@ then
 else
     mkdir -p /etc/opt/miden-prover-proxy
     sudo chown -R miden-prover-proxy /etc/opt/miden-prover-proxy
+    cat << EOF | sudo tee /etc/opt/miden-prover-proxy/service.conf
+    PORT=50051
+    PROVER_HOST=127.0.0.1
+    PROVER_PORT=50052
+    EOF
 fi
 
 sudo systemctl daemon-reload
