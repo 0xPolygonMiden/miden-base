@@ -133,6 +133,8 @@ pub const ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED: MasmError = MasmError::from_sta
 pub const ERR_NOTE_INVALID_INDEX: MasmError = MasmError::from_static_str("failed to find note at the given index; index must be within [0, num_of_notes]");
 /// Error Message: "invalid note type for the given note tag prefix"
 pub const ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX: MasmError = MasmError::from_static_str("invalid note type for the given note tag prefix");
+/// Error Message: "the specified number of note inputs does not match the actual number"
+pub const ERR_NOTE_INVALID_NUMBER_OF_NOTE_INPUTS: MasmError = MasmError::from_static_str("the specified number of note inputs does not match the actual number");
 /// Error Message: "invalid note type"
 pub const ERR_NOTE_INVALID_TYPE: MasmError = MasmError::from_static_str("invalid note type");
 /// Error Message: "network execution mode with a specific target can only target network accounts"

@@ -48,13 +48,13 @@ pub const KERNEL0_PROCEDURES: [Digest; 36] = [
     // faucet_is_non_fungible_asset_issued
     digest!("0xdaa9714c2986a16c5e27a170b230e0319ca57170e09f8c2501b3ff33d4d84b28"),
     // note_get_assets_info
-    digest!("0x34e4f1ea83eb4342ab8f5acec89962b2ab4b56d9c631e807d8e4dc8efd270bf2"),
+    digest!("0x8a1a66c95fd9dd85e47e30d9ba64be7803dcb7d03f612235722cc484ea865b3f"),
     // note_add_asset
     digest!("0xcb57bb83e438067d8ba8a6757e8b2666dd1f765bc53d3b6c873fa6053daaf143"),
     // note_get_serial_number
     digest!("0x59b3ea650232049bb333867841012c3694bd557fa199cd65655c0006edccc3ab"),
-    // note_get_inputs_commitment
-    digest!("0x9d4af62050a2024dbd9e1967f2ba9b81f7801e8eb704494498904d3affd74a55"),
+    // note_get_inputs_commitment_and_len
+    digest!("0x8597b07c458fe3b3cdab1a2a01ca05476501442f3c559c2de7080403bb4398fd"),
     // note_get_sender
     digest!("0x01172024b89517e5da80121cedfa6c19dd2ace0fe4d09a8cde6605103fe62952"),
     // note_get_script_root
