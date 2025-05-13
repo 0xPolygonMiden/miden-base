@@ -6,21 +6,11 @@
 sudo adduser --disabled-password --disabled-login --shell /usr/sbin/nologin --quiet --system --no-create-home --home /nonexistent miden-prover-proxy
 
 # Working folder.
-if [ -d "/opt/miden-prover-proxy" ]
-then
-    echo "Directory /opt/miden-prover-proxy exists."
-else
-    mkdir -p /opt/miden-prover-proxy
-    sudo chown -R miden-prover-proxy /opt/miden-prover-proxy
-fi
+work="/opt/miden-prover-proxy"
+sudo chown -R miden-prover-proxy "$work"
 
 # Configuration folder
-if [ -d "/etc/opt/miden-prover-proxy" ]
-then
-    echo "Directory /etc/opt/miden-prover-proxy exists."
-else
-    mkdir -p /etc/opt/miden-prover-proxy
-    sudo chown -R miden-prover-proxy /etc/opt/miden-prover-proxy
-fi
+conf="/lib/systemd/system/miden-prover-proxy.service.d"
+sudo chown -R miden-prover-proxy "$conf"
 
 sudo systemctl daemon-reload

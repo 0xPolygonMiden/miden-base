@@ -7,7 +7,8 @@ WantedBy=multi-user.target
 
 [Service]
 Type=exec
-ExecStart=/usr/bin/miden-proving-service start-proxy --port 50051 10.0.1.254:50052
+EnvironmentFile=/lib/systemd/system/miden-prover-proxy.service.d/debian.conf
+ExecStart=/usr/bin/miden-proving-service start-proxy
 WorkingDirectory=/opt/miden-prover-proxy
 User=miden-prover-proxy
 RestartSec=5

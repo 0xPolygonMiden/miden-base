@@ -6,21 +6,11 @@
 sudo adduser --disabled-password --disabled-login --shell /usr/sbin/nologin --quiet --system --no-create-home --home /nonexistent miden-prover
 
 # Working folder.
-if [ -d "/opt/miden-prover" ]
-then
-    echo "Directory /opt/miden-prover exists."
-else
-    mkdir -p /opt/miden-prover
-    sudo chown -R miden-prover /opt/miden-prover
-fi
+work="/opt/miden-prover"
+sudo chown -R miden-prover "$work"
 
 # Configuration folder
-if [ -d "/etc/opt/miden-prover" ]
-then
-    echo "Directory /etc/opt/miden-prover exists."
-else
-    mkdir -p /etc/opt/miden-prover
-    sudo chown -R miden-prover /etc/opt/miden-prover
-fi
+conf="/lib/systemd/system/miden-prover.service.d/debian.conf"
+sudo chown -R miden-prover "$conf"
 
 sudo systemctl daemon-reload
