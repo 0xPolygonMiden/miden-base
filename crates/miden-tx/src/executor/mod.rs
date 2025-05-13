@@ -171,6 +171,13 @@ impl TransactionExecutor {
     /// Executes an arbitrary script against the given account and returns the stack state at the
     /// end of execution.
     ///
+    /// The `source_manager` is used to map potential errors back to their source code. To get the
+    /// most value out of it, use the source manager from the
+    /// [`Assembler`](miden_objects::assembly::Assembler) that assembled the Miden Assembly code
+    /// that should be debugged, e.g. account components, note scripts or transaction scripts. If
+    /// no error-to-source mapping is desired, a default source manager can be passed, e.g.
+    /// [`DefaultSourceManager::default`](miden_objects::assembly::DefaultSourceManager::default).
+    ///
     /// # Errors:
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
@@ -184,6 +191,7 @@ impl TransactionExecutor {
         tx_script: TransactionScript,
         advice_inputs: AdviceInputs,
         foreign_account_inputs: Vec<ForeignAccountInputs>,
+        source_manager: Arc<dyn SourceManager>,
     ) -> Result<[Felt; 16], TransactionExecutorError> {
         let ref_blocks = [block_ref].into_iter().collect();
         let (account, seed, ref_block, mmr) =
@@ -219,7 +227,8 @@ impl TransactionExecutor {
             TransactionKernel::tx_script_main().kernel().clone(),
             stack_inputs,
             self.exec_options,
-        );
+        )
+        .with_source_manager(source_manager);
         let stack_outputs = process
             .execute(&TransactionKernel::tx_script_main(), &mut host)
             .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
@@ -233,6 +242,13 @@ impl TransactionExecutor {
     /// Executes the transaction with specified notes, returning the [NoteAccountExecution::Success]
     /// if all notes has been consumed successfully and [NoteAccountExecution::Failure] if some note
     /// returned an error.
+    ///
+    /// The `source_manager` is used to map potential errors back to their source code. To get the
+    /// most value out of it, use the source manager from the
+    /// [`Assembler`](miden_objects::assembly::Assembler) that assembled the Miden Assembly code
+    /// that should be debugged, e.g. account components, note scripts or transaction scripts. If
+    /// no error-to-source mapping is desired, a default source manager can be passed, e.g.
+    /// [`DefaultSourceManager::default`](miden_objects::assembly::DefaultSourceManager::default).
     ///
     /// # Errors:
     /// Returns an error if:
