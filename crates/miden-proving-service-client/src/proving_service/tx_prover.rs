@@ -5,7 +5,6 @@ use alloc::{
 };
 
 use miden_objects::{
-    assembly::SourceManager,
     transaction::{ProvenTransaction, TransactionWitness},
     utils::{Deserializable, DeserializationError, Serializable},
 };
@@ -84,7 +83,6 @@ impl TransactionProver for RemoteTransactionProver {
     async fn prove(
         &self,
         tx_witness: TransactionWitness,
-        _source_manager: Arc<dyn SourceManager>,
     ) -> Result<ProvenTransaction, TransactionProverError> {
         use miden_objects::utils::Serializable;
         self.connect().await.map_err(|err| {
