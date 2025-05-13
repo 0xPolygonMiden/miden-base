@@ -780,7 +780,7 @@ fn prove_witness_and_verify() {
 
     let proof_options = ProvingOptions::default();
     let prover = LocalTransactionProver::new(proof_options);
-    let proven_transaction = prover.prove(executed_transaction.into(), source_manager).unwrap();
+    let proven_transaction = prover.prove(executed_transaction.into()).unwrap();
 
     assert_eq!(proven_transaction.id(), executed_transaction_id);
 
