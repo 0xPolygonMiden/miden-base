@@ -9,5 +9,5 @@ work="/opt/miden-prover-proxy"
 sudo chown -R miden-prover-proxy "$work"
 
 sudo systemctl daemon-reload
-sudo systemctl enable miden-prover
-sudo systemctl start miden-prover
+sudo systemctl enable miden-prover-proxy
+sudo systemctl start miden-prover-proxy
