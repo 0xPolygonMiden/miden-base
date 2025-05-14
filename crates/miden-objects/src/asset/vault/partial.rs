@@ -1,8 +1,8 @@
 use alloc::vec::Vec;
 
-use miden_crypto::merkle::{InnerNodeInfo, LeafIndex, SmtLeaf, SmtProof};
+use miden_crypto::merkle::{InnerNodeInfo, SmtLeaf, SmtProof};
 use vm_core::utils::{Deserializable, Serializable};
-use vm_processor::{Digest, SMT_DEPTH};
+use vm_processor::Digest;
 
 use super::AssetVault;
 
@@ -44,8 +44,8 @@ impl PartialVault {
     /// Returns an iterator over all leaves in the Sparse Merkle Tree proofs.
     ///
     /// Each item returned is a tuple containing the leaf index and a reference to the leaf.
-    pub fn leaves(&self) -> impl Iterator<Item = (LeafIndex<SMT_DEPTH>, &SmtLeaf)> {
-        self.vault_proofs.iter().map(|proof| (proof.leaf().index(), proof.leaf()))
+    pub fn leaves(&self) -> impl Iterator<Item = &SmtLeaf> {
+        self.vault_proofs.iter().map(SmtProof::leaf)
     }
 }
 

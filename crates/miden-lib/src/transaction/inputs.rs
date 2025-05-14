@@ -170,7 +170,7 @@ fn add_partial_blockchain_to_advice_inputs(mmr: &PartialBlockchain, inputs: &mut
 ///   injected. For an existing native account, no extra inputs need to be provided.
 /// - For foreign accounts, account_id |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT,
 ///   CODE_COMMITMENT] is injected
-pub enum AccountInputsType {
+enum AccountInputsType {
     /// Inputs for the native (executor) account that is new. The inner value is the seed of the
     /// new account.
     Native(Option<Word>),
@@ -192,7 +192,7 @@ pub enum AccountInputsType {
 /// - account_id |-> account_seed, when `account_inputs_type` is [`AccountInputsType::NativeNew`].
 /// - account_id |-> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT, CODE_COMMITMENT] when
 ///   `account_inputs_type` is [`AccountInputsType::Foreign`].
-pub fn add_account_to_advice_inputs(
+fn add_account_to_advice_inputs(
     account: &PartialAccount,
     account_inputs_type: AccountInputsType,
     advice_inputs: &mut AdviceInputs,
@@ -243,7 +243,7 @@ pub fn add_account_to_advice_inputs(
 
     // populate advice map with Sparse Merkle Tree leaf nodes
     advice_inputs
-        .extend_map(account.vault().leaves().map(|(_, leaf)| (leaf.hash(), leaf.to_elements())));
+        .extend_map(account.vault().leaves().map(|leaf| (leaf.hash(), leaf.to_elements())));
 
     // --- account state ----------------------------------------------------
 

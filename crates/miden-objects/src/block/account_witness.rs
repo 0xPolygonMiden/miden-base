@@ -155,7 +155,7 @@ impl AccountWitness {
     pub fn inner_nodes(&self) -> impl Iterator<Item = InnerNodeInfo> + '_ {
         let leaf = self.leaf();
         self.path()
-            .inner_nodes(leaf.index().value(), self.leaf().hash())
+            .inner_nodes(leaf.index().value(), leaf.hash())
             .expect("leaf index is u64 and should be less than 2^SMT_DEPTH")
     }
 }

@@ -46,7 +46,7 @@ impl PartialStorage {
         self.commitment
     }
 
-    /// Returns the top- item from the storage at the specified index.
+    /// Returns the value of the storage slot at the specified slot index.
     ///
     /// # Errors:
     /// - If the index is out of bounds
