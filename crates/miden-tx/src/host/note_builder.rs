@@ -53,7 +53,7 @@ impl OutputNoteBuilder {
         // enough info available in the advice provider
         let recipient_digest = Digest::new([stack[8], stack[7], stack[6], stack[5]]);
         let recipient = if let Some(data) = adv_provider.get_mapped_values(&recipient_digest) {
-            if data.len() != 12 {
+            if data.len() != 13 {
                 return Err(TransactionKernelError::MalformedRecipientData(data.to_vec()));
             }
             let inputs_commitment = Digest::new([data[0], data[1], data[2], data[3]]);
@@ -61,11 +61,27 @@ impl OutputNoteBuilder {
             let serial_num = [data[8], data[9], data[10], data[11]];
             let script_data = adv_provider.get_mapped_values(&script_root).unwrap_or(&[]);
 
+            let num_inputs = data[12].as_int() as usize;
             let inputs_data = adv_provider.get_mapped_values(&inputs_commitment);
             let inputs = match inputs_data {
                 None => NoteInputs::default(),
-                Some(inputs) => NoteInputs::new(inputs.to_vec())
-                    .map_err(TransactionKernelError::MalformedNoteInputs)?,
+                Some(inputs) => {
+                    // There must be at least `num_inputs` elements in the advice provider data,
+                    // otherwise it is an error.
+                    //
+                    // It is possible to have more elements because of padding. The extra elements
+                    // will be discarded below, and later their contents will be validated by
+                    // computing the commitment and checking against the expected value.
+                    if num_inputs > inputs.len() {
+                        return Err(TransactionKernelError::TooFewElementsForNoteInputs {
+                            specified: num_inputs as u64,
+                            actual: inputs.len() as u64,
+                        });
+                    }
+
+                    NoteInputs::new(inputs[0..num_inputs].to_vec())
+                        .map_err(TransactionKernelError::MalformedNoteInputs)?
+                },
             };
 
             if inputs.commitment() != inputs_commitment {

@@ -59,10 +59,11 @@ impl NoteRecipient {
 
     /// Returns the recipient encoded as [Felt]s.
     pub fn to_elements(&self) -> Vec<Felt> {
-        let mut result = Vec::with_capacity(12);
+        let mut result = Vec::with_capacity(13);
         result.extend(self.inputs.commitment());
         result.extend(self.script.root());
         result.extend(self.serial_num);
+        result.push(self.inputs.num_values().into());
         result
     }
 }
