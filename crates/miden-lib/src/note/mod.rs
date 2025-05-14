@@ -1,3 +1,5 @@
+use std::println;
+
 use alloc::vec::Vec;
 
 use miden_objects::{
@@ -39,6 +41,8 @@ pub fn create_p2id_note<R: FeltRng>(
     rng: &mut R,
 ) -> Result<Note, NoteError> {
     let serial_num = rng.draw_word();
+    println!("serial num: {:?}", serial_num);
+
     let recipient = utils::build_p2id_recipient(target, serial_num)?;
 
     let tag = NoteTag::from_account_id(target, NoteExecutionMode::Local)?;
