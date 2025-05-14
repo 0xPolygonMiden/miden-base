@@ -26,7 +26,7 @@ sudo dpkg -i prover.deb
 sudo rm prover.deb
 ```
 
-Edit the configuration file at `/lib/systemd/system/miden-prover.service.d/debian.conf`.
+Edit the configuration file `/lib/systemd/system/miden-prover.service.env`
 
 Run the service:
 ```bash
@@ -47,7 +47,9 @@ sudo dpkg -i prover-proxy.deb
 sudo rm prover-proxy.deb
 ```
 
-Edit the configuration file at `/lib/systemd/system/miden-prover-proxy.service.d/debian.conf`.
+Edit the configuration file `/lib/systemd/system/miden-prover-proxy.service.env`
+
+Edit the service file to specify workers `/lib/systemd/system/miden-prover-proxy.service`
 
 Run the service:
 ```bash
