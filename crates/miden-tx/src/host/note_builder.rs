@@ -61,11 +61,12 @@ impl OutputNoteBuilder {
             let serial_num = [data[8], data[9], data[10], data[11]];
             let script_data = adv_provider.get_mapped_values(&script_root).unwrap_or(&[]);
 
-            let num_inputs = data[12].as_int() as usize;
             let inputs_data = adv_provider.get_mapped_values(&inputs_commitment);
             let inputs = match inputs_data {
                 None => NoteInputs::default(),
                 Some(inputs) => {
+                    let num_inputs = data[12].as_int() as usize;
+
                     // There must be at least `num_inputs` elements in the advice provider data,
                     // otherwise it is an error.
                     //
