@@ -50,11 +50,11 @@ runs:
     #- name: Copy package install scripts
     #  shell: bash
     #  run: |
-    #    git show ${{ steps.git-sha.outputs.sha }}:bin/proving-service/.env   > packaging/deb/miden-prover/lib/systemd/system/miden-prover.service.d/debian.conf
+    #    git show ${{ steps.git-sha.outputs.sha }}:bin/proving-service/.env   > packaging/deb/miden-prover/lib/systemd/system/miden-prover.env
     #    git show ${{ steps.git-sha.outputs.sha }}:packaging/prover/miden-prover.service   > packaging/deb/miden-prover/lib/systemd/system/miden-prover.service
     #    git show ${{ steps.git-sha.outputs.sha }}:packaging/prover/postinst               > packaging/deb/miden-prover/DEBIAN/postinst
     #    git show ${{ steps.git-sha.outputs.sha }}:packaging/prover/postrm                 > packaging/deb/miden-prover/DEBIAN/postrm
-    #    git show ${{ steps.git-sha.outputs.sha }}:bin/proving-service/.env   > packaging/deb/miden-prover-proxy/lib/systemd/system/miden-prover-proxy.service.d/debian.conf
+    #    git show ${{ steps.git-sha.outputs.sha }}:bin/proving-service/.env   > packaging/deb/miden-prover-proxy/lib/systemd/system/miden-prover-proxy.env
     #    git show ${{ steps.git-sha.outputs.sha }}:packaging/prover-proxy/miden-prover-proxy.service > packaging/deb/miden-prover-proxy/lib/systemd/system/miden-prover-proxy.service
     #    git show ${{ steps.git-sha.outputs.sha }}:packaging/prover-proxy/postinst                   > packaging/deb/miden-prover-proxy/DEBIAN/postinst
     #    git show ${{ steps.git-sha.outputs.sha }}:packaging/prover-proxy/postrm                     > packaging/deb/miden-prover-proxy/DEBIAN/postrm
