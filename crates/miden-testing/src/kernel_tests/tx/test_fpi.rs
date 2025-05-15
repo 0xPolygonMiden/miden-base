@@ -643,7 +643,7 @@ fn test_fpi_execute_foreign_procedure() {
 fn test_nested_fpi_cyclic_invocation() {
     // ------ SECOND FOREIGN ACCOUNT ---------------------------------------------------------------
     let storage_slots = vec![AccountStorage::mock_item_0().slot];
-    let second_foreign_account_code_source = "
+    let second_foreign_account_code_source = r#"
         use.miden::tx
         use.miden::account
         
@@ -669,7 +669,7 @@ fn test_nested_fpi_cyclic_invocation() {
             # => [storage_value]
 
             # make sure that the resulting value equals 5
-            dup push.5 assert_eq.err=5678
+            dup push.5 assert_eq.err="value should have been 5"
 
             # get the first element of the 0'th storage slot (it should be 1) and add it to the 
             # obtained foreign value.
@@ -677,11 +677,11 @@ fn test_nested_fpi_cyclic_invocation() {
             add
 
             # assert that the resulting value equals 6
-            dup push.6 assert_eq.err=9012
+            dup push.6 assert_eq.err="value should have been 6"
 
             exec.sys::truncate_stack
         end
-    ";
+    "#;
 
     let second_foreign_account_component = AccountComponent::compile(
         second_foreign_account_code_source,
@@ -699,7 +699,7 @@ fn test_nested_fpi_cyclic_invocation() {
     // ------ FIRST FOREIGN ACCOUNT ---------------------------------------------------------------
     let storage_slots =
         vec![AccountStorage::mock_item_0().slot, AccountStorage::mock_item_1().slot];
-    let first_foreign_account_code_source = "
+    let first_foreign_account_code_source = r#"
         use.miden::tx
         use.miden::account
 
@@ -726,7 +726,7 @@ fn test_nested_fpi_cyclic_invocation() {
             add
 
             # assert that the resulting value equals 8
-            dup push.8 assert_eq.err=3456
+            dup push.8 assert_eq.err="value should have been 8"
 
             exec.sys::truncate_stack
         end
@@ -740,7 +740,7 @@ fn test_nested_fpi_cyclic_invocation() {
             # return the first element of the resulting word
             drop drop drop
         end
-    ";
+    "#;
 
     let first_foreign_account_component = AccountComponent::compile(
         first_foreign_account_code_source,
@@ -791,7 +791,7 @@ fn test_nested_fpi_cyclic_invocation() {
     ]);
 
     let code = format!(
-        "
+        r#"
         use.std::sys
 
         use.miden::tx
@@ -815,12 +815,12 @@ fn test_nested_fpi_cyclic_invocation() {
             add.10
 
             # assert that the resulting value equals 18
-            push.18 assert_eq.err=1234
+            push.18 assert_eq.err="sum should be 18"
             # => []
 
             exec.sys::truncate_stack
         end
-        ",
+        "#,
         foreign_prefix = first_foreign_account.id().prefix().as_felt(),
         foreign_suffix = first_foreign_account.id().suffix(),
         first_account_foreign_proc_hash = first_foreign_account.code().procedures()[0].mast_root(),
