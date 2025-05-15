@@ -23,6 +23,12 @@
 - [BREAKING] Change Token Symbol encoding (#1334).
 - Add iterators over concrete asset types in `NoteAssets` (#1346).
 
+## 0.8.3 (2025-04-22) - `miden-proving-service` crate only
+
+### Fixes
+
+- Version check always fails (#1300).
+
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 
 ### Changes
