@@ -9,7 +9,7 @@ use alloc::{
 use miden_lib::{
     errors::tx_kernel_errors::TX_KERNEL_ERRORS,
     transaction::{
-        TransactionEvent, TransactionEventError, TransactionKernelError, TransactionTrace,
+        TransactionEvent, TransactionEventError, TransactionKernelError,
         memory::{CURRENT_INPUT_NOTE_PTR, NATIVE_NUM_ACCT_STORAGE_SLOTS_PTR},
     },
 };
@@ -38,9 +38,7 @@ use note_builder::OutputNoteBuilder;
 mod tx_progress;
 pub use tx_progress::TransactionProgress;
 
-use crate::{
-    auth::TransactionAuthenticator, errors::TransactionHostError, executor::TransactionMastStore,
-};
+use crate::{auth::TransactionAuthenticator, errors::TransactionHostError};
 
 // TRANSACTION HOST
 // ================================================================================================
@@ -56,15 +54,15 @@ pub struct TransactionHost<A> {
     adv_provider: A,
 
     /// MAST store which contains the code required to execute the transaction.
-    mast_store: Arc<TransactionMastStore>,
+    mast_store: Arc<dyn MastForestStore>,
 
     /// Account state changes accumulated during transaction execution.
     ///
     /// This field is updated by the [TransactionHost::on_event()] handler.
     account_delta: AccountDeltaTracker,
 
-    /// A map of the account's procedure MAST roots to the corresponding procedure indexes in the
-    /// account code.
+    /// A map of the procedure MAST roots to the corresponding procedure indices for all the
+    /// account codes involved in the transaction (for native and foreign accounts alike).
     acct_procedure_index_map: AccountProcedureIndexMap,
 
     /// The list of notes created while executing a transaction stored as note_ptr |-> note_builder
@@ -98,16 +96,16 @@ impl<A: AdviceProvider> TransactionHost<A> {
     pub fn new(
         account: AccountHeader,
         adv_provider: A,
-        mast_store: Arc<TransactionMastStore>,
+        mast_store: Arc<dyn MastForestStore>,
         authenticator: Option<Arc<dyn TransactionAuthenticator>>,
-        mut account_code_commitments: BTreeSet<Digest>,
+        mut foreign_account_code_commitments: BTreeSet<Digest>,
     ) -> Result<Self, TransactionHostError> {
         // currently, the executor/prover do not keep track of the code commitment of the native
         // account, so we add it to the set here
-        account_code_commitments.insert(account.code_commitment());
+        foreign_account_code_commitments.insert(account.code_commitment());
 
         let proc_index_map =
-            AccountProcedureIndexMap::new(account_code_commitments, &adv_provider)?;
+            AccountProcedureIndexMap::new(foreign_account_code_commitments, &adv_provider)?;
 
         let kernel_assertion_errors = BTreeMap::from(TX_KERNEL_ERRORS);
         Ok(Self {
@@ -537,34 +535,56 @@ impl<A: AdviceProvider> Host for TransactionHost<A> {
             TransactionEvent::NoteAfterAddAsset => Ok(()),
 
             TransactionEvent::FalconSigToStack => self.on_signature_requested(process),
-        }
-        .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 
-        Ok(())
-    }
+            TransactionEvent::PrologueStart => {
+                self.tx_progress.start_prologue(process.clk());
+                Ok(())
+            },
+            TransactionEvent::PrologueEnd => {
+                self.tx_progress.end_prologue(process.clk());
+                Ok(())
+            },
 
-    fn on_trace(&mut self, process: ProcessState, trace_id: u32) -> Result<(), ExecutionError> {
-        let event = TransactionTrace::try_from(trace_id)
-            .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
+            TransactionEvent::NotesProcessingStart => {
+                self.tx_progress.start_notes_processing(process.clk());
+                Ok(())
+            },
+            TransactionEvent::NotesProcessingEnd => {
+                self.tx_progress.end_notes_processing(process.clk());
+                Ok(())
+            },
 
-        use TransactionTrace::*;
-        match event {
-            PrologueStart => self.tx_progress.start_prologue(process.clk()),
-            PrologueEnd => self.tx_progress.end_prologue(process.clk()),
-            NotesProcessingStart => self.tx_progress.start_notes_processing(process.clk()),
-            NotesProcessingEnd => self.tx_progress.end_notes_processing(process.clk()),
-            NoteExecutionStart => {
+            TransactionEvent::NoteExecutionStart => {
                 let note_id = Self::get_current_note_id(process)?.expect(
                     "Note execution interval measurement is incorrect: check the placement of the start and the end of the interval",
                 );
                 self.tx_progress.start_note_execution(process.clk(), note_id);
+                Ok(())
             },
-            NoteExecutionEnd => self.tx_progress.end_note_execution(process.clk()),
-            TxScriptProcessingStart => self.tx_progress.start_tx_script_processing(process.clk()),
-            TxScriptProcessingEnd => self.tx_progress.end_tx_script_processing(process.clk()),
-            EpilogueStart => self.tx_progress.start_epilogue(process.clk()),
-            EpilogueEnd => self.tx_progress.end_epilogue(process.clk()),
+            TransactionEvent::NoteExecutionEnd => {
+                self.tx_progress.end_note_execution(process.clk());
+                Ok(())
+            },
+
+            TransactionEvent::TxScriptProcessingStart => {
+                self.tx_progress.start_tx_script_processing(process.clk());
+                Ok(())
+            }
+            TransactionEvent::TxScriptProcessingEnd => {
+                self.tx_progress.end_tx_script_processing(process.clk());
+                Ok(())
+            }
+
+            TransactionEvent::EpilogueStart => {
+                self.tx_progress.start_epilogue(process.clk());
+                Ok(())
+            }
+            TransactionEvent::EpilogueEnd => {
+                self.tx_progress.end_epilogue(process.clk());
+                Ok(())
+            }
         }
+        .map_err(|err| ExecutionError::EventError(Box::new(err)))?;
 
         Ok(())
     }

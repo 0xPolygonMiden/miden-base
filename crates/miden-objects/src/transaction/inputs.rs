@@ -1,11 +1,14 @@
 use alloc::{collections::BTreeSet, vec::Vec};
 use core::fmt::Debug;
 
-use super::{BlockHeader, ChainMmr, Digest, Felt, Hasher, Word};
+use miden_crypto::merkle::{SmtProof, SmtProofError};
+
+use super::{BlockHeader, Digest, Felt, Hasher, PartialBlockchain, Word};
 use crate::{
     MAX_INPUT_NOTES_PER_TX, TransactionInputError,
-    account::{Account, AccountId, AccountIdAnchor},
-    block::BlockNumber,
+    account::{Account, AccountCode, AccountId, AccountIdAnchor, PartialAccount, PartialStorage},
+    asset::PartialVault,
+    block::{AccountWitness, BlockNumber},
     note::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
@@ -19,7 +22,7 @@ pub struct TransactionInputs {
     account: Account,
     account_seed: Option<Word>,
     block_header: BlockHeader,
-    block_chain: ChainMmr,
+    block_chain: PartialBlockchain,
     input_notes: InputNotes<InputNote>,
 }
 
@@ -36,7 +39,7 @@ impl TransactionInputs {
         account: Account,
         account_seed: Option<Word>,
         block_header: BlockHeader,
-        block_chain: ChainMmr,
+        block_chain: PartialBlockchain,
         input_notes: InputNotes<InputNote>,
     ) -> Result<Self, TransactionInputError> {
         // validate the seed
@@ -66,9 +69,9 @@ impl TransactionInputs {
                 let block_header = if note_block_num == block_num {
                     &block_header
                 } else {
-                    block_chain
-                        .get_block(note_block_num)
-                        .ok_or(TransactionInputError::InputNoteBlockNotInChainMmr(note.id()))?
+                    block_chain.get_block(note_block_num).ok_or(
+                        TransactionInputError::InputNoteBlockNotInPartialBlockchain(note.id()),
+                    )?
                 };
 
                 validate_is_in_block(note, proof, block_header)?;
@@ -102,9 +105,9 @@ impl TransactionInputs {
         &self.block_header
     }
 
-    /// Returns chain MMR containing authentication paths for all notes consumed by the
+    /// Returns partial blockchain containing authentication paths for all notes consumed by the
     /// transaction.
-    pub fn block_chain(&self) -> &ChainMmr {
+    pub fn block_chain(&self) -> &PartialBlockchain {
         &self.block_chain
     }
 
@@ -119,7 +122,7 @@ impl TransactionInputs {
     /// Consumes these transaction inputs and returns their underlying components.
     pub fn into_parts(
         self,
-    ) -> (Account, Option<Word>, BlockHeader, ChainMmr, InputNotes<InputNote>) {
+    ) -> (Account, Option<Word>, BlockHeader, PartialBlockchain, InputNotes<InputNote>) {
         (
             self.account,
             self.account_seed,
@@ -145,7 +148,7 @@ impl Deserializable for TransactionInputs {
         let account = Account::read_from(source)?;
         let account_seed = source.read()?;
         let block_header = BlockHeader::read_from(source)?;
-        let block_chain = ChainMmr::read_from(source)?;
+        let block_chain = PartialBlockchain::read_from(source)?;
         let input_notes = InputNotes::read_from(source)?;
         Self::new(account, account_seed, block_header, block_chain, input_notes)
             .map_err(|err| DeserializationError::InvalidValue(format!("{}", err)))
@@ -302,7 +305,7 @@ impl<T: ToInputNoteCommitments> Default for InputNotes<T> {
 }
 
 // SERIALIZATION
-// ------------------------------------------------------------------------------------------------
+// ================================================================================================
 
 impl<T: Serializable> Serializable for InputNotes<T> {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -322,7 +325,7 @@ impl<T: Deserializable + ToInputNoteCommitments> Deserializable for InputNotes<T
 }
 
 // HELPER FUNCTIONS
-// ------------------------------------------------------------------------------------------------
+// ================================================================================================
 
 fn build_input_note_commitment<T: ToInputNoteCommitments>(notes: &[T]) -> Digest {
     // Note: This implementation must be kept in sync with the kernel's `process_input_notes_data`
@@ -486,7 +489,7 @@ impl Deserializable for InputNote {
 pub fn validate_account_seed(
     account: &Account,
     block_header: &BlockHeader,
-    block_chain: &ChainMmr,
+    block_chain: &PartialBlockchain,
     account_seed: Option<Word>,
 ) -> Result<(), TransactionInputError> {
     match (account.is_new(), account_seed) {
@@ -529,5 +532,135 @@ pub fn validate_account_seed(
         (true, None) => Err(TransactionInputError::AccountSeedNotProvidedForNewAccount),
         (false, Some(_)) => Err(TransactionInputError::AccountSeedProvidedForExistingAccount),
         (false, None) => Ok(()),
+    }
+}
+
+// ACCOUNT INPUTS
+// ================================================================================================
+
+/// Contains information about an account, with everything required to execute a transaction.
+///
+/// `AccountInputs` combines a partial account representation with the merkle proof that verifies
+/// the account's inclusion in the account tree. The partial account should contain verifiable
+/// access to the parts of the state of the account of which the transaction will make use.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AccountInputs {
+    /// Partial representation of the account's state.
+    partial_account: PartialAccount,
+    /// Proof of the account's inclusion in the account tree for this account's state commitment.
+    witness: AccountWitness,
+}
+
+impl AccountInputs {
+    /// Creates a new instance of `AccountInputs` with the specified partial account and witness.
+    pub fn new(partial_account: PartialAccount, witness: AccountWitness) -> AccountInputs {
+        AccountInputs { partial_account, witness }
+    }
+
+    /// Returns the account ID.
+    pub fn id(&self) -> AccountId {
+        self.partial_account.id()
+    }
+
+    /// Returns a reference to the partial account representation.
+    pub fn account(&self) -> &PartialAccount {
+        &self.partial_account
+    }
+
+    /// Returns a reference to the account code.
+    pub fn code(&self) -> &AccountCode {
+        self.partial_account.code()
+    }
+
+    /// Returns a reference to the partial representation of the account storage.
+    pub fn storage(&self) -> &PartialStorage {
+        self.partial_account.storage()
+    }
+
+    /// Returns a reference to the partial vault representation of the account.
+    pub fn vault(&self) -> &PartialVault {
+        self.partial_account.vault()
+    }
+
+    /// Returns a reference to the account's witness.
+    pub fn witness(&self) -> &AccountWitness {
+        &self.witness
+    }
+
+    /// Decomposes the `AccountInputs` into its constituent parts.
+    pub fn into_parts(self) -> (PartialAccount, AccountWitness) {
+        (self.partial_account, self.witness)
+    }
+
+    /// Computes the account root based on the account witness.
+    /// This root should be equal to the account root in the reference block header.
+    pub fn compute_account_root(&self) -> Result<Digest, SmtProofError> {
+        let smt_merkle_path = self.witness.path().clone();
+        let smt_leaf = self.witness.leaf();
+        let root = SmtProof::new(smt_merkle_path, smt_leaf)?.compute_root();
+
+        Ok(root)
+    }
+}
+
+impl Serializable for AccountInputs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write(&self.partial_account);
+        target.write(&self.witness);
+    }
+}
+
+impl Deserializable for AccountInputs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let partial_account = source.read()?;
+        let witness = source.read()?;
+
+        Ok(AccountInputs { partial_account, witness })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::vec::Vec;
+
+    use miden_crypto::merkle::MerklePath;
+    use vm_core::{
+        Felt,
+        utils::{Deserializable, Serializable},
+    };
+    use vm_processor::SMT_DEPTH;
+
+    use crate::{
+        account::{Account, AccountCode, AccountId, AccountStorage},
+        asset::AssetVault,
+        block::AccountWitness,
+        testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        transaction::AccountInputs,
+    };
+
+    #[test]
+    fn serde_roundtrip() {
+        let id = AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap();
+        let code = AccountCode::mock();
+        let vault = AssetVault::new(&[]).unwrap();
+        let storage = AccountStorage::new(vec![]).unwrap();
+        let account = Account::from_parts(id, vault, storage, code, Felt::new(10));
+
+        let commitment = account.commitment();
+
+        let mut merkle_nodes = Vec::with_capacity(SMT_DEPTH as usize);
+        for _ in 0..(SMT_DEPTH as usize) {
+            merkle_nodes.push(commitment);
+        }
+        let merkle_path = MerklePath::new(merkle_nodes);
+
+        let fpi_inputs = AccountInputs::new(
+            account.into(),
+            AccountWitness::new(id, commitment, merkle_path).unwrap(),
+        );
+
+        let serialized = fpi_inputs.to_bytes();
+        let deserialized = AccountInputs::read_from_bytes(&serialized).unwrap();
+        assert_eq!(deserialized, fpi_inputs);
     }
 }

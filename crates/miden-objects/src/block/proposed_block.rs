@@ -1,4 +1,5 @@
 use alloc::{
+    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     vec::Vec,
 };
@@ -6,14 +7,14 @@ use alloc::{
 use crate::{
     Digest, EMPTY_WORD, MAX_BATCHES_PER_BLOCK,
     account::{AccountId, delta::AccountUpdateDetails},
-    batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, ProvenBatch},
+    batch::{BatchAccountUpdate, BatchId, InputOutputNoteTracker, OrderedBatches, ProvenBatch},
     block::{
         AccountUpdateWitness, AccountWitness, BlockHeader, BlockNumber, NullifierWitness,
         OutputNoteBatch, block_inputs::BlockInputs,
     },
     errors::ProposedBlockError,
     note::{NoteId, Nullifier},
-    transaction::{ChainMmr, InputNoteCommitment, OutputNote, TransactionId},
+    transaction::{InputNoteCommitment, OutputNote, PartialBlockchain, TransactionHeader},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -27,7 +28,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct ProposedBlock {
     /// The transaction batches in this block.
-    batches: Vec<ProvenBatch>,
+    batches: OrderedBatches,
     /// The unix timestamp of the block in seconds.
     timestamp: u32,
     /// All account's [`AccountUpdateWitness`] that were updated in this block. See its docs for
@@ -46,13 +47,13 @@ pub struct ProposedBlock {
     /// These are the nullifiers of all input notes after note erasure has been done, so these are
     /// the nullifiers of all _authenticated_ notes consumed in the block.
     created_nullifiers: BTreeMap<Nullifier, NullifierWitness>,
-    /// The [`ChainMmr`] at the state of the previous block header. It is used to:
+    /// The [`PartialBlockchain`] at the state of the previous block header. It is used to:
     /// - authenticate unauthenticated notes whose note inclusion proof references a block.
     /// - authenticate all reference blocks of the batches in this block.
-    chain_mmr: ChainMmr,
+    partial_blockchain: PartialBlockchain,
     /// The previous block's header which this block builds on top of.
     ///
-    /// As part of proving the block, this header will be added to the next chain MMR.
+    /// As part of proving the block, this header will be added to the next partial blockchain.
     prev_block_header: BlockHeader,
 }
 
@@ -80,10 +81,10 @@ impl ProposedBlock {
     ///
     /// ## Chain
     ///
-    /// - The length of the [`ChainMmr`] in the block inputs is not equal to the previous block
-    ///   header in the block inputs.
-    /// - The [`ChainMmr`]'s chain commitment is not equal to the [`BlockHeader::chain_commitment`]
-    ///   of the previous block header.
+    /// - The length of the [`PartialBlockchain`] in the block inputs is not equal to the previous
+    ///   block header in the block inputs.
+    /// - The [`PartialBlockchain`]'s chain commitment is not equal to the
+    ///   [`BlockHeader::chain_commitment`] of the previous block header.
     ///
     /// ## Notes
     ///
@@ -95,7 +96,7 @@ impl ProposedBlock {
     /// - There is an unauthenticated input note and an output note with the same note ID but their
     ///   note commitments are different (i.e. their metadata is different).
     /// - There is a note inclusion proof for an unauthenticated note whose referenced block is not
-    ///   in the [`ChainMmr`].
+    ///   in the [`PartialBlockchain`].
     /// - The note inclusion proof for an unauthenticated is invalid.
     /// - There are any unauthenticated notes for which no note inclusion proof is provided.
     /// - A [`NullifierWitness`] is missing for an authenticated note.
@@ -145,19 +146,19 @@ impl ProposedBlock {
 
         check_batch_expiration(&batches, block_inputs.prev_block_header())?;
 
-        // Check for consistency between the chain MMR and the referenced previous block.
+        // Check for consistency between the partial blockchain and the referenced previous block.
         // --------------------------------------------------------------------------------------------
 
-        check_reference_block_chain_mmr_consistency(
-            block_inputs.chain_mmr(),
+        check_reference_block_partial_blockchain_consistency(
+            block_inputs.partial_blockchain(),
             block_inputs.prev_block_header(),
         )?;
 
-        // Check every block referenced by a batch is in the chain MMR.
+        // Check every block referenced by a batch is in the partial blockchain.
         // --------------------------------------------------------------------------------------------
 
         check_batch_reference_blocks(
-            block_inputs.chain_mmr(),
+            block_inputs.partial_blockchain(),
             block_inputs.prev_block_header(),
             &batches,
         )?;
@@ -171,7 +172,7 @@ impl ProposedBlock {
             InputOutputNoteTracker::from_batches(
                 batches.iter(),
                 block_inputs.unauthenticated_note_proofs(),
-                block_inputs.chain_mmr(),
+                block_inputs.partial_blockchain(),
                 block_inputs.prev_block_header(),
             )?;
 
@@ -186,7 +187,7 @@ impl ProposedBlock {
         // Check for nullifiers proofs and unspent nullifiers.
         // --------------------------------------------------------------------------------------------
 
-        let (prev_block_header, chain_mmr, account_witnesses, mut nullifier_witnesses, _) =
+        let (prev_block_header, partial_blockchain, account_witnesses, mut nullifier_witnesses, _) =
             block_inputs.into_parts();
 
         // Remove nullifiers of erased notes, so we only add the nullifiers of actual input notes to
@@ -215,12 +216,12 @@ impl ProposedBlock {
         // --------------------------------------------------------------------------------------------
 
         Ok(Self {
-            batches,
+            batches: OrderedBatches::new(batches),
             timestamp,
             account_updated_witnesses,
             output_note_batches,
             created_nullifiers: nullifier_witnesses,
-            chain_mmr,
+            partial_blockchain,
             prev_block_header,
         })
     }
@@ -252,23 +253,23 @@ impl ProposedBlock {
     // ACCESSORS
     // --------------------------------------------------------------------------------------------
 
-    /// Returns an iterator over all transactions which affected accounts in the block with
-    /// corresponding account IDs.
-    pub fn affected_accounts(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
-        self.account_updated_witnesses.iter().flat_map(|(account_id, update)| {
-            update.transactions().iter().map(move |tx_id| (*tx_id, *account_id))
-        })
+    /// Returns an iterator over all transactions in the block.
+    pub fn transactions(&self) -> impl Iterator<Item = &TransactionHeader> {
+        self.batches
+            .as_slice()
+            .iter()
+            .flat_map(|batch| batch.transactions().as_slice().iter())
     }
 
     /// Returns the block number of this proposed block.
     pub fn block_num(&self) -> BlockNumber {
         // The chain length is the length at the state of the previous block header, so we have to
         // add one.
-        self.chain_mmr().chain_length() + 1
+        self.partial_blockchain().chain_length() + 1
     }
 
     /// Returns a reference to the slice of batches in this block.
-    pub fn batches(&self) -> &[ProvenBatch] {
+    pub fn batches(&self) -> &OrderedBatches {
         &self.batches
     }
 
@@ -282,9 +283,9 @@ impl ProposedBlock {
         &self.prev_block_header
     }
 
-    /// Returns the [`ChainMmr`] that this block contains.
-    pub fn chain_mmr(&self) -> &ChainMmr {
-        &self.chain_mmr
+    /// Returns the [`PartialBlockchain`] that this block contains.
+    pub fn partial_blockchain(&self) -> &PartialBlockchain {
+        &self.partial_blockchain
     }
 
     /// Returns a reference to the slice of accounts updated in this block.
@@ -310,11 +311,11 @@ impl ProposedBlock {
     pub fn into_parts(
         self,
     ) -> (
-        Vec<ProvenBatch>,
+        OrderedBatches,
         Vec<(AccountId, AccountUpdateWitness)>,
         Vec<OutputNoteBatch>,
         BTreeMap<Nullifier, NullifierWitness>,
-        ChainMmr,
+        PartialBlockchain,
         BlockHeader,
     ) {
         (
@@ -322,7 +323,7 @@ impl ProposedBlock {
             self.account_updated_witnesses,
             self.output_note_batches,
             self.created_nullifiers,
-            self.chain_mmr,
+            self.partial_blockchain,
             self.prev_block_header,
         )
     }
@@ -338,7 +339,7 @@ impl Serializable for ProposedBlock {
         self.account_updated_witnesses.write_into(target);
         self.output_note_batches.write_into(target);
         self.created_nullifiers.write_into(target);
-        self.chain_mmr.write_into(target);
+        self.partial_blockchain.write_into(target);
         self.prev_block_header.write_into(target);
     }
 }
@@ -346,12 +347,12 @@ impl Serializable for ProposedBlock {
 impl Deserializable for ProposedBlock {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let block = Self {
-            batches: <Vec<ProvenBatch>>::read_from(source)?,
+            batches: OrderedBatches::read_from(source)?,
             timestamp: u32::read_from(source)?,
             account_updated_witnesses: <Vec<(AccountId, AccountUpdateWitness)>>::read_from(source)?,
             output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
             created_nullifiers: <BTreeMap<Nullifier, NullifierWitness>>::read_from(source)?,
-            chain_mmr: ChainMmr::read_from(source)?,
+            partial_blockchain: PartialBlockchain::read_from(source)?,
             prev_block_header: BlockHeader::read_from(source)?,
         };
 
@@ -448,27 +449,29 @@ fn remove_erased_nullifiers(
     }
 }
 
-/// Checks consistency between the previous block header and the provided chain MMR.
+/// Checks consistency between the previous block header and the provided partial blockchain.
 ///
 /// This checks that:
-/// - the chain length of the chain MMR is equal to the block number of the previous block header,
-///   i.e. the chain MMR's latest block is the previous' blocks reference block. The previous block
-///   header will be added to the chain MMR as part of constructing the current block.
-/// - the root of the chain MMR is equivalent to the chain commitment of the previous block header.
-fn check_reference_block_chain_mmr_consistency(
-    chain_mmr: &ChainMmr,
+/// - the chain length of the partial blockchain is equal to the block number of the previous block
+///   header, i.e. the partial blockchain's latest block is the previous' blocks reference block.
+///   The previous block header will be added to the partial blockchain as part of constructing the
+///   current block.
+/// - the root of the partial blockchain is equivalent to the chain commitment of the previous block
+///   header.
+fn check_reference_block_partial_blockchain_consistency(
+    partial_blockchain: &PartialBlockchain,
     prev_block_header: &BlockHeader,
 ) -> Result<(), ProposedBlockError> {
-    // Make sure that the current chain MMR has blocks up to prev_block_header - 1, i.e. its
-    // chain length is equal to the block number of the previous block header.
-    if chain_mmr.chain_length() != prev_block_header.block_num() {
+    // Make sure that the current partial blockchain has blocks up to prev_block_header - 1, i.e.
+    // its chain length is equal to the block number of the previous block header.
+    if partial_blockchain.chain_length() != prev_block_header.block_num() {
         return Err(ProposedBlockError::ChainLengthNotEqualToPreviousBlockNumber {
-            chain_length: chain_mmr.chain_length(),
+            chain_length: partial_blockchain.chain_length(),
             prev_block_num: prev_block_header.block_num(),
         });
     }
 
-    let chain_commitment = chain_mmr.peaks().hash_peaks();
+    let chain_commitment = partial_blockchain.peaks().hash_peaks();
     if chain_commitment != prev_block_header.chain_commitment() {
         return Err(ProposedBlockError::ChainRootNotEqualToPreviousBlockChainCommitment {
             chain_commitment,
@@ -480,17 +483,17 @@ fn check_reference_block_chain_mmr_consistency(
     Ok(())
 }
 
-/// Check that each block referenced by a batch in the block has an entry in the chain MMR,
+/// Check that each block referenced by a batch in the block has an entry in the partial blockchain,
 /// except if the referenced block is the same as the previous block, referenced by the block.
 fn check_batch_reference_blocks(
-    chain_mmr: &ChainMmr,
+    partial_blockchain: &PartialBlockchain,
     prev_block_header: &BlockHeader,
     batches: &[ProvenBatch],
 ) -> Result<(), ProposedBlockError> {
     for batch in batches {
         let batch_reference_block_num = batch.reference_block_num();
         if batch_reference_block_num != prev_block_header.block_num()
-            && !chain_mmr.contains_block(batch.reference_block_num())
+            && !partial_blockchain.contains_block(batch.reference_block_num())
         {
             return Err(ProposedBlockError::BatchReferenceBlockMissingFromChain {
                 reference_block_num: batch.reference_block_num(),
@@ -652,13 +655,19 @@ impl AccountUpdateAggregator {
     /// chronological order using the state commitments to link them.
     fn aggregate_account(
         account_id: AccountId,
-        witness: AccountWitness,
+        initial_state_proof: AccountWitness,
         mut updates: BTreeMap<Digest, (BatchAccountUpdate, BatchId)>,
     ) -> Result<AccountUpdateWitness, ProposedBlockError> {
-        let (initial_state_commitment, initial_state_proof) = witness.into_parts();
+        // The account witness could prove inclusion of a different ID in which case the initial
+        // state commitment of the current ID is the empty word.
+        let initial_state_commitment = if account_id == initial_state_proof.id() {
+            initial_state_proof.state_commitment()
+        } else {
+            Digest::from(EMPTY_WORD)
+        };
+
         let mut details: Option<AccountUpdateDetails> = None;
 
-        let mut transactions = Vec::new();
         let mut current_commitment = initial_state_commitment;
         while !updates.is_empty() {
             let (update, _) = updates.remove(&current_commitment).ok_or_else(|| {
@@ -670,13 +679,12 @@ impl AccountUpdateAggregator {
             })?;
 
             current_commitment = update.final_state_commitment();
-            let (update_transactions, update_details) = update.into_parts();
-            transactions.extend(update_transactions);
+            let update_details = update.into_update();
 
             details = Some(match details {
                 None => update_details,
                 Some(details) => details.merge(update_details).map_err(|source| {
-                    ProposedBlockError::AccountUpdateError { account_id, source }
+                    ProposedBlockError::AccountUpdateError { account_id, source: Box::new(source) }
                 })?,
             });
         }
@@ -686,7 +694,6 @@ impl AccountUpdateAggregator {
             current_commitment,
             initial_state_proof,
             details.expect("details should be Some as updates is guaranteed to not be empty"),
-            transactions,
         ))
     }
 }

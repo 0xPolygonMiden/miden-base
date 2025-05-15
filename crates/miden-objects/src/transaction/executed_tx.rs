@@ -7,7 +7,6 @@ use super::{
     TransactionOutputs, TransactionWitness,
 };
 use crate::{
-    account::AccountCode,
     block::BlockNumber,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
@@ -30,7 +29,6 @@ pub struct ExecutedTransaction {
     id: OnceCell<TransactionId>,
     tx_inputs: TransactionInputs,
     tx_outputs: TransactionOutputs,
-    account_codes: Vec<AccountCode>,
     account_delta: AccountDelta,
     tx_args: TransactionArgs,
     advice_witness: AdviceInputs,
@@ -48,7 +46,6 @@ impl ExecutedTransaction {
     pub fn new(
         tx_inputs: TransactionInputs,
         tx_outputs: TransactionOutputs,
-        account_codes: Vec<AccountCode>,
         account_delta: AccountDelta,
         tx_args: TransactionArgs,
         advice_witness: AdviceInputs,
@@ -61,7 +58,6 @@ impl ExecutedTransaction {
             id: OnceCell::new(),
             tx_inputs,
             tx_outputs,
-            account_codes,
             account_delta,
             tx_args,
             advice_witness,
@@ -150,7 +146,6 @@ impl ExecutedTransaction {
             tx_inputs: self.tx_inputs,
             tx_args: self.tx_args,
             advice_witness: self.advice_witness,
-            account_codes: self.account_codes,
         };
         (self.account_delta, self.tx_outputs, tx_witness, self.tx_measurements)
     }
@@ -174,7 +169,6 @@ impl Serializable for ExecutedTransaction {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.tx_inputs.write_into(target);
         self.tx_outputs.write_into(target);
-        self.account_codes.write_into(target);
         self.account_delta.write_into(target);
         self.tx_args.write_into(target);
         self.advice_witness.write_into(target);
@@ -186,7 +180,6 @@ impl Deserializable for ExecutedTransaction {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let tx_inputs = TransactionInputs::read_from(source)?;
         let tx_outputs = TransactionOutputs::read_from(source)?;
-        let account_codes = Vec::<AccountCode>::read_from(source)?;
         let account_delta = AccountDelta::read_from(source)?;
         let tx_args = TransactionArgs::read_from(source)?;
         let advice_witness = AdviceInputs::read_from(source)?;
@@ -195,7 +188,6 @@ impl Deserializable for ExecutedTransaction {
         Ok(Self::new(
             tx_inputs,
             tx_outputs,
-            account_codes,
             account_delta,
             tx_args,
             advice_witness,

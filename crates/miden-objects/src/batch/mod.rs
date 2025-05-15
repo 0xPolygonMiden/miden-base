@@ -13,5 +13,8 @@ pub use proven_batch::ProvenBatch;
 mod proposed_batch;
 pub use proposed_batch::ProposedBatch;
 
+mod ordered_batches;
+pub use ordered_batches::OrderedBatches;
+
 mod input_output_note_tracker;
 pub(crate) use input_output_note_tracker::InputOutputNoteTracker;

@@ -95,7 +95,7 @@ impl AccountIdPrefixV0 {
 
     /// See [`AccountIdPrefix::is_public`](crate::account::AccountIdPrefix::is_public) for details.
     pub fn is_public(&self) -> bool {
-        self.storage_mode() == AccountStorageMode::Public
+        self.storage_mode().is_public()
     }
 
     /// See [`AccountIdPrefix::version`](crate::account::AccountIdPrefix::version) for details.

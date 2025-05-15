@@ -2,6 +2,8 @@ use clap::Parser;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+use crate::commands::PROXY_HOST;
+
 // ADD WORKERS
 // ================================================================================================
 
@@ -11,14 +13,11 @@ pub struct AddWorkers {
     /// Workers to be added to the proxy.
     ///
     /// The workers are passed as host:port strings.
-    #[clap(value_name = "WORKERS")]
+    #[arg(value_name = "WORKERS")]
     workers: Vec<String>,
-    /// Host of the proxy.
-    #[clap(long, default_value = "0.0.0.0", env = "MPS_HOST")]
-    proxy_host: String,
     /// Port of the proxy endpoint to update workers.
-    #[clap(long, default_value = "8083", env = "MPS_WORKERS_UPDATE_PORT")]
-    proxy_update_workers_port: u64,
+    #[arg(long, default_value = "8083", env = "MPS_CONTROL_PORT")]
+    control_port: u16,
 }
 
 // REMOVE WORKERS
@@ -31,12 +30,9 @@ pub struct RemoveWorkers {
     ///
     /// The workers are passed as host:port strings.
     workers: Vec<String>,
-    /// Host of the proxy.
-    #[clap(long, default_value = "0.0.0.0", env = "MPS_HOST")]
-    proxy_host: String,
     /// Port of the proxy endpoint to update workers.
-    #[clap(long, default_value = "8083", env = "MPS_WORKERS_UPDATE_PORT")]
-    proxy_update_workers_port: u64,
+    #[arg(long, default_value = "8083", env = "MPS_CONTROL_PORT")]
+    control_port: u16,
 }
 
 // UPDATE WORKERS
@@ -54,8 +50,7 @@ pub enum Action {
 pub struct UpdateWorkers {
     pub action: Action,
     pub workers: Vec<String>,
-    pub proxy_host: String,
-    pub proxy_update_workers_port: u64,
+    pub control_port: u16,
 }
 
 impl UpdateWorkers {
@@ -64,7 +59,7 @@ impl UpdateWorkers {
     /// It works by sending a GET request to the proxy with the query parameters. The query
     /// parameters are serialized from the struct fields.
     ///
-    /// It uses the host and port defined in the env vars or passed as parameter for the proxy.
+    /// It uses the URL defined in the env vars or passed as parameter for the proxy.
     ///
     /// The request will return the new number of workers in the X-Worker-Count header.
     ///
@@ -74,17 +69,12 @@ impl UpdateWorkers {
     /// - If the status code is not successful.
     /// - If the X-Worker-Count header is missing.
     pub async fn execute(&self) -> Result<(), String> {
-        // Define a runtime
-
         let query_params = serde_qs::to_string(&self).map_err(|err| err.to_string())?;
 
         println!("Action: {:?}, with workers: {:?}", self.action, self.workers);
 
-        // Create the full URL
-        let url = format!(
-            "http://{}:{}?{}",
-            self.proxy_host, self.proxy_update_workers_port, query_params
-        );
+        // Create the full URL with fixed host "0.0.0.0"
+        let url = format!("http://{}:{}?{}", PROXY_HOST, self.control_port, query_params);
 
         // Create an HTTP/2 client
         let client = Client::builder()
@@ -122,8 +112,7 @@ impl From<RemoveWorkers> for UpdateWorkers {
         UpdateWorkers {
             action: Action::Remove,
             workers: remove_workers.workers,
-            proxy_host: remove_workers.proxy_host,
-            proxy_update_workers_port: remove_workers.proxy_update_workers_port,
+            control_port: remove_workers.control_port,
         }
     }
 }
@@ -133,8 +122,7 @@ impl From<AddWorkers> for UpdateWorkers {
         UpdateWorkers {
             action: Action::Add,
             workers: add_workers.workers,
-            proxy_host: add_workers.proxy_host,
-            proxy_update_workers_port: add_workers.proxy_update_workers_port,
+            control_port: add_workers.control_port,
         }
     }
 }

@@ -1,5 +1,5 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
-use core::{iter, ops::Range};
+use core::ops::Range;
 
 use vm_core::{
     Felt, FieldElement,
@@ -30,6 +30,66 @@ pub mod toml;
 pub type TemplateRequirementsIter<'a> =
     Box<dyn Iterator<Item = (StorageValueName, PlaceholderTypeRequirement)> + 'a>;
 
+// IDENTIFIER
+// ================================================================================================
+
+/// An identifier for a storage entry field.
+///
+/// An identifier consists of a name that identifies the field, and an optional description.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FieldIdentifier {
+    /// A human-readable identifier for the template.
+    pub name: StorageValueName,
+    /// An optional description explaining the purpose of this template.
+    pub description: Option<String>,
+}
+
+impl FieldIdentifier {
+    /// Creates a new `FieldIdentifier` with the given name and no description.
+    pub fn with_name(name: StorageValueName) -> Self {
+        Self { name, description: None }
+    }
+
+    /// Creates a new `FieldIdentifier` with the given name and description.
+    pub fn with_description(name: StorageValueName, description: impl Into<String>) -> Self {
+        Self {
+            name,
+            description: Some(description.into()),
+        }
+    }
+
+    /// Returns the identifier name.
+    pub fn name(&self) -> &StorageValueName {
+        &self.name
+    }
+
+    /// Returns the identifier description.
+    pub fn description(&self) -> Option<&String> {
+        self.description.as_ref()
+    }
+}
+
+impl From<StorageValueName> for FieldIdentifier {
+    fn from(value: StorageValueName) -> Self {
+        FieldIdentifier::with_name(value)
+    }
+}
+
+impl Serializable for FieldIdentifier {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write(&self.name);
+        target.write(&self.description);
+    }
+}
+
+impl Deserializable for FieldIdentifier {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let name = StorageValueName::read_from(source)?;
+        let description = Option::<String>::read_from(source)?;
+        Ok(FieldIdentifier { name, description })
+    }
+}
+
 // STORAGE ENTRY
 // ================================================================================================
 
@@ -47,7 +107,7 @@ pub enum StorageEntry {
     Value {
         /// The numeric index of this map slot in the component's storage.
         slot: u8,
-        /// An description of a word, representing either a predefined value or a templated one.
+        /// A description of a word, representing either a predefined value or a templated one.
         word_entry: WordRepresentation,
     },
 
@@ -61,14 +121,10 @@ pub enum StorageEntry {
 
     /// A multi-slot entry, representing a single logical value across multiple slots.
     MultiSlot {
-        /// The human-readable name of this multi-slot entry.
-        name: StorageValueName,
-        /// An optional description for the slot, explaining its purpose.
-        description: Option<String>,
         /// The indices of the slots that form this multi-slot entry.
         slots: Range<u8>,
-        /// A list of values to fill the logical slot, with a length equal to the amount of slots.
-        values: Vec<[FeltRepresentation; 4]>,
+        /// A description of the values.
+        word_entries: MultiWordRepresentation,
     },
 }
 
@@ -82,16 +138,13 @@ impl StorageEntry {
     }
 
     pub fn new_multislot(
-        name: impl Into<StorageValueName>,
-        description: Option<String>,
+        identifier: FieldIdentifier,
         slots: Range<u8>,
         values: Vec<[FeltRepresentation; 4]>,
     ) -> Self {
         StorageEntry::MultiSlot {
-            name: name.into(),
-            description,
             slots,
-            values,
+            word_entries: MultiWordRepresentation::Value { identifier, values },
         }
     }
 
@@ -99,16 +152,17 @@ impl StorageEntry {
         match self {
             StorageEntry::Value { word_entry, .. } => word_entry.name(),
             StorageEntry::Map { map, .. } => Some(map.name()),
-            StorageEntry::MultiSlot { name, .. } => Some(name),
+            StorageEntry::MultiSlot { word_entries, .. } => match word_entries {
+                MultiWordRepresentation::Value { identifier, .. } => Some(&identifier.name),
+            },
         }
     }
 
     /// Returns the slot indices that the storage entry covers.
-    pub fn slot_indices(&self) -> Box<dyn Iterator<Item = u8> + '_> {
+    pub fn slot_indices(&self) -> Range<u8> {
         match self {
-            StorageEntry::MultiSlot { slots, .. } => Box::new(slots.clone()),
-            StorageEntry::Value { slot, .. } => Box::new(iter::once(*slot)),
-            StorageEntry::Map { slot, .. } => Box::new(iter::once(*slot)),
+            StorageEntry::MultiSlot { slots, .. } => slots.clone(),
+            StorageEntry::Value { slot, .. } | StorageEntry::Map { slot, .. } => *slot..*slot + 1,
         }
     }
 
@@ -119,11 +173,14 @@ impl StorageEntry {
             StorageEntry::Value { word_entry, .. } => {
                 word_entry.template_requirements(StorageValueName::empty())
             },
-            StorageEntry::Map { map: map_entries, .. } => map_entries.template_requirements(),
-            StorageEntry::MultiSlot { values, name, .. } => {
-                Box::new(values.iter().flat_map(move |word| {
-                    word.iter().flat_map(move |f| f.template_requirements(name.clone()))
-                }))
+            StorageEntry::Map { map, .. } => map.template_requirements(),
+            StorageEntry::MultiSlot { word_entries, .. } => match word_entries {
+                MultiWordRepresentation::Value { identifier, values } => {
+                    Box::new(values.iter().flat_map(move |word| {
+                        word.iter()
+                            .flat_map(move |f| f.template_requirements(identifier.name.clone()))
+                    }))
+                },
             },
         }
     }
@@ -147,23 +204,31 @@ impl StorageEntry {
                     word_entry.try_build_word(init_storage_data, StorageValueName::empty())?;
                 Ok(vec![StorageSlot::Value(slot)])
             },
-            StorageEntry::Map { map: values, .. } => {
-                let storage_map = values.try_build_map(init_storage_data)?;
+            StorageEntry::Map { map, .. } => {
+                let storage_map = map.try_build_map(init_storage_data)?;
                 Ok(vec![StorageSlot::Map(storage_map)])
             },
-            StorageEntry::MultiSlot { values, name, .. } => Ok(values
-                .iter()
-                .map(|word_repr| {
-                    let mut result = [Felt::ZERO; 4];
+            StorageEntry::MultiSlot { word_entries, .. } => {
+                match word_entries {
+                    MultiWordRepresentation::Value { identifier, values } => {
+                        Ok(values
+                            .iter()
+                            .map(|word_repr| {
+                                let mut result = [Felt::ZERO; 4];
 
-                    for (index, felt_repr) in word_repr.iter().enumerate() {
-                        result[index] =
-                            felt_repr.try_build_felt(init_storage_data, name.clone())?;
-                    }
-                    // SAFETY: result is guaranteed to have all its 4 indices rewritten
-                    Ok(StorageSlot::Value(result))
-                })
-                .collect::<Result<Vec<StorageSlot>, _>>()?),
+                                for (index, felt_repr) in word_repr.iter().enumerate() {
+                                    result[index] = felt_repr.try_build_felt(
+                                        init_storage_data,
+                                        identifier.name.clone(),
+                                    )?;
+                                }
+                                // SAFETY: result is guaranteed to have all its 4 indices rewritten
+                                Ok(StorageSlot::Value(result))
+                            })
+                            .collect::<Result<Vec<StorageSlot>, _>>()?)
+                    },
+                }
+            },
         }
     }
 
@@ -171,21 +236,16 @@ impl StorageEntry {
     pub(super) fn validate(&self) -> Result<(), AccountComponentTemplateError> {
         match self {
             StorageEntry::Map { map, .. } => map.validate(),
-            StorageEntry::MultiSlot { slots, values, .. } => {
+            StorageEntry::MultiSlot { slots, word_entries, .. } => {
                 if slots.len() == 1 {
                     return Err(AccountComponentTemplateError::MultiSlotSpansOneSlot);
                 }
 
-                if slots.len() != values.len() {
+                if slots.len() != word_entries.num_words() {
                     return Err(AccountComponentTemplateError::MultiSlotArityMismatch);
                 }
 
-                for slot_word in values {
-                    for felt_in_slot in slot_word {
-                        felt_in_slot.validate()?;
-                    }
-                }
-                Ok(())
+                word_entries.validate()
             },
             StorageEntry::Value { word_entry, .. } => Ok(word_entry.validate()?),
         }
@@ -203,18 +263,16 @@ impl Serializable for StorageEntry {
                 target.write_u8(*slot);
                 target.write(word_entry);
             },
-            StorageEntry::Map { slot, map, .. } => {
+            StorageEntry::Map { slot, map } => {
                 target.write_u8(1u8);
                 target.write_u8(*slot);
                 target.write(map);
             },
-            StorageEntry::MultiSlot { name, description, slots, values } => {
+            StorageEntry::MultiSlot { word_entries, slots } => {
                 target.write_u8(2u8);
-                target.write(name);
-                target.write(description);
+                target.write(word_entries);
                 target.write(slots.start);
                 target.write(slots.end);
-                target.write(values);
             },
         }
     }
@@ -235,16 +293,12 @@ impl Deserializable for StorageEntry {
                 Ok(StorageEntry::Map { slot, map })
             },
             2 => {
-                let name: StorageValueName = source.read()?;
-                let description: Option<String> = source.read()?;
+                let word_entries: MultiWordRepresentation = source.read()?;
                 let slots_start: u8 = source.read()?;
                 let slots_end: u8 = source.read()?;
-                let values: Vec<[FeltRepresentation; 4]> = source.read()?;
                 Ok(StorageEntry::MultiSlot {
-                    name,
-                    description,
                     slots: slots_start..slots_end,
-                    values,
+                    word_entries,
                 })
             },
             _ => Err(DeserializationError::InvalidValue(format!(
@@ -315,8 +369,8 @@ impl Deserializable for MapEntry {
 
 #[cfg(test)]
 mod tests {
+    use alloc::{collections::BTreeSet, string::ToString};
     use core::{error::Error, panic};
-    use std::string::ToString;
 
     use assembly::Assembler;
     use semver::Version;
@@ -330,9 +384,12 @@ mod tests {
         account::{
             AccountComponent, AccountComponentTemplate, AccountType, FeltRepresentation,
             StorageEntry, StorageSlot, TemplateTypeError, WordRepresentation,
-            component::template::{
-                AccountComponentMetadata, InitStorageData, MapEntry, MapRepresentation,
-                StorageValueName, storage::placeholder::TemplateType,
+            component::{
+                FieldIdentifier,
+                template::{
+                    AccountComponentMetadata, InitStorageData, MapEntry, MapRepresentation,
+                    StorageValueName, storage::placeholder::TemplateType,
+                },
             },
         },
         digest,
@@ -361,7 +418,7 @@ mod tests {
                 MapEntry {
                     key: WordRepresentation::new_template(
                         TemplateType::native_word(),
-                        StorageValueName::new("foo").unwrap(),
+                        StorageValueName::new("foo").unwrap().into(),
                     ),
                     value: WordRepresentation::new_value(test_word.clone(), None),
                 },
@@ -369,16 +426,14 @@ mod tests {
                     key: WordRepresentation::new_value(test_word.clone(), None),
                     value: WordRepresentation::new_template(
                         TemplateType::native_word(),
-                        StorageValueName::new("bar").unwrap(),
-                    )
-                    .with_description("bar description"),
+                        StorageValueName::new("bar").unwrap().into(),
+                    ),
                 },
                 MapEntry {
                     key: WordRepresentation::new_template(
                         TemplateType::native_word(),
-                        StorageValueName::new("baz").unwrap(),
-                    )
-                    .with_description("baz description"),
+                        StorageValueName::new("baz").unwrap().into(),
+                    ),
                     value: WordRepresentation::new_value(test_word, None),
                 },
             ],
@@ -390,8 +445,10 @@ mod tests {
             StorageEntry::new_value(0, felt_array.clone()),
             StorageEntry::new_map(1, map_representation),
             StorageEntry::new_multislot(
-                StorageValueName::new("multi").unwrap(),
-                Some("Multi slot entry".into()),
+                FieldIdentifier::with_description(
+                    StorageValueName::new("multi").unwrap(),
+                    "Multi slot entry",
+                ),
                 2..4,
                 vec![
                     [
@@ -419,7 +476,7 @@ mod tests {
                 4,
                 WordRepresentation::new_template(
                     TemplateType::native_word(),
-                    StorageValueName::new("single").unwrap(),
+                    StorageValueName::new("single").unwrap().into(),
                 ),
             ),
         ];
@@ -428,7 +485,7 @@ mod tests {
             name: "Test Component".into(),
             description: "This is a test component".into(),
             version: Version::parse("1.0.0").unwrap(),
-            supported_types: std::collections::BTreeSet::from([AccountType::FungibleFaucet]),
+            supported_types: BTreeSet::from([AccountType::FungibleFaucet]),
             storage,
         };
         let toml = config.as_toml().unwrap();
@@ -734,10 +791,15 @@ mod tests {
 
         let metadata = AccountComponentMetadata::from_toml(toml_text).unwrap();
         match &metadata.storage_entries()[0] {
-            StorageEntry::MultiSlot { name, slots, values, .. } => {
-                assert_eq!(name.as_str(), "multi_slot_example");
-                assert_eq!(slots, &(0..3));
-                assert_eq!(values.len(), 3);
+            StorageEntry::MultiSlot { slots, word_entries } => match word_entries {
+                crate::account::component::template::MultiWordRepresentation::Value {
+                    identifier,
+                    values,
+                } => {
+                    assert_eq!(identifier.name.as_str(), "multi_slot_example");
+                    assert_eq!(slots, &(0..3));
+                    assert_eq!(values.len(), 3);
+                },
             },
             _ => panic!("expected multislot"),
         }
