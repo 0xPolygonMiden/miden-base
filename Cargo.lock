@@ -1875,6 +1875,7 @@ dependencies = [
 name = "miden-bench-tx"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "miden-lib",
  "miden-objects",
  "miden-processor",

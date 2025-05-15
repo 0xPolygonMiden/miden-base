@@ -13,6 +13,8 @@ The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), w
 ## Debian Installation
 
 #### Prover
+
+Install the Debian package:
 ```bash
 set -e
 
@@ -22,9 +24,12 @@ sudo sha256sum prover.deb | awk '{print $1}' > prover.sha256
 sudo diff prover.sha256 prover.checksum
 sudo dpkg -i prover.deb
 sudo rm prover.deb
+```
 
-sudo chown -R miden-prover /opt/miden-prover
+Edit the configuration file `/lib/systemd/system/miden-prover.service.env`
 
+Run the service:
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable miden-prover
 sudo systemctl start miden-prover
@@ -40,9 +45,14 @@ sudo sha256sum prover-proxy.deb | awk '{print $1}' > prover-proxy.sha256
 sudo diff prover-proxy.sha256 prover-proxy.checksum
 sudo dpkg -i prover-proxy.deb
 sudo rm prover-proxy.deb
+```
 
-sudo chown -R miden-prover-proxy /opt/miden-prover-proxy
+Edit the configuration file `/lib/systemd/system/miden-prover-proxy.service.env`
 
+Edit the service file to specify workers `/lib/systemd/system/miden-prover-proxy.service`
+
+Run the service:
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable miden-prover-proxy
 sudo systemctl start miden-prover-proxy
