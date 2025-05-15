@@ -28,7 +28,6 @@ impl MockAccount {
         MockAccount { account, seed, authenticator }
     }
 
-    #[allow(dead_code)]
     pub fn apply_delta(&mut self, delta: &AccountDelta) -> Result<(), AccountError> {
         self.account.apply_delta(delta)
     }
@@ -41,7 +40,7 @@ impl MockAccount {
         self.seed.as_ref()
     }
 
-    pub fn authenticator(&self) -> &Option<BasicAuthenticator<ChaCha20Rng>> {
-        &self.authenticator
+    pub fn authenticator(&self) -> Option<&BasicAuthenticator<ChaCha20Rng>> {
+        self.authenticator.as_ref()
     }
 }

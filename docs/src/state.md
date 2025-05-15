@@ -1,6 +1,6 @@
 # State
 
-The `State` describes the current condition of all accounts, notes, nullifiers and their statuses. Reflecting the “current reality” of the protocol at any given time.
+The `State` describes the current condition of all accounts, notes, nullifiers and their statuses. Reflecting the "current reality" of the protocol at any given time.
 
 ## What is the purpose of the Miden state model?
 

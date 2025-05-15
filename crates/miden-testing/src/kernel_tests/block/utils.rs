@@ -3,24 +3,19 @@ use std::{collections::BTreeMap, vec, vec::Vec};
 use miden_crypto::rand::RpoRandomCoin;
 use miden_lib::{note::create_p2id_note, transaction::TransactionKernel};
 use miden_objects::{
-    self, Felt,
-    account::{Account, AccountId, delta::AccountUpdateDetails},
+    Felt,
+    account::{Account, AccountId, AccountStorageMode},
     asset::{Asset, FungibleAsset},
     batch::ProvenBatch,
-    block::{BlockHeader, BlockNumber},
+    block::BlockNumber,
     note::{Note, NoteId, NoteTag, NoteType},
     testing::{account_component::AccountMockComponent, note::NoteBuilder},
-    transaction::{
-        ExecutedTransaction, OutputNote, ProvenTransaction, ProvenTransactionBuilder,
-        TransactionScript,
-    },
+    transaction::{ExecutedTransaction, OutputNote, ProvenTransaction, TransactionScript},
     utils::word_to_masm_push_string,
-    vm::ExecutionProof,
 };
 use rand::{Rng, SeedableRng, rngs::SmallRng};
-use winterfell::Proof;
 
-use crate::{AccountState, Auth, MockChain};
+use crate::{AccountState, Auth, MockChain, TxContextInput, mock_chain::ProvenTransactionExt};
 
 pub struct TestSetup {
     pub chain: MockChain,
@@ -29,10 +24,12 @@ pub struct TestSetup {
 }
 
 pub fn generate_account(chain: &mut MockChain) -> Account {
-    let account_builder = Account::builder(rand::rng().random()).with_component(
-        AccountMockComponent::new_with_empty_slots(TransactionKernel::assembler()).unwrap(),
-    );
-    chain.add_from_account_builder(Auth::NoAuth, account_builder, AccountState::Exists)
+    let account_builder = Account::builder(rand::rng().random())
+        .storage_mode(AccountStorageMode::Public)
+        .with_component(
+            AccountMockComponent::new_with_empty_slots(TransactionKernel::assembler()).unwrap(),
+        );
+    chain.add_pending_account_from_builder(Auth::NoAuth, account_builder, AccountState::Exists)
 }
 
 pub fn generate_tracked_note(
@@ -126,12 +123,12 @@ pub fn generate_fungible_asset(amount: u64, faucet_id: AccountId) -> Asset {
 }
 
 pub fn generate_executed_tx_with_authenticated_notes(
-    chain: &mut MockChain,
-    account: AccountId,
+    chain: &MockChain,
+    input: impl Into<TxContextInput>,
     notes: &[NoteId],
 ) -> ExecutedTransaction {
     let tx_context = chain
-        .build_tx_context(account, notes, &[])
+        .build_tx_context(input, notes, &[])
         .tx_script(authenticate_mock_account_tx_script(u16::MAX))
         .build();
     tx_context.execute().unwrap()
@@ -143,7 +140,7 @@ pub fn generate_tx_with_authenticated_notes(
     notes: &[NoteId],
 ) -> ProvenTransaction {
     let executed_tx = generate_executed_tx_with_authenticated_notes(chain, account_id, notes);
-    ProvenTransaction::from_executed_transaction_mocked(executed_tx, &chain.latest_block_header())
+    ProvenTransaction::from_executed_transaction_mocked(executed_tx)
 }
 
 /// Generates a transaction that expires at the given block number.
@@ -161,7 +158,7 @@ pub fn generate_tx_with_expiration(
         .tx_script(authenticate_mock_account_tx_script(expiration_delta.as_u32() as u16))
         .build();
     let executed_tx = tx_context.execute().unwrap();
-    ProvenTransaction::from_executed_transaction_mocked(executed_tx, &chain.latest_block_header())
+    ProvenTransaction::from_executed_transaction_mocked(executed_tx)
 }
 
 pub fn generate_tx_with_unauthenticated_notes(
@@ -174,7 +171,7 @@ pub fn generate_tx_with_unauthenticated_notes(
         .tx_script(authenticate_mock_account_tx_script(u16::MAX))
         .build();
     let executed_tx = tx_context.execute().unwrap();
-    ProvenTransaction::from_executed_transaction_mocked(executed_tx, &chain.latest_block_header())
+    ProvenTransaction::from_executed_transaction_mocked(executed_tx)
 }
 
 fn authenticate_mock_account_tx_script(expiration_delta: u16) -> TransactionScript {
@@ -227,7 +224,7 @@ pub fn setup_chain(num_accounts: usize) -> TestSetup {
         notes.insert(i, note);
     }
 
-    chain.seal_next_block();
+    chain.prove_next_block();
 
     for i in 0..num_accounts {
         let tx =
@@ -236,48 +233,4 @@ pub fn setup_chain(num_accounts: usize) -> TestSetup {
     }
 
     TestSetup { chain, accounts, txs }
-}
-
-pub trait ProvenTransactionExt {
-    fn from_executed_transaction_mocked(
-        executed_tx: ExecutedTransaction,
-        block_reference: &BlockHeader,
-    ) -> ProvenTransaction;
-}
-
-impl ProvenTransactionExt for ProvenTransaction {
-    fn from_executed_transaction_mocked(
-        executed_tx: ExecutedTransaction,
-        block_reference: &BlockHeader,
-    ) -> ProvenTransaction {
-        let account_delta = executed_tx.account_delta().clone();
-        let initial_account = executed_tx.initial_account().clone();
-        let account_update_details = if initial_account.is_public() {
-            if initial_account.is_new() {
-                let mut account = initial_account;
-                account.apply_delta(&account_delta).expect("account delta should be applyable");
-
-                AccountUpdateDetails::New(account)
-            } else {
-                AccountUpdateDetails::Delta(account_delta)
-            }
-        } else {
-            AccountUpdateDetails::Private
-        };
-
-        ProvenTransactionBuilder::new(
-            executed_tx.account_id(),
-            executed_tx.initial_account().init_commitment(),
-            executed_tx.final_account().commitment(),
-            block_reference.block_num(),
-            block_reference.commitment(),
-            executed_tx.expiration_block_num(),
-            ExecutionProof::new(Proof::new_dummy(), Default::default()),
-        )
-        .add_input_notes(executed_tx.input_notes())
-        .add_output_notes(executed_tx.output_notes().iter().cloned())
-        .account_update_details(account_update_details)
-        .build()
-        .unwrap()
-    }
 }

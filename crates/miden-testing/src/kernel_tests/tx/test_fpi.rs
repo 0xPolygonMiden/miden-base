@@ -93,7 +93,7 @@ fn test_fpi_memory() {
 
     let mut mock_chain =
         MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
     let fpi_inputs = mock_chain.get_foreign_account_inputs(foreign_account.id());
 
     let tx_context = mock_chain
@@ -356,7 +356,7 @@ fn test_fpi_memory_two_accounts() {
         foreign_account_1.clone(),
         foreign_account_2.clone(),
     ]);
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
     let foreign_account_inputs_1 = mock_chain.get_foreign_account_inputs(foreign_account_1.id());
 
     let foreign_account_inputs_2 = mock_chain.get_foreign_account_inputs(foreign_account_2.id());
@@ -549,7 +549,7 @@ fn test_fpi_execute_foreign_procedure() {
 
     let mut mock_chain =
         MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     let code = format!(
         "
@@ -769,7 +769,7 @@ fn test_nested_fpi_cyclic_invocation() {
         first_foreign_account.clone(),
         second_foreign_account.clone(),
     ]);
-    mock_chain.seal_block(None, None);
+    mock_chain.prove_next_block();
     let foreign_account_inputs = vec![
         mock_chain.get_foreign_account_inputs(first_foreign_account.id()),
         mock_chain.get_foreign_account_inputs(second_foreign_account.id()),
@@ -955,7 +955,7 @@ fn test_nested_fpi_stack_overflow() {
                 &[vec![native_account.clone()], foreign_accounts.clone()].concat(),
             );
 
-            mock_chain.seal_block(None, None);
+            mock_chain.prove_next_block();
 
             let foreign_accounts: Vec<ForeignAccountInputs> = foreign_accounts
                 .iter()
@@ -1071,7 +1071,7 @@ fn test_nested_fpi_native_account_invocation() {
 
     let mut mock_chain =
         MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
-    mock_chain.seal_block(None, None);
+    mock_chain.prove_next_block();
     let foreign_account_inputs = mock_chain.get_foreign_account_inputs(foreign_account.id());
 
     // push the hash of the native procedure and native account IDs to the advice stack to be able
@@ -1127,7 +1127,7 @@ fn test_nested_fpi_native_account_invocation() {
     let err = tx_context.execute().unwrap_err();
 
     let TransactionExecutorError::TransactionProgramExecutionFailed(err) = err else {
-        panic!("unexpected error")
+        panic!("unexpected error: {err}")
     };
 
     assert_execution_error!(Err::<(), _>(err), ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT);
@@ -1174,7 +1174,7 @@ fn test_fpi_stale_account() {
 
     let mut mock_chain =
         MockChain::with_accounts(&[native_account.clone(), foreign_account.clone()]);
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // Make the foreign account invalid.
     // --------------------------------------------------------------------------------------------

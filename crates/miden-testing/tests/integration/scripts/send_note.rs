@@ -19,7 +19,7 @@ use miden_testing::{Auth, MockChain};
 fn test_send_note_script_basic_wallet() {
     let mut mock_chain = MockChain::new();
     let sender_basic_wallet_account =
-        mock_chain.add_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(100)]);
+        mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![FungibleAsset::mock(100)]);
 
     let sender_account_interface = AccountInterface::from(&sender_basic_wallet_account);
 
@@ -65,7 +65,7 @@ fn test_send_note_script_basic_wallet() {
 fn test_send_note_script_basic_fungible_faucet() {
     let mut mock_chain = MockChain::new();
     let sender_basic_fungible_faucet_account =
-        mock_chain.add_existing_faucet(Auth::BasicAuth, "POL", 200, None);
+        mock_chain.add_pending_existing_faucet(Auth::BasicAuth, "POL", 200, None);
 
     let sender_account_interface =
         AccountInterface::from(sender_basic_fungible_faucet_account.account());

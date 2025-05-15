@@ -64,6 +64,9 @@ const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x00020043
 # New account must have a zero nonce
 const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x00020046
 
+# Number of note inputs exceeded the maximum limit of 128
+const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002004e
+
 # PUBLIC INPUTS
 # =================================================================================================
 
@@ -682,6 +685,33 @@ proc.process_note_args_and_metadata
     # => [NOTE_METADATA]
 end
 
+#! Checks that the number of note inputs is within limit and stores it to memory.
+#!
+#! Inputs:
+#!   Operand stack: [note_ptr]
+#!   Advice stack: [inputs_len]
+#! Outputs:
+#!   Operand stack: [note_ptr]
+#!   Advice stack: []
+#!
+#! Where:
+#! - note_ptr is the memory location for the input note.
+#! - inputs_len is the note's input count.
+proc.process_note_inputs_length
+    # move the inputs length from the advice stack to the operand stack
+    adv_push.1
+    # => [inputs_len, note_ptr]
+
+    # validate the input length
+    dup exec.::kernel::util::note::get_max_inputs_per_note lte
+    assert.err=ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT
+    # => [inputs_len, note_ptr]
+
+    # store the inputs length into the memory
+    dup.1 exec.memory::set_input_note_num_inputs
+    # => [note_ptr]
+end
+
 #! Copies the note's assets from the advice stack to memory and verifies the commitment.
 #!
 #! Inputs:
@@ -913,6 +943,12 @@ proc.process_input_note
     movup.4
     # => [note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
+    # note inputs len
+    # ---------------------------------------------------------------------------------------------
+
+    exec.process_note_inputs_length
+    # => [note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
+    
     # note assets
     # ---------------------------------------------------------------------------------------------
 

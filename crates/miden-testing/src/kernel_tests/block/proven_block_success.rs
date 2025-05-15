@@ -47,7 +47,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     chain.add_pending_note(OutputNote::Full(input_note1.clone()));
     chain.add_pending_note(OutputNote::Full(input_note2.clone()));
     chain.add_pending_note(OutputNote::Full(input_note3.clone()));
-    chain.seal_next_block();
+    chain.prove_next_block();
 
     let tx0 = generate_tx_with_authenticated_notes(&mut chain, account0.id(), &[input_note0.id()]);
     let tx1 = generate_tx_with_authenticated_notes(&mut chain, account1.id(), &[input_note1.id()]);
@@ -93,7 +93,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // Compute expected nullifier root on the full SMT.
     // --------------------------------------------------------------------------------------------
 
-    let mut expected_nullifier_tree = chain.nullifiers().clone();
+    let mut expected_nullifier_tree = chain.nullifier_tree().clone();
     for nullifier in proposed_block.created_nullifiers().keys() {
         expected_nullifier_tree
             .mark_spent(*nullifier, proposed_block.block_num())
@@ -103,7 +103,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // Compute expected account root on the full account tree.
     // --------------------------------------------------------------------------------------------
 
-    let mut expected_account_tree = chain.accounts().clone();
+    let mut expected_account_tree = chain.account_tree().clone();
     for (account_id, witness) in proposed_block.updated_accounts() {
         expected_account_tree
             .insert(*account_id, witness.final_state_commitment())
@@ -129,7 +129,7 @@ fn proven_block_success() -> anyhow::Result<()> {
     // PartialBlockchain with chain length 2 when the prev block (block2) is added.
     assert_eq!(
         proven_block.header().chain_commitment(),
-        chain.block_chain().peaks().hash_peaks()
+        chain.blockchain().peaks().hash_peaks()
     );
 
     assert_eq!(proven_block.header().note_root(), expected_block_note_tree.root());
@@ -216,7 +216,7 @@ fn proven_block_erasing_unauthenticated_notes() -> anyhow::Result<()> {
     chain.add_pending_note(OutputNote::Full(note0.clone()));
     chain.add_pending_note(OutputNote::Full(note2.clone()));
     chain.add_pending_note(OutputNote::Full(note3.clone()));
-    chain.seal_next_block();
+    chain.prove_next_block();
 
     let tx0 = generate_tx_with_authenticated_notes(&mut chain, account0.id(), &[note0.id()]);
     let tx1 =
@@ -343,16 +343,14 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     // Add notes to the chain we can consume.
     let note0 = generate_tracked_note(&mut chain, account1.id(), account0.id());
     let note1 = generate_tracked_note(&mut chain, account0.id(), account1.id());
-    chain.seal_next_block();
+    chain.prove_next_block();
 
-    let tx0 =
-        generate_executed_tx_with_authenticated_notes(&mut chain, account0.id(), &[note0.id()]);
-    let tx1 =
-        generate_executed_tx_with_authenticated_notes(&mut chain, account1.id(), &[note1.id()]);
+    let tx0 = generate_executed_tx_with_authenticated_notes(&chain, account0.id(), &[note0.id()]);
+    let tx1 = generate_executed_tx_with_authenticated_notes(&chain, account1.id(), &[note1.id()]);
 
-    chain.apply_executed_transaction(&tx0);
-    chain.apply_executed_transaction(&tx1);
-    let blockx = chain.seal_next_block();
+    chain.add_pending_executed_transaction(&tx0);
+    chain.add_pending_executed_transaction(&tx1);
+    let blockx = chain.prove_next_block();
 
     // Build a block with empty inputs whose account tree and nullifier tree root are not the empty
     // roots.
@@ -400,7 +398,7 @@ fn proven_block_succeeds_with_empty_batches() -> anyhow::Result<()> {
     // The previous block header should have been added to the chain.
     assert_eq!(
         proven_block.header().chain_commitment(),
-        chain.block_chain().peaks().hash_peaks()
+        chain.blockchain().peaks().hash_peaks()
     );
     assert_eq!(proven_block.header().block_num(), latest_block_header.block_num() + 1);
 

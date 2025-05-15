@@ -1,3 +1,4 @@
+use anyhow::Context;
 use miden_lib::errors::note_script_errors::{
     ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER, ERR_P2IDR_RECLAIM_HEIGHT_NOT_REACHED,
 };
@@ -12,17 +13,17 @@ use miden_testing::{Auth, MockChain};
 use crate::assert_transaction_executor_error;
 
 #[test]
-fn p2idr_script() {
+fn p2idr_script() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(Some(3), None);
+    mock_chain.prove_until_block(3u32).context("failed to prove multiple blocks")?;
 
     // Create assets
     let fungible_asset: Asset = FungibleAsset::mock(100);
 
     // Create sender and target and malicious account
-    let sender_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    let target_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    let malicious_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
+    let sender_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
+    let target_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
+    let malicious_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
 
     // Create the reclaim block heights
     let reclaim_block_height_in_time = 7.into();
@@ -30,7 +31,7 @@ fn p2idr_script() {
 
     // Create the notes with the P2IDR script
     let note_in_time = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             sender_account.id(),
             target_account.id(),
             &[fungible_asset],
@@ -40,7 +41,7 @@ fn p2idr_script() {
         .unwrap();
 
     let note_reclaimable = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             sender_account.id(),
             target_account.id(),
             &[fungible_asset],
@@ -49,7 +50,7 @@ fn p2idr_script() {
         )
         .unwrap();
 
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // --------------------------------------------------------------------------------------------
     // Case "in time": Only the target account can consume the note.
@@ -126,4 +127,6 @@ fn p2idr_script() {
         executed_transaction_6,
         ERR_P2IDR_RECLAIM_ACCT_IS_NOT_SENDER
     );
+
+    Ok(())
 }

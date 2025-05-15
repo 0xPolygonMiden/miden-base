@@ -70,7 +70,7 @@ An `Account` ID can be encoded in different formats:
 Every Miden `Account` is essentially a smart contract. The `Code` component defines the account’s functions, which can be invoked through both [Note scripts](note.md#script) and [transaction scripts](transaction.md#inputs). Key characteristics include:
 
 - **Mutable access:** Only the `Account`’s own functions can modify its storage and vault. All state changes—such as updating storage slots, incrementing the nonce, or transferring assets—must occur through these functions.
-- **Function commitment:** Each function can be called by its [MAST](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) root. The root represents the underlying code tree as a 32-byte commitment. This ensures integrity, i.e., the caller calls what he expects.
+- **Function commitment:** Each function can be called by its [MAST](https://0xMiden.github.io/miden-vm/user_docs/assembly/main.html) root. The root represents the underlying code tree as a 32-byte commitment. This ensures integrity, i.e., the caller calls what he expects.
 - **Note creation:** `Account` functions can generate new notes.
 
 ### Storage
@@ -143,7 +143,10 @@ Type and mutability are encoded in the two most significant bits of the `Account
 Users can choose whether their `Account`s are stored publicly or privately. The preference is encoded in the third and forth most significant bits of the `Account`s [ID](#id):
 
 - **Public `Account`s:**
-  The `Account`’s state is stored on-chain, similar to how `Account`s are stored in public blockchains like Ethereum. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be public.
+  The `Account`'s state is stored on-chain, similar to how `Account`s are stored in public blockchains like Ethereum.
+
+- **Network `Account`s:**
+  The `Account`’s state is stored on-chain, just like **Public** accounts. Additionally, the network will monitor this account for any public notes targetted at it and attempt to create network transactions against the account, which consume the notes. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be network accounts.
 
 - **Private `Account`s:**
   Only a commitment (hash) to the `Account`’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.

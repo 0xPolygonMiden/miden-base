@@ -34,7 +34,7 @@ use rand_chacha::ChaCha20Rng;
 use vm_processor::{AdviceInputs, Felt, Word};
 
 use super::TransactionContext;
-use crate::MockChain;
+use crate::{MockChain, MockChainNote};
 
 pub type MockAuthenticator = BasicAuthenticator<ChaCha20Rng>;
 
@@ -641,11 +641,11 @@ impl TransactionContextBuilder {
                     mock_chain.add_pending_note(OutputNote::Full(i));
                 }
 
-                mock_chain.seal_next_block();
-                mock_chain.seal_next_block();
+                mock_chain.prove_next_block();
+                mock_chain.prove_next_block();
 
                 let input_note_ids: Vec<NoteId> =
-                    mock_chain.available_notes().iter().map(|n| n.id()).collect();
+                    mock_chain.committed_notes().values().map(MockChainNote::id).collect();
 
                 mock_chain.get_transaction_inputs(
                     self.account.clone(),

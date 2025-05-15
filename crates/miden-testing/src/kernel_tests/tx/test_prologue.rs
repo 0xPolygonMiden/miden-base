@@ -31,7 +31,7 @@ use miden_lib::{
 use miden_objects::{
     account::{
         Account, AccountBuilder, AccountId, AccountIdAnchor, AccountIdVersion,
-        AccountProcedureInfo, AccountStorageMode, AccountType, NetworkAccount, StorageSlot,
+        AccountProcedureInfo, AccountStorageMode, AccountType, StorageSlot,
     },
     block::{BlockHeader, BlockNumber},
     testing::{
@@ -236,11 +236,15 @@ fn partial_blockchain_memory_assertions(process: &Process, prepared_tx: &Transac
 
     for (i, peak) in partial_blockchain.peaks().peaks().iter().enumerate() {
         // The peaks should be stored at the PARTIAL_BLOCKCHAIN_PEAKS_PTR
-        let i: u32 = i.try_into().expect(
+        let peak_idx: u32 = i.try_into().expect(
             "Number of peaks is log2(number_of_leaves), this value won't be larger than 2**32",
         );
+        let word_aligned_peak_idx = peak_idx * 4;
         assert_eq!(
-            read_root_mem_word(&process.into(), PARTIAL_BLOCKCHAIN_PEAKS_PTR + i),
+            read_root_mem_word(
+                &process.into(),
+                PARTIAL_BLOCKCHAIN_PEAKS_PTR + word_aligned_peak_idx
+            ),
             Word::from(peak)
         );
     }
@@ -499,9 +503,12 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
 
     // Seal one more block to test the case where the transaction reference block is not the anchor
     // block.
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
-    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)?;
+
+    // Test account creation with network storage mode.
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Network)
 }
 
 /// Tests that a valid account of each type can be created successfully with an epoch block whose
@@ -511,7 +518,9 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
 #[test]
 pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_block(Some(1 << 16), None);
+    mock_chain
+        .prove_until_block(1u32 << 16)
+        .context("failed to prove multiple blocks")?;
 
     // Choose epoch block 1 whose block number is 2^16 as the anchor block.
     // Here the transaction reference block is also the anchor block.
@@ -521,7 +530,7 @@ pub fn create_accounts_with_non_zero_anchor_block() -> anyhow::Result<()> {
 
     // Seal one more block to test the case where the transaction reference block is not the anchor
     // block.
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     create_multiple_accounts_test(&mock_chain, &epoch1_block_header, AccountStorageMode::Public)
 }
@@ -537,7 +546,6 @@ fn compute_valid_account_id(
         init_seed,
         account.account_type(),
         AccountStorageMode::Public,
-        NetworkAccount::Disabled,
         AccountIdVersion::Version0,
         account.code().commitment(),
         account.storage().commitment(),
@@ -567,7 +575,7 @@ fn compute_valid_account_id(
 #[test]
 pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
@@ -591,7 +599,7 @@ pub fn create_account_fungible_faucet_invalid_initial_balance() -> anyhow::Resul
 #[test]
 pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 
@@ -617,7 +625,7 @@ pub fn create_account_non_fungible_faucet_invalid_initial_reserved_slot() -> any
 #[test]
 pub fn create_account_invalid_seed() {
     let mut mock_chain = MockChain::new();
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     let genesis_block_header = mock_chain.block_header(BlockNumber::GENESIS.as_usize());
 

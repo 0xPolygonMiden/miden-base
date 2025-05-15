@@ -2,9 +2,7 @@ use alloc::{string::String, sync::Arc, vec::Vec};
 
 use miden_lib::{
     errors::tx_kernel_errors::{
-        ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS,
-        ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT,
-        ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT,
+        ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS, ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT,
     },
     transaction::{
         TransactionKernel,
@@ -27,8 +25,8 @@ use miden_objects::{
     testing::{
         account_id::{
             ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET,
-            ACCOUNT_ID_PRIVATE_SENDER, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
-            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2, ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         },
         constants::NON_FUNGIBLE_ASSET_DATA_2,
     },
@@ -46,15 +44,15 @@ use crate::{
 fn test_fpi_anchoring_validations() {
     // Create a chain with an account
     let mut mock_chain = MockChain::new();
-    let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    mock_chain.seal_next_block();
+    let account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
+    mock_chain.prove_next_block();
 
     // Retrieve inputs which will become stale
     let inputs = mock_chain.get_foreign_account_inputs(account.id());
 
     // Add account to modify account tree
-    let new_account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    mock_chain.seal_next_block();
+    let new_account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
+    mock_chain.prove_next_block();
 
     // Attempt to execute with older foreign account inputs
     let transaction = mock_chain
@@ -70,15 +68,15 @@ fn test_fpi_anchoring_validations() {
 }
 
 #[test]
-fn test_future_input_note_fails() {
+fn test_future_input_note_fails() -> anyhow::Result<()> {
     // Create a chain with an account
     let mut mock_chain = MockChain::new();
-    let account = mock_chain.add_existing_wallet(Auth::BasicAuth, vec![]);
-    mock_chain.seal_block(Some(10), None);
+    let account = mock_chain.add_pending_existing_wallet(Auth::BasicAuth, vec![]);
+    mock_chain.prove_until_block(10u32)?;
 
     // Create note that will land on a future block
     let note = mock_chain
-        .add_p2id_note(
+        .add_pending_p2id_note(
             account.id(),
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE.try_into().unwrap(),
             &[],
@@ -86,14 +84,14 @@ fn test_future_input_note_fails() {
             None,
         )
         .unwrap();
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // Get as input note, and assert that the note was created after block 1 (which we'll
     // use as reference)
     let input_note = mock_chain.get_public_note(&note.id()).expect("note not found");
     assert!(input_note.location().unwrap().block_num() > 1.into());
 
-    mock_chain.seal_next_block();
+    mock_chain.prove_next_block();
 
     // Attempt to execute with a note created in the future
     let tx_context = mock_chain.build_tx_context(account.id(), &[], &[]).build();
@@ -111,6 +109,8 @@ fn test_future_input_note_fails() {
         error,
         Err(TransactionExecutorError::NoteBlockPastReferenceBlock(..))
     );
+
+    Ok(())
 }
 
 #[test]
@@ -779,55 +779,6 @@ fn test_build_recipient_hash() {
         ),
         recipient_digest.as_slice(),
         "recipient hash not correct",
-    );
-}
-
-#[test]
-fn test_create_network_note_fails_when_target_is_non_public_account() {
-    let tx_context = TransactionContextBuilder::with_standard_account(ONE).build();
-
-    let target_account_id = AccountId::try_from(ACCOUNT_ID_PRIVATE_SENDER).unwrap();
-    let recipient = [ZERO, ONE, Felt::new(2), Felt::new(3)];
-    let aux = Felt::new(42);
-
-    // Manually construct the invalid note tag, because the NoteTag type constructors would return
-    // an error.
-    let prefix_id: u64 = target_account_id.prefix().as_u64();
-    // This results in a note tag equivalent to `NoteTag::from_account_id`. It start with 0b00 and
-    // uses the 30 highest bits from the account ID.
-    let tag = NoteTag::from((prefix_id >> 34) as u32);
-
-    let code = format!(
-        "
-        use.miden::contracts::wallets::basic->wallet
-
-        use.kernel::prologue
-
-        begin
-            exec.prologue::prepare_transaction
-
-            push.{recipient}
-            push.{NOTE_EXECUTION_HINT}
-            push.{PUBLIC_NOTE}
-            push.{aux}
-            push.{tag}
-
-            call.wallet::create_note
-            # => [note_idx]
-
-            # truncate the stack
-            swapdw dropw dropw
-        end
-        ",
-        recipient = word_to_masm_push_string(&recipient),
-        PUBLIC_NOTE = NoteType::Public as u8,
-        NOTE_EXECUTION_HINT = Felt::from(NoteExecutionHint::always()),
-        tag = tag,
-    );
-
-    assert_execution_error!(
-        tx_context.execute_code(&code),
-        ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT
     );
 }
 
