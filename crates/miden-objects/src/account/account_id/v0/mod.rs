@@ -160,7 +160,6 @@ impl AccountIdV0 {
     }
 
     /// See [`AccountId::compute_account_seed`](super::AccountId::compute_account_seed) for details.
-    #[allow(clippy::too_many_arguments)]
     pub fn compute_account_seed(
         init_seed: [u8; 32],
         account_type: AccountType,

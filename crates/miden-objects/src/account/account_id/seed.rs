@@ -17,7 +17,6 @@ use crate::{
 /// This currently always uses a single thread. This method used to either use a single- or
 /// multi-threaded implementation based on a compile-time feature flag. The multi-threaded
 /// implementation was removed in commit dab6159318832fc537bb35abf251870a9129ac8c in PR 1061.
-#[allow(clippy::too_many_arguments)]
 pub(super) fn compute_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
@@ -40,7 +39,6 @@ pub(super) fn compute_account_seed(
     )
 }
 
-#[allow(clippy::too_many_arguments)]
 fn compute_account_seed_single(
     init_seed: [u8; 32],
     account_type: AccountType,
