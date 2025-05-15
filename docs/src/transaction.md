@@ -11,11 +11,7 @@ Miden's `Transaction` model aims for the following:
     <img src="img/transaction/transaction-diagram.png" style="width:70%;" alt="Transaction diagram"/>
 </p>
 
-Compared to most blockchains, where a `Transaction` typically involves more than one account (e.g., sender and receiver), a `Transaction` in Miden involves a single account. To illustrate, Alice (Account 1) sends 3 ETH to Bob (Account 2). In Miden, sending 3 ETH from Alice to Bob takes two transactions: one in which Alice creates a note containing 3 ETH and one in which Bob consumes that note and receives the 3 ETH. This model removes the need for a global lock on the blockchain's state, enabling Miden to process transactions in parallel.
-
-<p style="text-align: center;">
-    <img src="img/transaction/one-transfer-two-transactions.gif" style="width:70%;" alt="Example: One transfer, two transactions"/>
-</p>
+Compared to most blockchains, where a `Transaction` typically involves more than one account (e.g., sender and receiver), a `Transaction` in Miden involves a single account. To illustrate, Alice sends 5 ETH to Bob. In Miden, sending 5 ETH from Alice to Bob takes two transactions, one in which Alice creates a note containing 5 ETH and one in which Bob consumes that note and receives the 5 ETH. This model removes the need for a global lock on the blockchain's state, enabling Miden to process transactions in parallel.
 
 Currently the protocol limits the number of notes that can be consumed and produced in a transaction to 1000 each, which means that in a single `Transaction` an application could serve up to 2000 different user requests like deposits or withdrawals into/from a pool.
 

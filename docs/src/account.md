@@ -4,7 +4,7 @@ An `Account` represents the primary entity of the protocol. Capable of holding a
 
 ## What is the purpose of an account?
 
-In Miden's hybrid UTXO- and account-based model `Account`s enable the creation of expressive smart contracts via a Turing-complete language.
+In Miden's hybrid UTXO- and account-based model, accounts enable the creation of expressive smart contracts via a Turing-complete language.
 
 ## Account core elements
 
@@ -88,7 +88,7 @@ The [storage](https://docs.rs/miden-objects/latest/miden_objects/account/struct.
 > [!Note]
 > A collection of [assets](asset.md) stored by the `Account`.
 
-Large amounts of fungible and non-fungible assets can be stored in the `Account`s vault.
+Large amounts of fungible and non-fungible assets can be stored in the account's vault.
 
 ### Nonce
 
@@ -97,7 +97,7 @@ Large amounts of fungible and non-fungible assets can be stored in the `Account`
 
 The nonce enforces ordering and prevents replay attacks. It must strictly increase with every `Account` state update. The increment must be less than $2^{32}$ but always greater than the previous nonce, ensuring a well-defined sequence of state changes.
 
-If a smart contract function should be callable by other users, it must increment the `Account`'s nonce. Otherwise, only the contract owner—i.e., the party possessing the contract's key—can execute the function.
+If a smart contract function should be callable by other users, it must increment the account's nonce. Otherwise, only the contract owner—i.e., the party possessing the contract's key—can execute the function.
 
 ## Account lifecycle
 
@@ -124,7 +124,7 @@ However, a user can locally create a new `Account` ID before it’s recognized n
 
 ### Account type
 
-There are two main categories of `Account`s in Miden: **basic accounts** and **faucets**.
+There are two main categories of accounts in Miden: **basic accounts** and **faucets**.
 
 - **Basic Accounts:**
   Basic Accounts may be either mutable or immutable:
@@ -136,20 +136,20 @@ There are two main categories of `Account`s in Miden: **basic accounts** and **f
   - *Fungible Faucet:* Can issue fungible [assets](asset.md).
   - *Non-fungible Faucet:* Can issue non-fungible [assets](asset.md).
 
-Type and mutability are encoded in the two most significant bits of the `Account`'s [ID](#id).
+Type and mutability are encoded in the two most significant bits of the account's [ID](#id).
 
 ### Account storage mode
 
-Users can choose whether their `Account`s are stored publicly or privately. The preference is encoded in the third and forth most significant bits of the `Account`s [ID](#id):
+Users can choose whether their accounts are stored publicly or privately. The preference is encoded in the third and forth most significant bits of the account's [ID](#id):
 
-- **Public `Account`s:**
-  The `Account`'s state is stored on-chain, similar to how `Account`s are stored in public blockchains like Ethereum.
+- **Public Accounts:**
+  The account’s state is stored on-chain, similar to how accounts are stored in public blockchains like Ethereum.
 
 - **Network `Account`s:**
-  The `Account`’s state is stored on-chain, just like **Public** accounts. Additionally, the network will monitor this account for any public notes targetted at it and attempt to create network transactions against the account, which consume the notes. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be network accounts.
+  The account’s state is stored on-chain, just like **public** accounts. Additionally, the network will monitor this account for any public notes targetted at it and attempt to create network transactions against the account, which consume the notes. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be network accounts.
 
-- **Private `Account`s:**
-  Only a commitment (hash) to the `Account`’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.
+- **Private Accounts:**
+  Only a commitment (hash) to the account’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.
 
 The storage mode is chosen during `Account` creation, it cannot be changed later.
 
