@@ -1,4 +1,5 @@
 use alloc::{
+    boxed::Box,
     collections::{BTreeMap, BTreeSet},
     vec::Vec,
 };
@@ -1459,7 +1460,7 @@ pub enum AccountState {
 pub enum TxContextInput {
     AccountId(AccountId),
     Account(Account),
-    ExecutedTransaction(ExecutedTransaction),
+    ExecutedTransaction(Box<ExecutedTransaction>),
 }
 
 impl From<AccountId> for TxContextInput {
@@ -1476,7 +1477,7 @@ impl From<Account> for TxContextInput {
 
 impl From<ExecutedTransaction> for TxContextInput {
     fn from(tx: ExecutedTransaction) -> Self {
-        Self::ExecutedTransaction(tx)
+        Self::ExecutedTransaction(Box::new(tx))
     }
 }
 

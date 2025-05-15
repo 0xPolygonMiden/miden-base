@@ -143,7 +143,10 @@ Type and mutability are encoded in the two most significant bits of the account'
 Users can choose whether their accounts are stored publicly or privately. The preference is encoded in the third and forth most significant bits of the account's [ID](#id):
 
 - **Public Accounts:**
-  The account’s state is stored on-chain, similar to how accounts are stored in public blockchains like Ethereum. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be public.
+  The account’s state is stored on-chain, similar to how accounts are stored in public blockchains like Ethereum.
+
+- **Network `Account`s:**
+  The account’s state is stored on-chain, just like **public** accounts. Additionally, the network will monitor this account for any public notes targetted at it and attempt to create network transactions against the account, which consume the notes. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be network accounts.
 
 - **Private Accounts:**
   Only a commitment (hash) to the account’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.
