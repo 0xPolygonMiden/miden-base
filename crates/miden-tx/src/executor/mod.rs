@@ -7,7 +7,7 @@ use miden_objects::{
     block::{BlockHeader, BlockNumber},
     note::NoteId,
     transaction::{
-        ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes, TransactionArgs,
+        AccountInputs, ExecutedTransaction, InputNote, InputNotes, TransactionArgs,
         TransactionInputs, TransactionScript,
     },
     vm::StackOutputs,
@@ -169,7 +169,7 @@ impl TransactionExecutor {
         block_ref: BlockNumber,
         tx_script: TransactionScript,
         advice_inputs: AdviceInputs,
-        foreign_account_inputs: Vec<ForeignAccountInputs>,
+        foreign_account_inputs: Vec<AccountInputs>,
     ) -> Result<[Felt; 16], TransactionExecutorError> {
         let ref_blocks = [block_ref].into_iter().collect();
         let (account, seed, ref_block, mmr) =
@@ -365,7 +365,7 @@ fn validate_account_inputs(
     ref_block: &BlockHeader,
 ) -> Result<(), TransactionExecutorError> {
     // Validate that foreign account inputs are anchored in the reference block
-    for foreign_account in tx_args.foreign_accounts() {
+    for foreign_account in tx_args.foreign_account_inputs() {
         let computed_account_root = foreign_account.compute_account_root().map_err(|err| {
             TransactionExecutorError::InvalidAccountWitness(foreign_account.id(), err)
         })?;

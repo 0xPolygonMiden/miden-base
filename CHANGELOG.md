@@ -18,6 +18,7 @@
 - Fix error when creating accounts with empty storage (#1307).
 - [BREAKING] Move `MockChain` and `TransactionContext` to new `miden-testing` crate (#1309).
 - [BREAKING] Add support for private notes in `MockChain` (#1310).
+- Generalized account-related inputs to the transaction kernel (#1311).
 - [BREAKING] Refactor `MockChain` to use batch and block provers (#1315).
 - [BREAKING] Move the number of note inputs to the separate memory address (#1327).
 - [BREAKING] Change Token Symbol encoding (#1334).
