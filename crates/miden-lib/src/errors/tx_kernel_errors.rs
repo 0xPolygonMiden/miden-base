@@ -92,8 +92,6 @@ pub const ERR_NOTE_INVALID_TYPE: u32 = 0x20107;
 pub const ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT: u32 = 0x20108;
 /// The note's tag must fit into a u32 so the 32 most significant bits must be zero.
 pub const ERR_NOTE_TAG_MUST_BE_U32: u32 = 0x20109;
-/// Network execution mode with a specific target can only target network accounts.
-pub const ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT: u32 = 0x2010a;
 /// The specified number of note inputs does not match the actual number.
 pub const ERR_NOTE_INVALID_NUMBER_OF_NOTE_INPUTS: u32 = 0x2010b;
 
@@ -215,7 +213,7 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x20286;
 /// Failed to remove fungible asset from the asset vault due to the initial value being invalid
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x20287;
 
-pub const TX_KERNEL_ERRORS: [(u32, &str); 91] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 89] = [
     (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),
 
     (ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE, "Existing accounts must have a non-zero nonce"),
@@ -252,7 +250,6 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 91] = [
     (ERR_NOTE_INVALID_TYPE, "Invalid note type"),
     (ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT, "Number of assets in a note exceed 255"),
     (ERR_NOTE_TAG_MUST_BE_U32, "The note's tag must fit into a u32 so the 32 most significant bits must be zero."),
-    (ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT, "Network execution mode with a specific target can only target network accounts."),
     (ERR_NOTE_INVALID_NUMBER_OF_NOTE_INPUTS, "The specified number of note inputs does not match the actual number."),
 
     (ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY, "Anchor block commitment must not be empty."),
