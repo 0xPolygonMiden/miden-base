@@ -3,7 +3,7 @@ use alloc::vec::Vec;
 use crate::{
     AccountError, Digest, Felt, Word,
     account::{
-        AccountStorageMode, AccountType, NetworkAccount,
+        AccountStorageMode, AccountType,
         account_id::{
             AccountIdVersion,
             v0::{compute_digest, validate_prefix},
@@ -21,7 +21,6 @@ pub(super) fn compute_account_seed(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    network_account: NetworkAccount,
     version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
@@ -31,7 +30,6 @@ pub(super) fn compute_account_seed(
         init_seed,
         account_type,
         storage_mode,
-        network_account,
         version,
         code_commitment,
         storage_commitment,
@@ -43,7 +41,6 @@ fn compute_account_seed_single(
     init_seed: [u8; 32],
     account_type: AccountType,
     storage_mode: AccountStorageMode,
-    network_account: NetworkAccount,
     version: AccountIdVersion,
     code_commitment: Digest,
     storage_commitment: Digest,
@@ -70,16 +67,11 @@ fn compute_account_seed_single(
 
         // check if the seed satisfies the specified account type
         let prefix = current_digest.as_elements()[0];
-        if let Ok((
-            computed_account_type,
-            computed_storage_mode,
-            computed_network_account,
-            computed_version,
-        )) = validate_prefix(prefix)
+        if let Ok((computed_account_type, computed_storage_mode, computed_version)) =
+            validate_prefix(prefix)
         {
             if computed_account_type == account_type
                 && computed_storage_mode == storage_mode
-                && computed_network_account == network_account
                 && computed_version == version
             {
                 #[cfg(feature = "log")]
