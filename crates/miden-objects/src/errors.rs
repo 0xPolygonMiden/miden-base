@@ -10,7 +10,7 @@ use vm_processor::DeserializationError;
 use super::{
     Digest, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH, Word,
     account::AccountId,
-    asset::{FungibleAsset, NonFungibleAsset},
+    asset::{FungibleAsset, NonFungibleAsset, TokenSymbol},
     crypto::merkle::MerkleError,
     note::NoteId,
 };
@@ -322,8 +322,21 @@ pub enum AssetError {
       expected_ty = AccountType::NonFungibleFaucet
     )]
     NonFungibleFaucetIdTypeMismatch(AccountIdPrefix),
-    #[error("{0}")]
-    TokenSymbolError(String),
+}
+
+// TOKEN SYMBOL ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum TokenSymbolError {
+    #[error("token symbol value {0} cannot exceed {max}", max = TokenSymbol::MAX_ENCODED_VALUE)]
+    ValueTooLarge(u64),
+    #[error("token symbol should have length between 1 and 6 characters, but {0} was provided")]
+    InvalidLength(usize),
+    #[error("token symbol `{0}` contains characters that are not uppercase ASCII")]
+    InvalidCharacter(String),
+    #[error("token symbol data left after decoding the specified number of characters")]
+    DataNotFullyDecoded,
 }
 
 // ASSET VAULT ERROR

@@ -170,7 +170,7 @@ fn add_account_to_advice_inputs(
     let storage = account.storage();
 
     for slot in storage.slots() {
-        // if there are storage maps, we populate the merkle store and advice map
+        // if there are storage maps, populate the merkle store and advice map with them
         if let StorageSlot::Map(map) = slot {
             // extend the merkle store and map with the storage maps
             inputs.extend_merkle_store(map.inner_nodes());
@@ -179,7 +179,7 @@ fn add_account_to_advice_inputs(
         }
     }
 
-    // extend advice map with storage commitment |-> length, storage slots and types vector
+    // extend advice map with storage commitment |-> storage slots and types vector
     inputs.extend_map([(storage.commitment(), storage.as_elements())]);
 
     // --- account vault ------------------------------------------------------
@@ -260,6 +260,9 @@ fn add_input_notes_to_advice_inputs(
         // NOTE: keep in sync with the `prologue::process_note_args_and_metadata` kernel procedure
         note_data.extend(Word::from(*note_arg));
         note_data.extend(Word::from(note.metadata()));
+
+        // NOTE: keep in sync with the `prologue::process_note_inputs_length` kernel procedure
+        note_data.push(recipient.inputs().num_values().into());
 
         // NOTE: keep in sync with the `prologue::process_note_assets` kernel procedure
         note_data.push((assets.num_assets() as u32).into());

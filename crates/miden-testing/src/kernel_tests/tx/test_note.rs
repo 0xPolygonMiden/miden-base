@@ -1,15 +1,21 @@
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 
 use anyhow::Context;
+use miden_crypto::{
+    dsa::rpo_falcon512::PublicKey,
+    rand::{FeltRng, RpoRandomCoin},
+};
 use miden_lib::{
+    account::{auth::RpoFalcon512, wallets::BasicWallet},
     errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
     transaction::{TransactionKernel, memory::CURRENT_INPUT_NOTE_PTR},
 };
 use miden_objects::{
-    WORD_SIZE,
-    account::AccountId,
+    Digest, WORD_SIZE,
+    account::{AccountBuilder, AccountId},
     note::{
-        Note, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata, NoteTag, NoteType,
+        Note, NoteAssets, NoteExecutionHint, NoteExecutionMode, NoteInputs, NoteMetadata,
+        NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
     transaction::{ForeignAccountInputs, OutputNote, TransactionArgs},
@@ -686,4 +692,59 @@ pub fn test_timelock() -> anyhow::Result<()> {
     tx_context.execute().unwrap();
 
     Ok(())
+}
+
+/// This test checks the scenario when some public key, which is provided to the RPO component of
+/// the target account, is also provided as an input to the input note.
+///
+/// Previously this setup was leading to the values collision in the advice map, see the
+/// [issue #1267](https://github.com/0xMiden/miden-base/issues/1267) for more details.
+#[test]
+fn test_public_key_as_note_input() {
+    // this value will be used both as public key in the RPO component of the target account and as
+    // well as the input of the input note
+    let public_key_value: Word = [ZERO, ONE, Felt::new(2), Felt::new(3)];
+
+    let mock_public_key = PublicKey::new(public_key_value);
+    let rpo_component = RpoFalcon512::new(mock_public_key);
+
+    let mock_seed_1 = Digest::from([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]).as_bytes();
+    let target_account = AccountBuilder::new(mock_seed_1)
+        .with_component(BasicWallet)
+        .with_component(rpo_component)
+        .build_existing()
+        .unwrap();
+
+    let mock_seed_2 =
+        Digest::from([Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]).as_bytes();
+    let sender_account = AccountBuilder::new(mock_seed_2)
+        .with_component(BasicWallet)
+        .build_existing()
+        .unwrap();
+
+    let serial_num =
+        RpoRandomCoin::new([ONE, Felt::new(2), Felt::new(3), Felt::new(4)]).draw_word();
+    let tag = NoteTag::from_account_id(target_account.id(), NoteExecutionMode::Local).unwrap();
+    let metadata = NoteMetadata::new(
+        sender_account.id(),
+        NoteType::Public,
+        tag,
+        NoteExecutionHint::always(),
+        Default::default(),
+    )
+    .unwrap();
+    let vault = NoteAssets::new(vec![]).unwrap();
+    let note_script =
+        NoteScript::compile("begin nop end", TransactionKernel::testing_assembler()).unwrap();
+    let recipient = NoteRecipient::new(
+        serial_num,
+        note_script,
+        NoteInputs::new(public_key_value.to_vec()).unwrap(),
+    );
+    let note_with_pub_key = Note::new(vault.clone(), metadata, recipient);
+
+    let tx_context = TransactionContextBuilder::new(target_account)
+        .input_notes(vec![note_with_pub_key])
+        .build();
+    tx_context.execute().unwrap();
 }

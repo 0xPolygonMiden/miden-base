@@ -136,7 +136,7 @@ impl TransactionArgs {
         let script_encoded: Vec<Felt> = script.into();
 
         let new_elements = [
-            (note_recipient.digest(), note_recipient.to_elements()),
+            (note_recipient.digest(), note_recipient.format_for_advice()),
             (inputs.commitment(), inputs.format_for_advice()),
             (script.root(), script_encoded),
         ];
