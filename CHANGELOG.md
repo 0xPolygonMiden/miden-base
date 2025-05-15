@@ -9,7 +9,7 @@
 - Added getter for proof security level in `ProvenBatch` and `ProvenBlock` (#1259).
 - [BREAKING] Replaced the `ProvenBatch::new_unchecked` with the `ProvenBatch::new` method to initialize the struct with validations (#1260).
 - Added pretty print for `AccountCode` (#1273).
-- [BREAKING] Add `NetworkAccount` configuration (#1275).
+- [BREAKING] Add `AccountStorageMode::Network` for network accounts (#1275, #1349).
 - Added support for environment variables to set up the `miden-proving-service` worker (#1281).
 - Added field identifier structs for component metadata (#1292).
 - Move `NullifierTree` and `BlockChain` from node to base (#1304).
