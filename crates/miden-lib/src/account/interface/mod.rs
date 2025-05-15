@@ -218,8 +218,8 @@ impl AccountInterface {
     /// - the note created by the faucet doesn't contain exactly one asset.
     /// - a faucet tries to distribute an asset with a different faucet ID.
     ///
-    /// [wallet]: miden_lib::account::interface::AccountComponentInterface::BasicWallet
-    /// [faucet]: miden_lib::account::interface::AccountComponentInterface::BasicFungibleFaucet
+    /// [wallet]: crate::account::interface::AccountComponentInterface::BasicWallet
+    /// [faucet]: crate::account::interface::AccountComponentInterface::BasicFungibleFaucet
     pub fn build_send_notes_script(
         &self,
         output_notes: &[PartialNote],
