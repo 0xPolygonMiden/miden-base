@@ -11,7 +11,10 @@ use crate::{
     block::{BlockHeader, BlockNumber},
     errors::ProposedBatchError,
     note::{NoteId, NoteInclusionProof},
-    transaction::{ChainMmr, InputNoteCommitment, InputNotes, OutputNote, ProvenTransaction},
+    transaction::{
+        InputNoteCommitment, InputNotes, OrderedTransactionHeaders, OutputNote, PartialBlockchain,
+        ProvenTransaction, TransactionHeader,
+    },
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -26,10 +29,10 @@ pub struct ProposedBatch {
     transactions: Vec<Arc<ProvenTransaction>>,
     /// The header is boxed as it has a large stack size.
     reference_block_header: BlockHeader,
-    /// The chain MMR used to authenticate:
+    /// The partial blockchain used to authenticate:
     /// - all unauthenticated notes that can be authenticated,
     /// - all block commitments referenced by the transactions in the batch.
-    chain_mmr: ChainMmr,
+    partial_blockchain: PartialBlockchain,
     /// The note inclusion proofs for unauthenticated notes that were consumed in the batch which
     /// can be authenticated.
     unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
@@ -64,8 +67,8 @@ impl ProposedBatch {
     ///   matches the account state before any transactions are executed and B's initial account
     ///   state commitment matches the final account state commitment of A, then A must come before
     ///   B.
-    /// - The chain MMR's hashed peaks must match the reference block's `chain_commitment` and it
-    ///   must contain all block headers:
+    /// - The partial blockchain's hashed peaks must match the reference block's `chain_commitment`
+    ///   and it must contain all block headers:
     ///   - that are referenced by note inclusion proofs in `unauthenticated_note_proofs`.
     ///   - that are referenced by a transaction in the batch.
     /// - The `unauthenticated_note_proofs` should contain [`NoteInclusionProof`]s for any
@@ -78,7 +81,7 @@ impl ProposedBatch {
     /// - The reference block of a batch must satisfy the following requirement: Its block number
     ///   must be greater or equal to the highest block number referenced by any transaction. This
     ///   is not verified explicitly, but will implicitly cause an error during the validation that
-    ///   each reference block of a transaction is in the chain MMR.
+    ///   each reference block of a transaction is in the partial blockchain.
     ///
     /// # Errors
     ///
@@ -94,14 +97,14 @@ impl ProposedBatch {
     /// - Any note is created more than once.
     /// - The number of account updates exceeds [`MAX_ACCOUNTS_PER_BATCH`].
     ///   - Note that any number of transactions against the same account count as one update.
-    /// - The chain MMRs chain length does not match the block header's block number. This means the
-    ///   chain MMR should not contain the block header itself as it is added to the MMR in the
-    ///   batch kernel.
-    /// - The chain MMRs hashed peaks do not match the block header's chain commitment.
-    /// - The reference block of any transaction is not in the chain MMR.
+    /// - The partial blockchains chain length does not match the block header's block number. This
+    ///   means the partial blockchain should not contain the block header itself as it is added to
+    ///   the MMR in the batch kernel.
+    /// - The partial blockchains hashed peaks do not match the block header's chain commitment.
+    /// - The reference block of any transaction is not in the partial blockchain.
     /// - The note inclusion proof for an unauthenticated note fails to verify.
     /// - The block referenced by a note inclusion proof for an unauthenticated note is missing from
-    ///   the chain MMR.
+    ///   the partial blockchain.
     /// - The transactions in the proposed batch which update the same account are not correctly
     ///   ordered.
     /// - The provided list of transactions is empty. An empty batch is pointless and would
@@ -113,7 +116,7 @@ impl ProposedBatch {
     pub fn new(
         transactions: Vec<Arc<ProvenTransaction>>,
         reference_block_header: BlockHeader,
-        chain_mmr: ChainMmr,
+        partial_blockchain: PartialBlockchain,
         unauthenticated_note_proofs: BTreeMap<NoteId, NoteInclusionProof>,
     ) -> Result<Self, ProposedBatchError> {
         // Check for empty or duplicate transactions.
@@ -130,17 +133,17 @@ impl ProposedBatch {
             }
         }
 
-        // Verify block header and chain MMR match.
+        // Verify block header and partial blockchain match.
         // --------------------------------------------------------------------------------------------
 
-        if chain_mmr.chain_length() != reference_block_header.block_num() {
+        if partial_blockchain.chain_length() != reference_block_header.block_num() {
             return Err(ProposedBatchError::InconsistentChainLength {
                 expected: reference_block_header.block_num(),
-                actual: chain_mmr.chain_length(),
+                actual: partial_blockchain.chain_length(),
             });
         }
 
-        let hashed_peaks = chain_mmr.peaks().hash_peaks();
+        let hashed_peaks = partial_blockchain.peaks().hash_peaks();
         if hashed_peaks != reference_block_header.chain_commitment() {
             return Err(ProposedBatchError::InconsistentChainRoot {
                 expected: reference_block_header.chain_commitment(),
@@ -148,29 +151,30 @@ impl ProposedBatch {
             });
         }
 
-        // Verify all block references from the transactions are in the chain MMR, except for the
-        // batch's reference block.
+        // Verify all block references from the transactions are in the partial blockchain, except
+        // for the batch's reference block.
         //
-        // Note that some block X is only added to the blockchain MMR by block X + 1. This is
-        // because block X cannot compute its own block commitment and thus cannot add itself to the
-        // chain. So, more generally, a previous block is added to the blockchain by its child
-        // block.
+        // Note that some block X is only added to the blockchain by block X + 1. This
+        // is because block X cannot compute its own block commitment and thus cannot add
+        // itself to the chain. So, more generally, a previous block is added to the
+        // blockchain by its child block.
         //
         // The reference block of a batch may be the latest block in the chain and, as mentioned,
-        // block is not yet part of the blockchain MMR, so its inclusion cannot be proven. Since the
-        // inclusion cannot be proven in all cases, the batch kernel instead commits to this
-        // reference block's commitment as a public input, which means the block kernel will prove
-        // this block's inclusion when including this batch and verifying its ZK proof.
+        // block is not yet part of the blockchain, so its inclusion cannot be proven.
+        // Since the inclusion cannot be proven in all cases, the batch kernel instead
+        // commits to this reference block's commitment as a public input, which means the
+        // block kernel will prove this block's inclusion when including this batch and
+        // verifying its ZK proof.
         //
         // Finally, note that we don't verify anything cryptographically here. We have previously
         // verified that the batch reference block's chain commitment matches the hashed peaks of
-        // the `ChainMmr`, and so we only have to check if the chain MMR contains the block
-        // here.
+        // the `PartialBlockchain`, and so we only have to check if the partial blockchain contains
+        // the block here.
         // --------------------------------------------------------------------------------------------
 
         for tx in transactions.iter() {
             if reference_block_header.block_num() != tx.ref_block_num()
-                && !chain_mmr.contains_block(tx.ref_block_num())
+                && !partial_blockchain.contains_block(tx.ref_block_num())
             {
                 return Err(ProposedBatchError::MissingTransactionBlockReference {
                     block_reference: tx.ref_block_commitment(),
@@ -257,7 +261,7 @@ impl ProposedBatch {
         let (input_notes, output_notes) = InputOutputNoteTracker::from_transactions(
             transactions.iter().map(AsRef::as_ref),
             &unauthenticated_note_proofs,
-            &chain_mmr,
+            &partial_blockchain,
             &reference_block_header,
         )?;
 
@@ -281,7 +285,7 @@ impl ProposedBatch {
             id,
             transactions,
             reference_block_header,
-            chain_mmr,
+            partial_blockchain,
             unauthenticated_note_proofs,
             account_updates,
             batch_expiration_block_num,
@@ -296,6 +300,18 @@ impl ProposedBatch {
     /// Returns a slice of the [`ProvenTransaction`]s in the batch.
     pub fn transactions(&self) -> &[Arc<ProvenTransaction>] {
         &self.transactions
+    }
+
+    /// Returns the ordered set of transactions in the batch.
+    pub fn transaction_headers(&self) -> OrderedTransactionHeaders {
+        // SAFETY: This constructs an ordered set in the order of the transactions in the batch.
+        OrderedTransactionHeaders::new_unchecked(
+            self.transactions
+                .iter()
+                .map(AsRef::as_ref)
+                .map(TransactionHeader::from)
+                .collect(),
+        )
     }
 
     /// Returns the map of account IDs mapped to their [`BatchAccountUpdate`]s.
@@ -341,7 +357,7 @@ impl ProposedBatch {
     ) -> (
         Vec<Arc<ProvenTransaction>>,
         BlockHeader,
-        ChainMmr,
+        PartialBlockchain,
         BTreeMap<NoteId, NoteInclusionProof>,
         BatchId,
         BTreeMap<AccountId, BatchAccountUpdate>,
@@ -352,7 +368,7 @@ impl ProposedBatch {
         (
             self.transactions,
             self.reference_block_header,
-            self.chain_mmr,
+            self.partial_blockchain,
             self.unauthenticated_note_proofs,
             self.id,
             self.account_updates,
@@ -375,7 +391,7 @@ impl Serializable for ProposedBatch {
             .write_into(target);
 
         self.reference_block_header.write_into(target);
-        self.chain_mmr.write_into(target);
+        self.partial_blockchain.write_into(target);
         self.unauthenticated_note_proofs.write_into(target);
     }
 }
@@ -388,16 +404,19 @@ impl Deserializable for ProposedBatch {
             .collect::<Vec<Arc<ProvenTransaction>>>();
 
         let block_header = BlockHeader::read_from(source)?;
-        let chain_mmr = ChainMmr::read_from(source)?;
+        let partial_blockchain = PartialBlockchain::read_from(source)?;
         let unauthenticated_note_proofs =
             BTreeMap::<NoteId, NoteInclusionProof>::read_from(source)?;
 
-        ProposedBatch::new(transactions, block_header, chain_mmr, unauthenticated_note_proofs)
-            .map_err(|source| {
-                DeserializationError::UnknownError(format!(
-                    "failed to create proposed batch: {source}"
-                ))
-            })
+        ProposedBatch::new(
+            transactions,
+            block_header,
+            partial_blockchain,
+            unauthenticated_note_proofs,
+        )
+        .map_err(|source| {
+            DeserializationError::UnknownError(format!("failed to create proposed batch: {source}"))
+        })
     }
 }
 
@@ -418,16 +437,16 @@ mod tests {
 
     #[test]
     fn proposed_batch_serialization() -> anyhow::Result<()> {
-        // create chain MMR with 3 blocks - i.e., 2 peaks
+        // create partial blockchain with 3 blocks - i.e., 2 peaks
         let mut mmr = Mmr::default();
         for i in 0..3 {
             let block_header = BlockHeader::mock(i, None, None, &[], Digest::default());
             mmr.add(block_header.commitment());
         }
         let partial_mmr: PartialMmr = mmr.peaks().into();
-        let chain_mmr = ChainMmr::new(partial_mmr, Vec::new()).unwrap();
+        let partial_blockchain = PartialBlockchain::new(partial_mmr, Vec::new()).unwrap();
 
-        let chain_commitment = chain_mmr.peaks().hash_peaks();
+        let chain_commitment = partial_blockchain.peaks().hash_peaks();
         let note_root: Word = rand_array();
         let tx_kernel_commitment: Word = rand_array();
         let reference_block_header = BlockHeader::mock(
@@ -468,7 +487,7 @@ mod tests {
         let batch = ProposedBatch::new(
             vec![Arc::new(tx)],
             reference_block_header,
-            chain_mmr,
+            partial_blockchain,
             BTreeMap::new(),
         )
         .context("failed to propose batch")?;
@@ -480,7 +499,7 @@ mod tests {
 
         assert_eq!(batch.transactions(), batch2.transactions());
         assert_eq!(batch.reference_block_header, batch2.reference_block_header);
-        assert_eq!(batch.chain_mmr, batch2.chain_mmr);
+        assert_eq!(batch.partial_blockchain, batch2.partial_blockchain);
         assert_eq!(batch.unauthenticated_note_proofs, batch2.unauthenticated_note_proofs);
         assert_eq!(batch.id, batch2.id);
         assert_eq!(batch.account_updates, batch2.account_updates);

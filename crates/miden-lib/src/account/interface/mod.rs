@@ -75,9 +75,27 @@ impl AccountInterface {
         self.account_id.is_regular_account()
     }
 
-    /// Returns true if the reference account is public.
+    /// Returns `true` if the full state of the account is on chain, i.e. if the modes are
+    /// [`AccountStorageMode::Public`](miden_objects::account::AccountStorageMode::Public) or
+    /// [`AccountStorageMode::Network`](miden_objects::account::AccountStorageMode::Network),
+    /// `false` otherwise.
+    pub fn is_onchain(&self) -> bool {
+        self.account_id.is_onchain()
+    }
+
+    /// Returns `true` if the reference account is a private account, `false` otherwise.
+    pub fn is_private(&self) -> bool {
+        self.account_id.is_private()
+    }
+
+    /// Returns true if the reference account is a public account, `false` otherwise.
     pub fn is_public(&self) -> bool {
         self.account_id.is_public()
+    }
+
+    /// Returns true if the reference account is a network account, `false` otherwise.
+    pub fn is_network(&self) -> bool {
+        self.account_id.is_network()
     }
 
     /// Returns a reference to the vector of used authentication schemes.
@@ -200,8 +218,8 @@ impl AccountInterface {
     /// - the note created by the faucet doesn't contain exactly one asset.
     /// - a faucet tries to distribute an asset with a different faucet ID.
     ///
-    /// [wallet]: miden_lib::account::interface::AccountComponentInterface::BasicWallet
-    /// [faucet]: miden_lib::account::interface::AccountComponentInterface::BasicFungibleFaucet
+    /// [wallet]: crate::account::interface::AccountComponentInterface::BasicWallet
+    /// [faucet]: crate::account::interface::AccountComponentInterface::BasicFungibleFaucet
     pub fn build_send_notes_script(
         &self,
         output_notes: &[PartialNote],
@@ -311,6 +329,8 @@ pub enum NoteAccountCompatibility {
     /// The account has all necessary procedures of one execution branch of the note script. This
     /// means the note may be able to be consumed by the account if that branch is executed.
     Maybe,
+    /// A note could be successfully executed and consumed by the account.
+    Yes,
 }
 
 // HELPER FUNCTIONS

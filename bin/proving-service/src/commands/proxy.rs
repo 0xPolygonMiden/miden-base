@@ -10,6 +10,7 @@ use tracing::{info, warn};
 
 use super::ProxyConfig;
 use crate::{
+    commands::PROXY_HOST,
     error::ProvingServiceError,
     proxy::{
         LoadBalancer, LoadBalancerState, status::ProxyStatusService,
@@ -26,10 +27,10 @@ pub struct StartProxy {
     /// List of workers as host:port strings.
     ///
     /// Example: `127.0.0.1:8080 192.168.1.1:9090`
-    #[clap(value_name = "WORKERS")]
+    #[arg(value_name = "WORKERS")]
     workers: Vec<String>,
     /// Proxy configurations.
-    #[clap(flatten)]
+    #[command(flatten)]
     proxy_config: ProxyConfig,
 }
 
@@ -48,19 +49,12 @@ impl StartProxy {
     #[tracing::instrument(target = MIDEN_PROVING_SERVICE, name = "proxy:execute")]
     pub async fn execute(&self) -> Result<(), String> {
         // Check if all required ports are available
-        check_port_availability(&self.proxy_config.host, self.proxy_config.port, "Proxy")?;
-        check_port_availability(
-            &self.proxy_config.host,
-            self.proxy_config.workers_update_port,
-            "Workers update",
-        )?;
+        check_port_availability(self.proxy_config.port, "Proxy")?;
+        check_port_availability(self.proxy_config.control_port, "Control")?;
 
-        if self.proxy_config.metrics_config.enable_metrics {
-            check_port_availability(
-                &self.proxy_config.metrics_config.prometheus_host,
-                self.proxy_config.metrics_config.prometheus_port,
-                "Prometheus metrics server",
-            )?;
+        // First, check if the metrics port is specified (metrics enabled)
+        if let Some(metrics_port) = self.proxy_config.metrics_config.metrics_port {
+            check_port_availability(metrics_port, "Metrics")?;
         }
 
         let mut server = Server::new(Some(Opt::default())).map_err(|err| err.to_string())?;
@@ -84,16 +78,14 @@ impl StartProxy {
 
         let mut update_workers_service =
             Service::new("update_workers".to_string(), updater_service);
-        update_workers_service.add_tcp(
-            format!("{}:{}", self.proxy_config.host.clone(), self.proxy_config.workers_update_port)
-                .as_str(),
-        );
+        update_workers_service
+            .add_tcp(format!("{}:{}", PROXY_HOST, self.proxy_config.control_port).as_str());
 
         // Set up the load balancer
         let mut lb = http_proxy_service(&server.configuration, LoadBalancer(worker_lb.clone()));
 
-        lb.add_tcp(format!("{}:{}", &self.proxy_config.host, self.proxy_config.port).as_str());
-        info!("Proxy listening on {}:{}", &self.proxy_config.host, self.proxy_config.port);
+        lb.add_tcp(format!("{}:{}", PROXY_HOST, self.proxy_config.port).as_str());
+        info!("Proxy listening on {}:{}", PROXY_HOST, self.proxy_config.port);
         let logic = lb
             .app_logic_mut()
             .ok_or(ProvingServiceError::PingoraConfigFailed("app logic not found".to_string()))?;
@@ -103,37 +95,35 @@ impl StartProxy {
         http_server_options.h2c = true;
         logic.server_options = Some(http_server_options);
 
-        // Enable Prometheus metrics if enabled in the configuration
-        if self.proxy_config.metrics_config.enable_metrics {
-            let mut prometheus_service_http =
+        // Enable Prometheus metrics if metrics_port is specified
+        if let Some(metrics_port) = self.proxy_config.metrics_config.metrics_port {
+            let metrics_addr = format!("{}:{}", PROXY_HOST, metrics_port);
+            info!("Starting metrics service on {}", metrics_addr);
+            let mut prometheus_service =
                 pingora::services::listening::Service::prometheus_http_service();
-            prometheus_service_http.add_tcp(
-                format!(
-                    "{}:{}",
-                    self.proxy_config.metrics_config.prometheus_host,
-                    self.proxy_config.metrics_config.prometheus_port
-                )
-                .as_str(),
-            );
-            server.add_service(prometheus_service_http);
-            tracing::info!(
-                "Prometheus metrics enabled, serving metrics on {}:{}",
-                self.proxy_config.metrics_config.prometheus_host,
-                self.proxy_config.metrics_config.prometheus_port
-            );
+            prometheus_service.add_tcp(&metrics_addr);
+            server.add_service(prometheus_service);
         } else {
-            tracing::info!("Prometheus metrics not enabled");
+            info!("Metrics are not enabled");
         }
 
         // Add status service
         let status_service = ProxyStatusService::new(worker_lb);
         let mut status_service = Service::new("status".to_string(), status_service);
+<<<<<<< HEAD
         status_service.add_tcp(
             format!("{}:{}", self.proxy_config.host, self.proxy_config.status_port).as_str(),
         );
         info!(
             "Status service listening on {}:{}/status",
             self.proxy_config.host, self.proxy_config.status_port
+=======
+        status_service
+            .add_tcp(format!("{}:{}", PROXY_HOST, self.proxy_config.status_port).as_str());
+        info!(
+            "Status service listening on {}:{}/status",
+            PROXY_HOST, self.proxy_config.status_port
+>>>>>>> upstream/next
         );
 
         server.add_service(health_check_service);

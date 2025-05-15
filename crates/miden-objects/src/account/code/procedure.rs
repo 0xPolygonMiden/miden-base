@@ -1,4 +1,7 @@
-use alloc::string::ToString;
+use alloc::{string::ToString, sync::Arc};
+
+use vm_core::{mast::MastForest, prettier::PrettyPrint};
+use vm_processor::{MastNode, MastNodeId};
 
 use super::{Digest, Felt};
 use crate::{
@@ -146,6 +149,56 @@ impl Deserializable for AccountProcedureInfo {
         let storage_size = source.read_u8()?;
         Self::new(mast_root, storage_offset, storage_size)
             .map_err(|err| DeserializationError::InvalidValue(err.to_string()))
+    }
+}
+
+// PRINTABLE PROCEDURE
+// ================================================================================================
+
+/// A printable representation of a single account procedure.
+#[derive(Debug, Clone)]
+pub struct PrintableProcedure {
+    mast: Arc<MastForest>,
+    procedure_info: AccountProcedureInfo,
+    entrypoint: MastNodeId,
+}
+
+impl PrintableProcedure {
+    /// Creates a new PrintableProcedure instance from its components.
+    pub(crate) fn new(
+        mast: Arc<MastForest>,
+        procedure_info: AccountProcedureInfo,
+        entrypoint: MastNodeId,
+    ) -> Self {
+        Self { mast, procedure_info, entrypoint }
+    }
+
+    fn entrypoint(&self) -> &MastNode {
+        &self.mast[self.entrypoint]
+    }
+
+    pub(crate) fn storage_offset(&self) -> u8 {
+        self.procedure_info.storage_offset()
+    }
+
+    pub(crate) fn storage_size(&self) -> u8 {
+        self.procedure_info.storage_size()
+    }
+
+    pub(crate) fn mast_root(&self) -> &Digest {
+        self.procedure_info.mast_root()
+    }
+}
+
+impl PrettyPrint for PrintableProcedure {
+    fn render(&self) -> vm_core::prettier::Document {
+        use vm_core::prettier::*;
+
+        indent(
+            4,
+            const_text("begin") + nl() + self.entrypoint().to_pretty_print(&self.mast).render(),
+        ) + nl()
+            + const_text("end")
     }
 }
 

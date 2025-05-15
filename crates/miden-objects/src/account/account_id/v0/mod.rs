@@ -6,7 +6,7 @@ use alloc::{
 use core::fmt;
 
 use bech32::{Bech32m, primitives::decode::CheckedHrpstring};
-use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
+use miden_crypto::utils::hex_to_bytes;
 pub use prefix::AccountIdPrefixV0;
 use vm_core::{
     Felt, Word,
@@ -15,7 +15,7 @@ use vm_core::{
 use vm_processor::{DeserializationError, Digest};
 
 use crate::{
-    ACCOUNT_TREE_DEPTH, AccountError, Hasher,
+    AccountError, Hasher,
     account::{
         AccountIdAnchor, AccountIdVersion, AccountStorageMode, AccountType,
         account_id::{
@@ -25,7 +25,7 @@ use crate::{
                 REGULAR_ACCOUNT_UPDATABLE_CODE,
             },
             address_type::AddressType,
-            storage_mode::{PRIVATE, PUBLIC},
+            storage_mode::{NETWORK, PRIVATE, PUBLIC},
         },
     },
     errors::{AccountIdError, Bech32Error},
@@ -327,13 +327,6 @@ impl From<AccountIdV0> for u128 {
     }
 }
 
-/// Account IDs are used as indexes in the account database, which is a tree of depth 64.
-impl From<AccountIdV0> for LeafIndex<ACCOUNT_TREE_DEPTH> {
-    fn from(id: AccountIdV0) -> Self {
-        LeafIndex::new_max_depth(id.prefix().as_u64())
-    }
-}
-
 // CONVERSIONS TO ACCOUNT ID
 // ================================================================================================
 
@@ -469,6 +462,7 @@ pub(crate) fn extract_storage_mode(prefix: u64) -> Result<AccountStorageMode, Ac
     // SAFETY: `STORAGE_MODE_MASK` is u8 so casting bits is lossless
     match bits as u8 {
         PUBLIC => Ok(AccountStorageMode::Public),
+        NETWORK => Ok(AccountStorageMode::Network),
         PRIVATE => Ok(AccountStorageMode::Private),
         _ => Err(AccountIdError::UnknownAccountStorageMode(format!("0b{bits:b}").into())),
     }

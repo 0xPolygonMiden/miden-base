@@ -1,13 +1,13 @@
 use alloc::{string::ToString, sync::Arc, vec::Vec};
 
 use miden_objects::{
-    Digest, EMPTY_WORD, Felt, TransactionOutputError, ZERO,
-    account::{AccountCode, AccountHeader, AccountId, AccountStorageHeader},
+    Digest, EMPTY_WORD, Felt, TransactionInputError, TransactionOutputError, ZERO,
+    account::{AccountCode, AccountId},
     assembly::{Assembler, DefaultSourceManager, KernelLibrary},
     block::BlockNumber,
-    crypto::merkle::{MerkleError, MerklePath},
     transaction::{
-        OutputNote, OutputNotes, TransactionArgs, TransactionInputs, TransactionOutputs,
+        ForeignAccountInputs, OutputNote, OutputNotes, TransactionArgs, TransactionInputs,
+        TransactionOutputs,
     },
     utils::{serde::Deserializable, sync::LazyLock},
     vm::{AdviceInputs, AdviceMap, Program, ProgramInfo, StackInputs, StackOutputs},
@@ -20,7 +20,7 @@ use super::MidenLib;
 pub mod memory;
 
 mod events;
-pub use events::{TransactionEvent, TransactionTrace};
+pub use events::TransactionEvent;
 
 mod inputs;
 
@@ -114,7 +114,7 @@ impl TransactionKernel {
         tx_inputs: &TransactionInputs,
         tx_args: &TransactionArgs,
         init_advice_inputs: Option<AdviceInputs>,
-    ) -> (StackInputs, AdviceInputs) {
+    ) -> Result<(StackInputs, AdviceInputs), TransactionInputError> {
         let account = tx_inputs.account();
 
         let stack_inputs = TransactionKernel::build_input_stack(
@@ -126,9 +126,9 @@ impl TransactionKernel {
         );
 
         let mut advice_inputs = init_advice_inputs.unwrap_or_default();
-        inputs::extend_advice_inputs(tx_inputs, tx_args, &mut advice_inputs);
+        inputs::extend_advice_inputs(tx_inputs, tx_args, &mut advice_inputs)?;
 
-        (stack_inputs, advice_inputs)
+        Ok((stack_inputs, advice_inputs))
     }
 
     // ASSEMBLER CONSTRUCTOR
@@ -189,43 +189,69 @@ impl TransactionKernel {
             .expect("Invalid stack input")
     }
 
-    /// Extends the advice inputs with account data and Merkle proofs.
-    ///
-    /// Where:
-    /// - account_header is the header of the account which data will be used for the extension.
-    /// - account_code is the code of the account which will be used for the extension.
-    /// - storage_header is the header of the storage which data will be used for the extension.
-    /// - merkle_path is the authentication path from the account root of the block header to the
-    ///   account.
+    /// Extends the advice inputs with the account-specific inputs.
     pub fn extend_advice_inputs_for_account(
         advice_inputs: &mut AdviceInputs,
-        account_header: &AccountHeader,
-        account_code: &AccountCode,
-        storage_header: &AccountStorageHeader,
-        merkle_path: &MerklePath,
-    ) -> Result<(), MerkleError> {
+        foreign_account_inputs: &ForeignAccountInputs,
+    ) -> Result<(), TransactionInputError> {
+        let account_header = foreign_account_inputs.account_header();
+        let storage_header = foreign_account_inputs.storage_header();
+        let account_code = foreign_account_inputs.account_code();
+        let account_witness = foreign_account_inputs.witness();
+        let storage_proofs = foreign_account_inputs.storage_map_proofs();
         let account_id = account_header.id();
-        let storage_root = account_header.storage_commitment();
-        let code_root = account_header.code_commitment();
+
         // Note: keep in sync with the start_foreign_context kernel procedure
-        let account_key =
+        let account_key: Digest =
             Digest::from([account_id.suffix(), account_id.prefix().as_felt(), ZERO, ZERO]);
 
         // Extend the advice inputs with the new data
         advice_inputs.extend_map([
-            // ACCOUNT_ID -> [ID_AND_NONCE, VAULT_ROOT, STORAGE_ROOT, CODE_ROOT]
+            // ACCOUNT_ID -> [ID_AND_NONCE, VAULT_ROOT, STORAGE_COMMITMENT, CODE_COMMITMENT]
             (account_key, account_header.as_elements()),
-            // STORAGE_ROOT -> [STORAGE_SLOT_DATA]
-            (storage_root, storage_header.as_elements()),
-            // CODE_ROOT -> [ACCOUNT_CODE_DATA]
-            (code_root, account_code.as_elements()),
+            // STORAGE_COMMITMENT -> [STORAGE_SLOT_DATA]
+            (account_header.storage_commitment(), storage_header.as_elements()),
+            // CODE_COMMITMENT -> [ACCOUNT_CODE_DATA]
+            (account_header.code_commitment(), account_code.as_elements()),
         ]);
 
-        // Extend the advice inputs with Merkle store data
+        let account_leaf = account_witness.leaf();
+        let account_leaf_hash = account_leaf.hash();
+
+        // extend the merkle store and map with account witnesses merkle path
         advice_inputs.extend_merkle_store(
-            // The prefix is the index in the account tree.
-            merkle_path.inner_nodes(account_id.prefix().as_u64(), account_header.commitment())?,
+            account_witness
+                .path()
+                .inner_nodes(account_id.prefix().as_u64(), account_leaf_hash)
+                .map_err(|err| {
+                    TransactionInputError::InvalidMerklePath(
+                        format!("foreign account ID {}", account_id).into(),
+                        err,
+                    )
+                })?,
         );
+
+        // populate advice map with the account's leaf
+        advice_inputs.extend_map([(account_leaf_hash, account_leaf.to_elements())]);
+
+        // Load merkle nodes for storage maps
+        for proof in storage_proofs {
+            // Extend the merkle store and map with the storage maps
+            advice_inputs.extend_merkle_store(
+                proof
+                    .path()
+                    .inner_nodes(proof.leaf().index().value(), proof.leaf().hash())
+                    .map_err(|err| {
+                        TransactionInputError::InvalidMerklePath(
+                            format!("foreign account ID {} storage proof", account_id).into(),
+                            err,
+                        )
+                    })?,
+            );
+            // Populate advice map with Sparse Merkle Tree leaf nodes
+            advice_inputs
+                .extend_map(core::iter::once((proof.leaf().hash(), proof.leaf().to_elements())));
+        }
 
         Ok(())
     }

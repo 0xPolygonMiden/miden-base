@@ -2,6 +2,7 @@
 #
 # This is a postinstallation script so the service can be configured and started when requested.
 
+<<<<<<< HEAD
 # user is expected by the systemd service file and `/opt/<user>` is its working directory,
 sudo adduser --disabled-password --disabled-login --shell /usr/sbin/nologin --quiet --system --no-create-home --home /nonexistent miden-prover
 
@@ -24,3 +25,14 @@ else
 fi
 
 sudo systemctl daemon-reload
+=======
+# User is expected by the systemd service file and `/opt/<user>` is its working directory,
+sudo adduser --disabled-password --disabled-login --shell /usr/sbin/nologin --quiet --system --no-create-home --home /nonexistent miden-prover
+
+work="/opt/miden-prover"
+sudo chown -R miden-prover "$work"
+
+sudo systemctl daemon-reload
+sudo systemctl enable miden-prover
+sudo systemctl start miden-prover
+>>>>>>> upstream/next

@@ -37,10 +37,16 @@ pub const ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE: u128 = account_id(
     AccountStorageMode::Public,
     0xacdd_eefc,
 );
-pub const ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_2: u128 = account_id(
+pub const ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2: u128 = account_id(
     AccountType::RegularAccountUpdatableCode,
     AccountStorageMode::Public,
     0xeeff_ccdd,
+);
+// REGULAR ACCOUNTS - NETWORK
+pub const ACCOUNT_ID_REGULAR_NETWORK_ACCOUNT_IMMUTABLE_CODE: u128 = account_id(
+    AccountType::RegularAccountImmutableCode,
+    AccountStorageMode::Network,
+    0xaacc_bbdd,
 );
 
 // These faucet IDs all have a unique prefix and suffix felts. This is to ensure that when they
@@ -60,6 +66,9 @@ pub const ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2: u128 =
     account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xccdb_eefa);
 pub const ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3: u128 =
     account_id(AccountType::FungibleFaucet, AccountStorageMode::Public, 0xeeff_cc99);
+// FUNGIBLE TOKENS - NETWORK
+pub const ACCOUNT_ID_NETWORK_FUNGIBLE_FAUCET: u128 =
+    account_id(AccountType::FungibleFaucet, AccountStorageMode::Network, 0xaabc_bcdf);
 
 // NON-FUNGIBLE TOKENS - PRIVATE
 pub const ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET: u128 =
@@ -69,11 +78,14 @@ pub const ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET: u128 =
     account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xbcca_ddef);
 pub const ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET_1: u128 =
     account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0xccdf_eefa);
+// NON-FUNGIBLE TOKENS - NETWORK
+pub const ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET: u128 =
+    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Network, 0xabbc_ffde);
 
 // TEST ACCOUNT IDs WITH CERTAIN PROPERTIES
 /// The Account Id with the maximum possible one bits.
 pub const ACCOUNT_ID_MAX_ONES: u128 =
-    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Private, 0)
+    account_id(AccountType::NonFungibleFaucet, AccountStorageMode::Public, 0)
         | 0x7fff_ffff_ffff_ff00_7fff_ffff_ffff_ff00;
 /// The Account Id with the maximum possible zero bits.
 pub const ACCOUNT_ID_MAX_ZEROES: u128 =
@@ -92,8 +104,8 @@ pub const ACCOUNT_ID_MAX_ZEROES: u128 =
 /// then the layout of the generated ID will be:
 ///
 /// ```text
-/// 1st felt: [0xaa | 5 zero bytes | 0xbb | metadata byte]
-/// 2nd felt: [2 zero bytes (epoch) | 0xcc | 3 zero bytes | 0xdd | zero byte]
+/// prefix: [0xaa | 5 zero bytes | 0xbb | metadata byte]
+/// suffix: [2 zero bytes (epoch) | 0xcc | 3 zero bytes | 0xdd | zero byte]
 /// ```
 pub const fn account_id(
     account_type: AccountType,
@@ -134,7 +146,7 @@ pub const fn account_id(
 /// # use miden_objects::account::{AccountType, AccountStorageMode, AccountId};
 /// # use miden_objects::testing::account_id::{AccountIdBuilder};
 ///
-/// let mut rng = rand::thread_rng();
+/// let mut rng = rand::rng();
 ///
 /// // A random AccountId with random AccountType and AccountStorageMode.
 /// let random_id1: AccountId = AccountIdBuilder::new().build_with_rng(&mut rng);
@@ -142,10 +154,10 @@ pub const fn account_id(
 /// // A random AccountId with the given AccountType and AccountStorageMode.
 /// let random_id2: AccountId = AccountIdBuilder::new()
 ///     .account_type(AccountType::FungibleFaucet)
-///     .storage_mode(AccountStorageMode::Public)
+///     .storage_mode(AccountStorageMode::Private)
 ///     .build_with_rng(&mut rng);
 /// assert_eq!(random_id2.account_type(), AccountType::FungibleFaucet);
-/// assert_eq!(random_id2.storage_mode(), AccountStorageMode::Public);
+/// assert_eq!(random_id2.storage_mode(), AccountStorageMode::Private);
 /// ```
 pub struct AccountIdBuilder {
     account_type: Option<AccountType>,

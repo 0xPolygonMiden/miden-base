@@ -221,9 +221,25 @@ impl Account {
         self.id.is_regular_account()
     }
 
-    /// Returns true if this account is public.
+    /// Returns `true` if the full state of the account is on chain, i.e. if the storage modes are
+    /// [`AccountStorageMode::Public`] or [`AccountStorageMode::Network`], `false` otherwise.
+    pub fn is_onchain(&self) -> bool {
+        self.id().is_onchain()
+    }
+
+    /// Returns `true` if the storage mode is [`AccountStorageMode::Public`], `false` otherwise.
     pub fn is_public(&self) -> bool {
-        self.id.is_public()
+        self.id().is_public()
+    }
+
+    /// Returns `true` if the storage mode is [`AccountStorageMode::Private`], `false` otherwise.
+    pub fn is_private(&self) -> bool {
+        self.id().is_private()
+    }
+
+    /// Returns `true` if the storage mode is [`AccountStorageMode::Network`], `false` otherwise.
+    pub fn is_network(&self) -> bool {
+        self.id().is_network()
     }
 
     /// Returns true if the account is new (i.e. it has not been initialized yet).

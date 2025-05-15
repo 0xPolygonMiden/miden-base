@@ -64,6 +64,9 @@ const.ERR_PROLOGUE_INPUT_NOTES_COMMITMENT_MISMATCH=0x00020043
 # New account must have a zero nonce
 const.ERR_PROLOGUE_NEW_ACCOUNT_NONCE_MUST_BE_ZERO=0x00020046
 
+# Number of note inputs exceeded the maximum limit of 128
+const.ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT=0x0002004e
+
 # PUBLIC INPUTS
 # =================================================================================================
 
@@ -216,7 +219,7 @@ end
 #!   Operand stack: [block_num]
 #!   Advice stack: [
 #!     PREV_BLOCK_COMMITMENT,
-#!     CHAIN_MMR_HASH,
+#!     PARTIAL_BLOCKCHAIN_COMMITMENT,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
 #!     TX_COMMITMENT,
@@ -230,7 +233,7 @@ end
 #!
 #! Where:
 #! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
-#! - CHAIN_MMR_HASH is the sequential hash of the reference MMR.
+#! - PARTIAL_BLOCKCHAIN_COMMITMENT is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.
@@ -278,7 +281,7 @@ end
 # CHAIN DATA
 # =================================================================================================
 
-#! Saves the MMR peaks to memory and verifies that it matches the reference block's CHAIN_MMR_HASH.
+#! Saves the MMR peaks to memory and verifies that it matches the reference block's PARTIAL_BLOCKCHAIN_COMMITMENT.
 #!
 #! This procedure loads the MMR peaks from the advice provider, verifies their hash matches the
 #! reference block, and insert the reference block in the MMR. The reference block is added to the
@@ -289,23 +292,23 @@ end
 #! Inputs:
 #!   Operand stack: []
 #!   Advice map: {
-#!     CHAIN_MMR_HASH: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N]
+#!     PARTIAL_BLOCKCHAIN_COMMITMENT: [[num_blocks, 0, 0, 0], PEAK_1, ..., PEAK_N]
 #!   }
 #! Outputs:
 #!   Operand stack: []
 #!
 #! Where:
-#! - CHAIN_MMR_HASH is the sequential hash of the padded MMR peaks.
+#! - PARTIAL_BLOCKCHAIN_COMMITMENT is the sequential hash of the padded MMR peaks.
 #! - num_blocks is the number of blocks in the MMR.
 #! - PEAK_1 .. PEAK_N are the MMR peaks.
 proc.process_chain_data
-    exec.memory::get_chain_mmr_ptr dup
-    # => [chain_mmr_ptr, chain_mmr_ptr]
+    exec.memory::get_partial_blockchain_ptr dup
+    # => [partial_blockchain_ptr, partial_blockchain_ptr]
 
     # save the MMR peaks to memory and verify it matches the block's CHAIN_COMMITMENT
     exec.memory::get_chain_commitment
     exec.mmr::unpack
-    # => [chain_mmr_ptr]
+    # => [partial_blockchain_ptr]
 
     # add the current block's commitment to the MMR, enabling authentication of notes created in it
     exec.memory::get_block_commitment
@@ -566,11 +569,11 @@ end
 #! - NOTE_ROOT is the merkle root of the notes tree containing the input note.
 #! - note_index is the input note's position in the notes tree.
 proc.authenticate_note.8
-    # Load the BLOCK_COMMITMENT from the CHAIN_MMR
+    # Load the BLOCK_COMMITMENT from the PARTIAL_BLOCKCHAIN
     # ---------------------------------------------------------------------------------------------
 
-    exec.memory::get_chain_mmr_ptr adv_push.1
-    # => [block_num, chain_mmr_ptr, NOTE_COMMITMENT]
+    exec.memory::get_partial_blockchain_ptr adv_push.1
+    # => [block_num, partial_blockchain_ptr, NOTE_COMMITMENT]
 
     exec.mmr::get
     # => [BLOCK_COMMITMENT, NOTE_COMMITMENT]
@@ -680,6 +683,33 @@ proc.process_note_args_and_metadata
 
     padw adv_loadw movup.4 exec.memory::set_input_note_metadata
     # => [NOTE_METADATA]
+end
+
+#! Checks that the number of note inputs is within limit and stores it to memory.
+#!
+#! Inputs:
+#!   Operand stack: [note_ptr]
+#!   Advice stack: [inputs_len]
+#! Outputs:
+#!   Operand stack: [note_ptr]
+#!   Advice stack: []
+#!
+#! Where:
+#! - note_ptr is the memory location for the input note.
+#! - inputs_len is the note's input count.
+proc.process_note_inputs_length
+    # move the inputs length from the advice stack to the operand stack
+    adv_push.1
+    # => [inputs_len, note_ptr]
+
+    # validate the input length
+    dup exec.::kernel::util::note::get_max_inputs_per_note lte
+    assert.err=ERR_PROLOGUE_NUMBER_OF_NOTE_INPUTS_EXCEEDED_LIMIT
+    # => [inputs_len, note_ptr]
+
+    # store the inputs length into the memory
+    dup.1 exec.memory::set_input_note_num_inputs
+    # => [note_ptr]
 end
 
 #! Copies the note's assets from the advice stack to memory and verifies the commitment.
@@ -913,6 +943,12 @@ proc.process_input_note
     movup.4
     # => [note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
 
+    # note inputs len
+    # ---------------------------------------------------------------------------------------------
+
+    exec.process_note_inputs_length
+    # => [note_ptr, NOTE_METADATA, NULLIFIER, HASHER_CAPACITY]
+    
     # note assets
     # ---------------------------------------------------------------------------------------------
 
@@ -1103,7 +1139,7 @@ end
 #!   ]
 #!   Advice stack: [
 #!     PREV_BLOCK_COMMITMENT,
-#!     CHAIN_MMR_HASH,
+#!     PARTIAL_BLOCKCHAIN_COMMITMENT,
 #!     ACCOUNT_ROOT,
 #!     NULLIFIER_ROOT,
 #!     TX_COMMITMENT,
@@ -1120,7 +1156,7 @@ end
 #!     TX_SCRIPT_ROOT,
 #!   ]
 #!   Advice map: {
-#!      CHAIN_MMR_HASH: [MMR_PEAKS],
+#!      PARTIAL_BLOCKCHAIN_COMMITMENT: [MMR_PEAKS],
 #!      INPUT_NOTES_COMMITMENT: [NOTE_DATA],
 #!      TX_KERNEL_COMMITMENT: [KERNEL_COMMITMENTS],
 #!      KERNEL_COMMITMENT: [KERNEL_PROCEDURE_ROOTS],
@@ -1140,7 +1176,7 @@ end
 #! - INPUT_NOTES_COMMITMENT, see `transaction::api::get_input_notes_commitment`.
 #! - TX_KERNEL_COMMITMENT is the accumulative hash from all kernel commitments.
 #! - PREV_BLOCK_COMMITMENT is the commitment to the previous block.
-#! - CHAIN_MMR_HASH is the sequential hash of the reference MMR.
+#! - PARTIAL_BLOCKCHAIN_COMMITMENT is the sequential hash of the reference MMR.
 #! - ACCOUNT_ROOT is the root of the tree with latest account states for all accounts.
 #! - NULLIFIER_ROOT is the root of the tree with nullifiers of all notes that have ever been
 #!   consumed.

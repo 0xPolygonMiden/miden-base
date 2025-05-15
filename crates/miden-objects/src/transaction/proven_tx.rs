@@ -34,9 +34,6 @@ pub struct ProvenTransaction {
     output_notes: OutputNotes,
 
     /// [`BlockNumber`] of the transaction's reference block.
-    ///
-    /// This is not needed for proving the transaction, but it is useful for the node to lookup the
-    /// block.
     ref_block_num: BlockNumber,
 
     /// The block commitment of the transaction's reference block.
@@ -91,7 +88,7 @@ impl ProvenTransaction {
     }
 
     /// Returns an iterator of the headers of unauthenticated input notes in this transaction.
-    pub fn get_unauthenticated_notes(&self) -> impl Iterator<Item = &NoteHeader> {
+    pub fn unauthenticated_notes(&self) -> impl Iterator<Item = &NoteHeader> {
         self.input_notes.iter().filter_map(|note| note.header())
     }
 
@@ -103,29 +100,48 @@ impl ProvenTransaction {
     /// Returns an iterator over the nullifiers of all input notes in this transaction.
     ///
     /// This includes both authenticated and unauthenticated notes.
-    pub fn get_nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
+    pub fn nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
         self.input_notes.iter().map(InputNoteCommitment::nullifier)
     }
 
     // HELPER METHODS
     // --------------------------------------------------------------------------------------------
 
+    /// Validates the transaction.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The size of the serialized account update exceeds [`ACCOUNT_UPDATE_MAX_SIZE`].
+    /// - The transaction was executed against a _new_ on-chain account and its account ID does not
+    ///   match the ID in the account update.
+    /// - The transaction was executed against a _new_ on-chain account and its commitment does not
+    ///   match the final state commitment of the account update.
+    /// - The transaction was executed against a private account and the account update is _not_ of
+    ///   type [`AccountUpdateDetails::Private`].
+    /// - The transaction was executed against an on-chain account and the update is of type
+    ///   [`AccountUpdateDetails::Private`].
+    /// - The transaction was executed against an _existing_ on-chain account and the update is of
+    ///   type [`AccountUpdateDetails::New`].
+    /// - The transaction creates a _new_ on-chain account and the update is of type
+    ///   [`AccountUpdateDetails::Delta`].
     fn validate(self) -> Result<Self, ProvenTransactionError> {
-        if self.account_id().is_public() {
+        // If the account is on-chain, then the account update details must be present.
+        if self.account_id().is_onchain() {
             self.account_update.validate()?;
 
             let is_new_account =
                 self.account_update.initial_state_commitment() == Digest::default();
             match self.account_update.details() {
                 AccountUpdateDetails::Private => {
-                    return Err(ProvenTransactionError::PublicAccountMissingDetails(
+                    return Err(ProvenTransactionError::OnChainAccountMissingDetails(
                         self.account_id(),
                     ));
                 },
                 AccountUpdateDetails::New(account) => {
                     if !is_new_account {
                         return Err(
-                            ProvenTransactionError::ExistingPublicAccountRequiresDeltaDetails(
+                            ProvenTransactionError::ExistingOnChainAccountRequiresDeltaDetails(
                                 self.account_id(),
                             ),
                         );
@@ -145,7 +161,7 @@ impl ProvenTransaction {
                 },
                 AccountUpdateDetails::Delta(_) => {
                     if is_new_account {
-                        return Err(ProvenTransactionError::NewPublicAccountRequiresFullDetails(
+                        return Err(ProvenTransactionError::NewOnChainAccountRequiresFullDetails(
                             self.account_id(),
                         ));
                     }
@@ -300,12 +316,30 @@ impl ProvenTransactionBuilder {
         self
     }
 
-    /// Builds the [ProvenTransaction].
+    /// Builds the [`ProvenTransaction`].
     ///
     /// # Errors
     ///
-    /// An error will be returned if a public account is used without provided on-chain detail.
-    /// Or if the account details, i.e. account ID and final hash, don't match the transaction.
+    /// Returns an error if:
+    /// - The total number of input notes is greater than
+    ///   [`MAX_INPUT_NOTES_PER_TX`](crate::constants::MAX_INPUT_NOTES_PER_TX).
+    /// - The vector of input notes contains duplicates.
+    /// - The total number of output notes is greater than
+    ///   [`MAX_OUTPUT_NOTES_PER_TX`](crate::constants::MAX_OUTPUT_NOTES_PER_TX).
+    /// - The vector of output notes contains duplicates.
+    /// - The size of the serialized account update exceeds [`ACCOUNT_UPDATE_MAX_SIZE`].
+    /// - The transaction was executed against a _new_ on-chain account and its account ID does not
+    ///   match the ID in the account update.
+    /// - The transaction was executed against a _new_ on-chain account and its commitment does not
+    ///   match the final state commitment of the account update.
+    /// - The transaction was executed against a private account and the account update is _not_ of
+    ///   type [`AccountUpdateDetails::Private`].
+    /// - The transaction was executed against an on-chain account and the update is of type
+    ///   [`AccountUpdateDetails::Private`].
+    /// - The transaction was executed against an _existing_ on-chain account and the update is of
+    ///   type [`AccountUpdateDetails::New`].
+    /// - The transaction creates a _new_ on-chain account and the update is of type
+    ///   [`AccountUpdateDetails::Delta`].
     pub fn build(self) -> Result<ProvenTransaction, ProvenTransactionError> {
         let input_notes =
             InputNotes::new(self.input_notes).map_err(ProvenTransactionError::InputNotesError)?;
@@ -543,6 +577,7 @@ impl Deserializable for InputNoteCommitment {
 mod tests {
     use alloc::collections::BTreeMap;
 
+    use anyhow::Context;
     use miden_verifier::ExecutionProof;
     use vm_core::utils::Deserializable;
     use winter_air::proof::Proof;
@@ -633,7 +668,7 @@ mod tests {
     }
 
     #[test]
-    fn test_proven_tx_serde_roundtrip() {
+    fn test_proven_tx_serde_roundtrip() -> anyhow::Result<()> {
         let account_id = AccountId::dummy(
             [1; 15],
             AccountIdVersion::Version0,
@@ -659,10 +694,12 @@ mod tests {
             proof,
         )
         .build()
-        .expect("failed to build proven transaction");
+        .context("failed to build proven transaction")?;
 
         let deserialized = ProvenTransaction::read_from_bytes(&tx.to_bytes()).unwrap();
 
         assert_eq!(tx, deserialized);
+
+        Ok(())
     }
 }

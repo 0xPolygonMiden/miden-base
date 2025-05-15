@@ -1,9 +1,11 @@
 use alloc::vec::Vec;
 
 use miden_objects::{
-    Digest, EMPTY_WORD, Felt, FieldElement, WORD_SIZE, Word, ZERO,
+    Digest, EMPTY_WORD, Felt, FieldElement, TransactionInputError, WORD_SIZE, Word, ZERO,
     account::{Account, StorageSlot},
-    transaction::{ChainMmr, InputNote, TransactionArgs, TransactionInputs, TransactionScript},
+    transaction::{
+        InputNote, PartialBlockchain, TransactionArgs, TransactionInputs, TransactionScript,
+    },
     vm::AdviceInputs,
 };
 
@@ -17,12 +19,12 @@ use super::TransactionKernel;
 ///
 /// This includes the initial account, an optional account seed (required for new accounts), and
 /// the input note data, including core note data + authentication paths all the way to the root
-/// of one of chain MMR peaks.
+/// of one of partial blockchain peaks.
 pub(super) fn extend_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
     advice_inputs: &mut AdviceInputs,
-) {
+) -> Result<(), TransactionInputError> {
     // TODO: remove this value and use a user input instead
     let kernel_version = 0;
 
@@ -30,10 +32,15 @@ pub(super) fn extend_advice_inputs(
 
     // build the advice map and Merkle store for relevant components
     add_kernel_commitments_to_advice_inputs(advice_inputs, kernel_version);
-    add_chain_mmr_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
+    add_partial_blockchain_to_advice_inputs(tx_inputs.block_chain(), advice_inputs);
     add_account_to_advice_inputs(tx_inputs.account(), tx_inputs.account_seed(), advice_inputs);
-    add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs);
+    add_input_notes_to_advice_inputs(tx_inputs, tx_args, advice_inputs)?;
+    for foreign_account in tx_args.foreign_accounts() {
+        TransactionKernel::extend_advice_inputs_for_account(advice_inputs, foreign_account)?;
+    }
+
     advice_inputs.extend(tx_args.advice_inputs().clone());
+    Ok(())
 }
 
 // ADVICE STACK BUILDER
@@ -45,7 +52,7 @@ pub(super) fn extend_advice_inputs(
 ///
 /// [
 ///     PARENT_BLOCK_COMMITMENT,
-///     CHAIN_MMR_HASH,
+///     PARTIAL_BLOCKCHAIN_COMMITMENT,
 ///     ACCOUNT_ROOT,
 ///     NULLIFIER_ROOT,
 ///     TX_COMMITMENT,
@@ -110,13 +117,13 @@ fn build_advice_stack(
     inputs.extend_stack(tx_script.map_or(Word::default(), |script| *script.root()));
 }
 
-// CHAIN MMR INJECTOR
+// PARTIAL BLOCKCHAIN INJECTOR
 // ------------------------------------------------------------------------------------------------
 
-/// Inserts the chain MMR data into the provided advice inputs.
+/// Inserts the partial blockchain data into the provided advice inputs.
 ///
 /// Inserts the following items into the Merkle store:
-/// - Inner nodes of all authentication paths contained in the chain MMR.
+/// - Inner nodes of all authentication paths contained in the partial blockchain.
 ///
 /// Inserts the following data to the advice map:
 ///
@@ -126,7 +133,7 @@ fn build_advice_stack(
 /// - MMR_ROOT, is the sequential hash of the padded MMR peaks
 /// - num_blocks, is the number of blocks in the MMR.
 /// - PEAK_1 .. PEAK_N, are the MMR peaks.
-fn add_chain_mmr_to_advice_inputs(mmr: &ChainMmr, inputs: &mut AdviceInputs) {
+fn add_partial_blockchain_to_advice_inputs(mmr: &PartialBlockchain, inputs: &mut AdviceInputs) {
     // NOTE: keep this code in sync with the `process_chain_data` kernel procedure
 
     // add authentication paths from the MMR to the Merkle store
@@ -163,7 +170,7 @@ fn add_account_to_advice_inputs(
     let storage = account.storage();
 
     for slot in storage.slots() {
-        // if there are storage maps, we populate the merkle store and advice map
+        // if there are storage maps, populate the merkle store and advice map with them
         if let StorageSlot::Map(map) = slot {
             // extend the merkle store and map with the storage maps
             inputs.extend_merkle_store(map.inner_nodes());
@@ -172,7 +179,7 @@ fn add_account_to_advice_inputs(
         }
     }
 
-    // extend advice map with storage commitment |-> length, storage slots and types vector
+    // extend advice map with storage commitment |-> storage slots and types vector
     inputs.extend_map([(storage.commitment(), storage.as_elements())]);
 
     // --- account vault ------------------------------------------------------
@@ -223,10 +230,10 @@ fn add_input_notes_to_advice_inputs(
     tx_inputs: &TransactionInputs,
     tx_args: &TransactionArgs,
     inputs: &mut AdviceInputs,
-) {
+) -> Result<(), TransactionInputError> {
     // if there are no input notes, nothing is added to the advice inputs
     if tx_inputs.input_notes().is_empty() {
-        return;
+        return Ok(());
     }
 
     let mut note_data = Vec::new();
@@ -254,6 +261,9 @@ fn add_input_notes_to_advice_inputs(
         note_data.extend(Word::from(*note_arg));
         note_data.extend(Word::from(note.metadata()));
 
+        // NOTE: keep in sync with the `prologue::process_note_inputs_length` kernel procedure
+        note_data.push(recipient.inputs().num_values().into());
+
         // NOTE: keep in sync with the `prologue::process_note_assets` kernel procedure
         note_data.push((assets.num_assets() as u32).into());
         note_data.extend(assets.to_padded_assets());
@@ -268,7 +278,7 @@ fn add_input_notes_to_advice_inputs(
                     tx_inputs
                         .block_chain()
                         .get_block(block_num)
-                        .expect("block not found in chain MMR")
+                        .expect("block not found in partial blockchain")
                 };
 
                 // NOTE: keep in sync with the `prologue::process_input_note` kernel procedure
@@ -283,7 +293,12 @@ fn add_input_notes_to_advice_inputs(
                             proof.location().node_index_in_block().into(),
                             note.commitment(),
                         )
-                        .unwrap(),
+                        .map_err(|err| {
+                            TransactionInputError::InvalidMerklePath(
+                                format!("input note ID {}", note.id()).into(),
+                                err,
+                            )
+                        })?,
                 );
                 note_data.push(proof.location().block_num().into());
                 note_data.extend(note_block_header.sub_commitment());
@@ -300,6 +315,7 @@ fn add_input_notes_to_advice_inputs(
 
     // NOTE: keep map in sync with the `prologue::process_input_notes_data` kernel procedure
     inputs.extend_map([(tx_inputs.input_notes().commitment(), note_data)]);
+    Ok(())
 }
 
 // KERNEL COMMITMENTS INJECTOR

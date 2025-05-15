@@ -1,15 +1,12 @@
-use alloc::vec::Vec;
-
-use miden_crypto::merkle::SimpleSmt;
-use vm_core::Felt;
-use vm_processor::Digest;
 #[cfg(not(target_family = "wasm"))]
 use winter_rand_utils::{rand_array, rand_value};
 
+#[cfg(not(target_family = "wasm"))]
+use crate::Felt;
 use crate::{
-    ACCOUNT_TREE_DEPTH,
+    Digest,
     account::Account,
-    block::{BlockHeader, BlockNumber},
+    block::{AccountTree, BlockHeader, BlockNumber},
 };
 
 impl BlockHeader {
@@ -26,20 +23,9 @@ impl BlockHeader {
         accounts: &[Account],
         tx_kernel_commitment: Digest,
     ) -> Self {
-        let acct_db = SimpleSmt::<ACCOUNT_TREE_DEPTH>::with_leaves(
-            accounts
-                .iter()
-                .flat_map(|acct| {
-                    if acct.is_new() {
-                        None
-                    } else {
-                        let felt_id: Felt = acct.id().prefix().into();
-                        Some((felt_id.as_int(), *acct.commitment()))
-                    }
-                })
-                .collect::<Vec<_>>(),
-        )
-        .expect("failed to create account db");
+        let acct_db =
+            AccountTree::with_entries(accounts.iter().map(|acct| (acct.id(), acct.commitment())))
+                .expect("failed to create account db");
         let account_root = acct_db.root();
 
         #[cfg(not(target_family = "wasm"))]

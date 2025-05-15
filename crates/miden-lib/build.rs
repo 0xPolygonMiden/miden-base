@@ -54,7 +54,7 @@ const TX_KERNEL_ERROR_CATEGORIES: [TxKernelErrorCategory; 11] = [
     TxKernelErrorCategory::ForeignAccount,
     TxKernelErrorCategory::Faucet,
     TxKernelErrorCategory::FungibleAsset,
-    TxKernelErrorCategory::NonFugibleAsset,
+    TxKernelErrorCategory::NonFungibleAsset,
     TxKernelErrorCategory::Vault,
 ];
 
@@ -839,7 +839,7 @@ enum TxKernelErrorCategory {
     ForeignAccount,
     Faucet,
     FungibleAsset,
-    NonFugibleAsset,
+    NonFungibleAsset,
     Vault,
 }
 
@@ -855,7 +855,7 @@ impl TxKernelErrorCategory {
             TxKernelErrorCategory::ForeignAccount => 0x2_0180..0x2_01c0,
             TxKernelErrorCategory::Faucet => 0x2_01c0..0x2_0200,
             TxKernelErrorCategory::FungibleAsset => 0x2_0200..0x2_0240,
-            TxKernelErrorCategory::NonFugibleAsset => 0x2_0240..0x2_0280,
+            TxKernelErrorCategory::NonFungibleAsset => 0x2_0240..0x2_0280,
             TxKernelErrorCategory::Vault => 0x2_0280..0x2_02c0,
         }
     }
@@ -871,7 +871,7 @@ impl TxKernelErrorCategory {
             TxKernelErrorCategory::ForeignAccount => "FOREIGN_ACCOUNT",
             TxKernelErrorCategory::Faucet => "FAUCET",
             TxKernelErrorCategory::FungibleAsset => "FUNGIBLE_ASSET",
-            TxKernelErrorCategory::NonFugibleAsset => "NON_FUNGIBLE_ASSET",
+            TxKernelErrorCategory::NonFungibleAsset => "NON_FUNGIBLE_ASSET",
             TxKernelErrorCategory::Vault => "VAULT",
         }
     }

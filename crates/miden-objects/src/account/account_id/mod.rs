@@ -26,14 +26,14 @@ use alloc::string::{String, ToString};
 use core::fmt;
 
 pub use id_version::AccountIdVersion;
-use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
+use miden_crypto::utils::hex_to_bytes;
 use vm_core::{
     Felt, Word,
     utils::{ByteReader, Deserializable, Serializable},
 };
 use vm_processor::{DeserializationError, Digest};
 
-use crate::{ACCOUNT_TREE_DEPTH, AccountError, errors::AccountIdError};
+use crate::{AccountError, errors::AccountIdError};
 
 /// The identifier of an [`Account`](crate::account::Account).
 ///
@@ -41,11 +41,12 @@ use crate::{ACCOUNT_TREE_DEPTH, AccountError, errors::AccountIdError};
 ///
 /// # Layout
 ///
-/// An `AccountId` consists of two field elements and is layed out as follows:
+/// An `AccountId` consists of two field elements, where the first is called the prefix and the
+/// second is called the suffix. It is layed out as follows:
 ///
 /// ```text
-/// 1st felt: [random (56 bits) | storage mode (2 bits) | type (2 bits) | version (4 bits)]
-/// 2nd felt: [anchor_epoch (16 bits) | random (40 bits) | 8 zero bits]
+/// prefix: [hash (56 bits) | storage mode (2 bits) | type (2 bits) | version (4 bits)]
+/// suffix: [anchor_epoch (16 bits) | hash (40 bits) | 8 zero bits]
 /// ```
 ///
 /// # Generation
@@ -186,14 +187,14 @@ impl AccountId {
         }
     }
 
-    /// Constructs an [`AccountId`] for testing purposes with the given account type and storage
+    /// Constructs an [`AccountId`] for testing purposes with the given account type, storage
     /// mode.
     ///
     /// This function does the following:
     /// - Split the given bytes into a `prefix = bytes[0..8]` and `suffix = bytes[8..]` part to be
     ///   used for the prefix and suffix felts, respectively.
-    /// - The least significant byte of the prefix is set to the version 0, and the given type and
-    ///   storage mode.
+    /// - The least significant byte of the prefix is set to the given version, type and storage
+    ///   mode.
     /// - The 32nd most significant bit in the prefix is cleared to ensure it is a valid felt. The
     ///   32nd is chosen as it is the lowest bit that we can clear and still ensure felt validity.
     ///   This leaves the upper 31 bits to be set by the input `bytes` which makes it simpler to
@@ -269,9 +270,25 @@ impl AccountId {
         }
     }
 
-    /// Returns `true` if an account with this ID is a public account.
+    /// Returns `true` if the full state of the account is on chain, i.e. if the modes are
+    /// [`AccountStorageMode::Public`] or [`AccountStorageMode::Network`], `false` otherwise.
+    pub fn is_onchain(&self) -> bool {
+        self.storage_mode().is_onchain()
+    }
+
+    /// Returns `true` if the storage mode is [`AccountStorageMode::Public`], `false` otherwise.
     pub fn is_public(&self) -> bool {
-        self.storage_mode() == AccountStorageMode::Public
+        self.storage_mode().is_public()
+    }
+
+    /// Returns `true` if the storage mode is [`AccountStorageMode::Network`], `false` otherwise.
+    pub fn is_network(&self) -> bool {
+        self.storage_mode().is_network()
+    }
+
+    /// Returns `true` if the storage mode is [`AccountStorageMode::Private`], `false` otherwise.
+    pub fn is_private(&self) -> bool {
+        self.storage_mode().is_private()
     }
 
     /// Returns the version of this account ID.
@@ -391,15 +408,6 @@ impl From<AccountId> for [u8; 15] {
 }
 
 impl From<AccountId> for u128 {
-    fn from(id: AccountId) -> Self {
-        match id {
-            AccountId::V0(account_id) => account_id.into(),
-        }
-    }
-}
-
-/// Account IDs are used as indexes in the account database, which is a tree of depth 64.
-impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
     fn from(id: AccountId) -> Self {
         match id {
             AccountId::V0(account_id) => account_id.into(),
@@ -538,8 +546,9 @@ mod tests {
         },
         errors::Bech32Error,
         testing::account_id::{
-            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_SENDER,
-            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PRIVATE_SENDER, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         },
     };
@@ -552,6 +561,7 @@ mod tests {
             ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
             ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
             ACCOUNT_ID_PRIVATE_SENDER,
+            ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET,
         ]
         .into_iter()
         .enumerate()

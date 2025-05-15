@@ -1,9 +1,6 @@
-use alloc::vec::Vec;
-
 use crate::{
     Digest,
     account::{AccountId, delta::AccountUpdateDetails},
-    transaction::TransactionId,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -24,9 +21,6 @@ pub struct BlockAccountUpdate {
     /// the last block) to get the new account state. For private accounts, this is set to
     /// [AccountUpdateDetails::Private].
     details: AccountUpdateDetails,
-
-    /// IDs of all transactions in the block that updated the account.
-    transactions: Vec<TransactionId>,
 }
 
 impl BlockAccountUpdate {
@@ -35,13 +29,11 @@ impl BlockAccountUpdate {
         account_id: AccountId,
         final_state_commitment: Digest,
         details: AccountUpdateDetails,
-        transactions: Vec<TransactionId>,
     ) -> Self {
         Self {
             account_id,
             final_state_commitment,
             details,
-            transactions,
         }
     }
 
@@ -55,17 +47,12 @@ impl BlockAccountUpdate {
         self.final_state_commitment
     }
 
-    /// Returns the description of the updates for public accounts.
+    /// Returns the description of the updates for on-chain accounts.
     ///
     /// These descriptions can be used to build the new account state from the previous account
     /// state.
     pub fn details(&self) -> &AccountUpdateDetails {
         &self.details
-    }
-
-    /// Returns the IDs of all transactions in the block that updated the account.
-    pub fn transactions(&self) -> &[TransactionId] {
-        &self.transactions
     }
 
     /// Returns `true` if the account update details are for private account.
@@ -79,7 +66,6 @@ impl Serializable for BlockAccountUpdate {
         self.account_id.write_into(target);
         self.final_state_commitment.write_into(target);
         self.details.write_into(target);
-        self.transactions.write_into(target);
     }
 }
 
@@ -89,7 +75,6 @@ impl Deserializable for BlockAccountUpdate {
             account_id: AccountId::read_from(source)?,
             final_state_commitment: Digest::read_from(source)?,
             details: AccountUpdateDetails::read_from(source)?,
-            transactions: Vec::<TransactionId>::read_from(source)?,
         })
     }
 }

@@ -1,5 +1,5 @@
 use super::{
-    AssetError, Felt, Hasher, Word, ZERO,
+    AssetError, Felt, Hasher, TokenSymbolError, Word, ZERO,
     account::AccountType,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };

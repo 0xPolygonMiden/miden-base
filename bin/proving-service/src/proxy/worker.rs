@@ -16,11 +16,14 @@ use crate::{
 ///
 /// The maximum backoff is 2^[MAX_BACKOFF_EXPONENT] seconds.
 const MAX_BACKOFF_EXPONENT: usize = 9;
+<<<<<<< HEAD
 
 /// The version of the proxy.
 ///
 /// This is the version of the proxy that is used to check the version of the worker.
 const MPS_PROXY_VERSION: &str = env!("CARGO_PKG_VERSION");
+=======
+>>>>>>> upstream/next
 
 // WORKER
 // ================================================================================================
@@ -128,11 +131,19 @@ impl Worker {
             return;
         }
 
+<<<<<<< HEAD
         if !is_valid_version(MPS_PROXY_VERSION, &worker_status.version) {
             self.set_health_status(WorkerHealthStatus::Unhealthy {
                 num_failed_attempts: failed_attempts + 1,
                 first_fail_timestamp: Instant::now(),
                 reason: format!("Worker version is invalid ({})", worker_status.version),
+=======
+        if !is_valid_version(&self.version, &worker_status.version) {
+            self.set_health_status(WorkerHealthStatus::Unhealthy {
+                num_failed_attempts: failed_attempts + 1,
+                first_fail_timestamp: Instant::now(),
+                reason: "Worker version is invalid".to_string(),
+>>>>>>> upstream/next
             });
             return;
         }

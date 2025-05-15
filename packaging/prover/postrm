@@ -3,7 +3,11 @@
 ###############
 # Remove miden-prover installs
 ##############
+<<<<<<< HEAD
 sudo rm -f /lib/systemd/system/miden-prover.service
+=======
+sudo rm -f /lib/systemd/system/miden-prover.*
+>>>>>>> upstream/next
 sudo rm -rf /opt/miden/miden-prover/
 sudo deluser miden-prover
 sudo systemctl daemon-reload

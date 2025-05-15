@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 use axum::async_trait;
 use pingora::{prelude::sleep, server::ShutdownWatch, services::background::BackgroundService};
+=======
+use pingora::{prelude::sleep, server::ShutdownWatch, services::background::BackgroundService};
+use tonic::async_trait;
+>>>>>>> upstream/next
 use tracing::debug_span;
 
 use super::LoadBalancerState;
@@ -24,7 +29,7 @@ impl BackgroundService for LoadBalancerState {
     ///
     /// # Errors
     /// - If the worker has an invalid URI.
-    async fn start(&self, _shutdown: ShutdownWatch) {
+    async fn start(&self, mut _shutdown: ShutdownWatch) {
         Box::pin(async move {
             loop {
                 // Create a new spawn to perform the health check

@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/next
 [Unit]
 Description=Miden delegated prover
 Wants=network-online.target
 
+<<<<<<< HEAD
 [Install]WantedBy=multi-user.target
 
 [Service]
@@ -11,3 +15,17 @@ WorkingDirectory=/opt/miden/prover
 User=miden-prover
 RestartSec=5
 Restart=always
+=======
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=exec
+EnvironmentFile=/lib/systemd/system/miden-prover.env
+ExecStart=/usr/bin/miden-proving-service start-worker
+WorkingDirectory=/opt/miden-prover
+User=miden-prover
+RestartSec=5
+Restart=always
+TimeoutStopSec=10
+>>>>>>> upstream/next
