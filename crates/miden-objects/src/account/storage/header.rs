@@ -1,6 +1,8 @@
 use alloc::vec::Vec;
 
-use super::{AccountStorage, Felt, StorageSlot, StorageSlotType, Word};
+use vm_processor::Digest;
+
+use super::{AccountStorage, Felt, Hasher, StorageSlot, StorageSlotType, Word};
 use crate::{
     AccountError, ZERO,
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -90,6 +92,12 @@ impl AccountStorageHeader {
         })
     }
 
+    // NOTE: The way of computing the commitment should be kept in sync with `AccountStorage`
+    /// Computes the account storage header commitment.
+    pub fn compute_commitment(&self) -> Digest {
+        Hasher::hash_elements(&self.as_elements())
+    }
+
     /// Converts storage slots of this account storage header into a vector of field elements.
     ///
     /// This is done by first converting each storage slot into exactly 8 elements as follows:
@@ -146,19 +154,13 @@ mod tests {
 
     #[test]
     fn test_from_account_storage() {
+        let storage_map = AccountStorage::mock_map();
+
         // create new storage header from AccountStorage
         let slots = vec![
             (StorageSlotType::Value, [Felt::new(1), Felt::new(2), Felt::new(3), Felt::new(4)]),
             (StorageSlotType::Value, [Felt::new(5), Felt::new(6), Felt::new(7), Felt::new(8)]),
-            (
-                StorageSlotType::Map,
-                [
-                    Felt::new(12405212884040084310),
-                    Felt::new(17614307840949763446),
-                    Felt::new(6101527485586301500),
-                    Felt::new(14442045877206841081),
-                ],
-            ),
+            (StorageSlotType::Map, storage_map.root().into()),
         ];
 
         let expected_header = AccountStorageHeader { slots };

@@ -80,6 +80,11 @@ impl AccountInterface {
         self.account_id.is_public()
     }
 
+    /// Returns true if the reference account is public.
+    pub fn is_network(&self) -> bool {
+        self.account_id.is_network()
+    }
+
     /// Returns a reference to the vector of used authentication schemes.
     pub fn auth(&self) -> &Vec<AuthScheme> {
         &self.auth
@@ -311,6 +316,8 @@ pub enum NoteAccountCompatibility {
     /// The account has all necessary procedures of one execution branch of the note script. This
     /// means the note may be able to be consumed by the account if that branch is executed.
     Maybe,
+    /// A note could be successfully executed and consumed by the account.
+    Yes,
 }
 
 // HELPER FUNCTIONS

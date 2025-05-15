@@ -237,6 +237,7 @@ mod tests {
 
         // create empty assets
         let mut assets = NoteAssets::default();
+
         assert_eq!(assets.hash, Digest::default());
 
         // add asset1

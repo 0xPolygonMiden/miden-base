@@ -21,19 +21,22 @@ pub use account_type::AccountType;
 mod storage_mode;
 pub use storage_mode::AccountStorageMode;
 
+mod network_account;
+pub use network_account::NetworkAccount;
+
 mod id_version;
 use alloc::string::{String, ToString};
 use core::fmt;
 
 pub use id_version::AccountIdVersion;
-use miden_crypto::{merkle::LeafIndex, utils::hex_to_bytes};
+use miden_crypto::utils::hex_to_bytes;
 use vm_core::{
     Felt, Word,
     utils::{ByteReader, Deserializable, Serializable},
 };
 use vm_processor::{DeserializationError, Digest};
 
-use crate::{ACCOUNT_TREE_DEPTH, AccountError, errors::AccountIdError};
+use crate::{AccountError, errors::AccountIdError};
 
 /// The identifier of an [`Account`](crate::account::Account).
 ///
@@ -41,11 +44,13 @@ use crate::{ACCOUNT_TREE_DEPTH, AccountError, errors::AccountIdError};
 ///
 /// # Layout
 ///
-/// An `AccountId` consists of two field elements and is layed out as follows:
+/// An `AccountId` consists of two field elements, where the first is called the prefix and the
+/// second is called the suffix. It is layed out as follows:
 ///
 /// ```text
-/// 1st felt: [random (56 bits) | storage mode (2 bits) | type (2 bits) | version (4 bits)]
-/// 2nd felt: [anchor_epoch (16 bits) | random (40 bits) | 8 zero bits]
+/// prefix: [hash (29 bits) | network account (1 bit) | hash (26 bits) |
+///          storage mode (2 bits) | type (2 bits) | version (4 bits)]
+/// suffix: [anchor_epoch (16 bits) | hash (40 bits) | 8 zero bits]
 /// ```
 ///
 /// # Generation
@@ -80,6 +85,12 @@ use crate::{ACCOUNT_TREE_DEPTH, AccountError, errors::AccountIdError};
 ///
 /// - The prefix is the output of a hash function so it will be a valid field element without
 ///   requiring additional constraints.
+/// - The network flag is placed at the 30th most significant bit in the prefix. This means that the
+///   last bit of a note tag with the `0b00` prefix will indicate whether the target account is a
+///   network account or not. Note tags intended for local execution use only the 14 most
+///   significant bits, so the network bit does not appear in those. This is desirable because if it
+///   was there, it would reduce the uniqueness of the note tag and it would be less useful for
+///   scanning for available notes in the network for private accounts.
 /// - The version is placed at a static offset such that future ID versions which may change the
 ///   number of type or storage mode bits will not cause the version to be at a different offset.
 ///   This is important so that a parser can always reliably read the version and then parse the
@@ -186,30 +197,37 @@ impl AccountId {
         }
     }
 
-    /// Constructs an [`AccountId`] for testing purposes with the given account type and storage
-    /// mode.
+    /// Constructs an [`AccountId`] for testing purposes with the given account type, storage
+    /// mode and network flag.
     ///
     /// This function does the following:
     /// - Split the given bytes into a `prefix = bytes[0..8]` and `suffix = bytes[8..]` part to be
     ///   used for the prefix and suffix felts, respectively.
-    /// - The least significant byte of the prefix is set to the version 0, and the given type and
-    ///   storage mode.
+    /// - The least significant byte of the prefix is set to the given version, type and storage
+    ///   mode.
+    /// - The 30th most significant bit in the prefix is set to the network flag.
     /// - The 32nd most significant bit in the prefix is cleared to ensure it is a valid felt. The
     ///   32nd is chosen as it is the lowest bit that we can clear and still ensure felt validity.
-    ///   This leaves the upper 31 bits to be set by the input `bytes` which makes it simpler to
-    ///   create test values which more often need specific values for the most significant end of
-    ///   the ID.
+    ///   This leaves the upper 31 bits (except for the network flag) to be set by the input `bytes`
+    ///   which makes it simpler to create test values which more often need specific values for the
+    ///   most significant end of the ID.
     /// - In the suffix the anchor epoch is set to 0 and the lower 8 bits are cleared.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the network flag is set to [`NetworkAccount::Enabled`] and the storage mode is
+    /// [`AccountStorageMode::Private`].
     #[cfg(any(feature = "testing", test))]
     pub fn dummy(
         bytes: [u8; 15],
         version: AccountIdVersion,
         account_type: AccountType,
         storage_mode: AccountStorageMode,
+        network_account: NetworkAccount,
     ) -> AccountId {
         match version {
             AccountIdVersion::Version0 => {
-                Self::V0(AccountIdV0::dummy(bytes, account_type, storage_mode))
+                Self::V0(AccountIdV0::dummy(bytes, account_type, storage_mode, network_account))
             },
         }
     }
@@ -224,6 +242,7 @@ impl AccountId {
         init_seed: [u8; 32],
         account_type: AccountType,
         storage_mode: AccountStorageMode,
+        network_account: NetworkAccount,
         version: AccountIdVersion,
         code_commitment: Digest,
         storage_commitment: Digest,
@@ -234,6 +253,7 @@ impl AccountId {
                 init_seed,
                 account_type,
                 storage_mode,
+                network_account,
                 version,
                 code_commitment,
                 storage_commitment,
@@ -269,9 +289,27 @@ impl AccountId {
         }
     }
 
-    /// Returns `true` if an account with this ID is a public account.
+    /// Returns `true` if the storage mode is [`AccountStorageMode::Public`], `false` otherwise.
     pub fn is_public(&self) -> bool {
-        self.storage_mode() == AccountStorageMode::Public
+        self.storage_mode().is_public()
+    }
+
+    /// Returns `true` if the storage mode is [`AccountStorageMode::Private`], `false` otherwise.
+    pub fn is_private(&self) -> bool {
+        self.storage_mode().is_private()
+    }
+
+    /// Returns the network flag of this account, indicating whether self is a network account or
+    /// not.
+    pub fn network_account(&self) -> NetworkAccount {
+        match self {
+            AccountId::V0(account_id) => account_id.network_account(),
+        }
+    }
+
+    /// Returns `true` if self is a network account, `false` otherwise.
+    pub fn is_network(&self) -> bool {
+        self.network_account().is_enabled()
     }
 
     /// Returns the version of this account ID.
@@ -391,15 +429,6 @@ impl From<AccountId> for [u8; 15] {
 }
 
 impl From<AccountId> for u128 {
-    fn from(id: AccountId) -> Self {
-        match id {
-            AccountId::V0(account_id) => account_id.into(),
-        }
-    }
-}
-
-/// Account IDs are used as indexes in the account database, which is a tree of depth 64.
-impl From<AccountId> for LeafIndex<ACCOUNT_TREE_DEPTH> {
     fn from(id: AccountId) -> Self {
         match id {
             AccountId::V0(account_id) => account_id.into(),
@@ -538,8 +567,9 @@ mod tests {
         },
         errors::Bech32Error,
         testing::account_id::{
-            ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_SENDER,
-            ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
+            ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_PRIVATE_SENDER, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         },
     };
@@ -552,6 +582,7 @@ mod tests {
             ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
             ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
             ACCOUNT_ID_PRIVATE_SENDER,
+            ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET,
         ]
         .into_iter()
         .enumerate()

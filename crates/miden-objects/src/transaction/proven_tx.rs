@@ -34,9 +34,6 @@ pub struct ProvenTransaction {
     output_notes: OutputNotes,
 
     /// [`BlockNumber`] of the transaction's reference block.
-    ///
-    /// This is not needed for proving the transaction, but it is useful for the node to lookup the
-    /// block.
     ref_block_num: BlockNumber,
 
     /// The block commitment of the transaction's reference block.
@@ -91,7 +88,7 @@ impl ProvenTransaction {
     }
 
     /// Returns an iterator of the headers of unauthenticated input notes in this transaction.
-    pub fn get_unauthenticated_notes(&self) -> impl Iterator<Item = &NoteHeader> {
+    pub fn unauthenticated_notes(&self) -> impl Iterator<Item = &NoteHeader> {
         self.input_notes.iter().filter_map(|note| note.header())
     }
 
@@ -103,7 +100,7 @@ impl ProvenTransaction {
     /// Returns an iterator over the nullifiers of all input notes in this transaction.
     ///
     /// This includes both authenticated and unauthenticated notes.
-    pub fn get_nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
+    pub fn nullifiers(&self) -> impl Iterator<Item = Nullifier> + '_ {
         self.input_notes.iter().map(InputNoteCommitment::nullifier)
     }
 
@@ -543,6 +540,7 @@ impl Deserializable for InputNoteCommitment {
 mod tests {
     use alloc::collections::BTreeMap;
 
+    use anyhow::Context;
     use miden_verifier::ExecutionProof;
     use vm_core::utils::Deserializable;
     use winter_air::proof::Proof;
@@ -553,7 +551,8 @@ mod tests {
         ACCOUNT_UPDATE_MAX_SIZE, Digest, EMPTY_WORD, ONE, ProvenTransactionError, ZERO,
         account::{
             AccountDelta, AccountId, AccountIdVersion, AccountStorageDelta, AccountStorageMode,
-            AccountType, AccountVaultDelta, StorageMapDelta, delta::AccountUpdateDetails,
+            AccountType, AccountVaultDelta, NetworkAccount, StorageMapDelta,
+            delta::AccountUpdateDetails,
         },
         block::BlockNumber,
         testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
@@ -633,12 +632,13 @@ mod tests {
     }
 
     #[test]
-    fn test_proven_tx_serde_roundtrip() {
+    fn test_proven_tx_serde_roundtrip() -> anyhow::Result<()> {
         let account_id = AccountId::dummy(
             [1; 15],
             AccountIdVersion::Version0,
             AccountType::FungibleFaucet,
             AccountStorageMode::Private,
+            NetworkAccount::Disabled,
         );
         let initial_account_commitment =
             [2; 32].try_into().expect("failed to create initial account commitment");
@@ -659,10 +659,12 @@ mod tests {
             proof,
         )
         .build()
-        .expect("failed to build proven transaction");
+        .context("failed to build proven transaction")?;
 
         let deserialized = ProvenTransaction::read_from_bytes(&tx.to_bytes()).unwrap();
 
         assert_eq!(tx, deserialized);
+
+        Ok(())
     }
 }

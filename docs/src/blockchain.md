@@ -37,7 +37,7 @@ The block producer ensures:
 3. **Block hash references**: Check that all block hashes references by batches are in the chain.
 4. **Double-spend prevention**: Each consumed note’s nullifier is checked against prior consumption. The Block `N` Nullifier DB commitment is authenticated against all provided nullifiers for consumed notes, ensuring no nullifier is reused.
 5. **Global note uniqueness**: All created and consumed notes must be unique across batches.
-6. **Batch expiration**: The block height of the created block must be smaller or equal than the lowest batch expiration.
+6. **Batch expiration**: The block height of the created block must be smaller then or equal to the lowest batch expiration.
 7. **Block time increase**: The block timestamp must increase monotonically from the previous block.
 8. **Note erasure of erasable notes**: If an erasable note is created and consumed in different batches, it is erased now. If, however, an erasable note is consumed but not created within the block, the batch it contains is rejected. The Miden operator's mempool should preemptively filter such transactions.
 

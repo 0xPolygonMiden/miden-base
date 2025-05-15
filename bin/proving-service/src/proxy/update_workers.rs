@@ -1,13 +1,13 @@
 use core::fmt;
 use std::sync::Arc;
 
-use axum::async_trait;
 use pingora::{
     apps::{HttpServerApp, HttpServerOptions},
     http::ResponseHeader,
     protocols::{Stream, http::ServerSession},
     server::ShutdownWatch,
 };
+use tonic::async_trait;
 use tracing::{error, info};
 
 use super::LoadBalancerState;

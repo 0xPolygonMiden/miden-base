@@ -3,14 +3,17 @@ use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     Felt, MAX_TX_EXECUTION_CYCLES, MIN_TX_EXECUTION_CYCLES, ZERO,
-    account::{AccountCode, AccountId},
-    assembly::Library,
-    block::BlockNumber,
+    account::AccountId,
+    block::{BlockHeader, BlockNumber},
     note::NoteId,
-    transaction::{ExecutedTransaction, TransactionArgs, TransactionInputs, TransactionScript},
+    transaction::{
+        ExecutedTransaction, ForeignAccountInputs, InputNote, InputNotes, TransactionArgs,
+        TransactionInputs, TransactionScript,
+    },
     vm::StackOutputs,
 };
-use vm_processor::{AdviceInputs, ExecutionOptions, Process, RecAdviceProvider};
+pub use vm_processor::MastForestStore;
+use vm_processor::{AdviceInputs, ExecutionOptions, MemAdviceProvider, Process, RecAdviceProvider};
 use winter_maybe_async::{maybe_async, maybe_await};
 
 use super::{TransactionExecutorError, TransactionHost};
@@ -19,8 +22,8 @@ use crate::auth::TransactionAuthenticator;
 mod data_store;
 pub use data_store::DataStore;
 
-mod mast_store;
-pub use mast_store::TransactionMastStore;
+mod notes_checker;
+pub use notes_checker::{NoteConsumptionChecker, NoteInputsCheck};
 
 // TRANSACTION EXECUTOR
 // ================================================================================================
@@ -29,18 +32,14 @@ pub use mast_store::TransactionMastStore;
 ///
 /// Transaction execution consists of the following steps:
 /// - Fetch the data required to execute a transaction from the [DataStore].
-/// - Load the code associated with the transaction into the [TransactionMastStore].
 /// - Execute the transaction program and create an [ExecutedTransaction].
 ///
 /// The transaction executor uses dynamic dispatch with trait objects for the [DataStore] and
 /// [TransactionAuthenticator], allowing it to be used with different backend implementations.
+/// At the moment of execution, the [DataStore] is expected to provide all required MAST nodes.
 pub struct TransactionExecutor {
     data_store: Arc<dyn DataStore>,
-    mast_store: Arc<TransactionMastStore>,
     authenticator: Option<Arc<dyn TransactionAuthenticator>>,
-    /// Holds the code of all accounts loaded into this transaction executor via the
-    /// [Self::load_account_code()] method.
-    account_codes: BTreeSet<AccountCode>,
     exec_options: ExecutionOptions,
 }
 
@@ -58,7 +57,6 @@ impl TransactionExecutor {
 
         Self {
             data_store,
-            mast_store: Arc::new(TransactionMastStore::new()),
             authenticator,
             exec_options: ExecutionOptions::new(
                 Some(MAX_TX_EXECUTION_CYCLES),
@@ -67,7 +65,6 @@ impl TransactionExecutor {
                 false,
             )
             .expect("Must not fail while max cycles is more than min trace length"),
-            account_codes: BTreeSet::new(),
         }
     }
 
@@ -91,27 +88,6 @@ impl TransactionExecutor {
         self
     }
 
-    // STATE MUTATORS
-    // --------------------------------------------------------------------------------------------
-
-    /// Loads the provided account code into the internal MAST forest store and adds the commitment
-    /// of the provided code to the commitments set.
-    pub fn load_account_code(&mut self, code: &AccountCode) {
-        // load the code mast forest to the mast store
-        self.mast_store.load_account_code(code);
-
-        // store the commitment of the foreign account code in the set
-        self.account_codes.insert(code.clone());
-    }
-
-    /// Loads the provided library code into the internal MAST forest store.
-    ///
-    /// TODO: this is a work-around to support accounts which were complied with user-defined
-    /// libraries. Once Miden Assembler supports library vendoring, this should go away.
-    pub fn load_library(&mut self, library: &Library) {
-        self.mast_store.insert(library.mast_forest().clone());
-    }
-
     // TRANSACTION EXECUTION
     // --------------------------------------------------------------------------------------------
 
@@ -125,35 +101,45 @@ impl TransactionExecutor {
     /// # Errors:
     /// Returns an error if:
     /// - If required data can not be fetched from the [DataStore].
+    /// - If the transaction arguments contain foreign account data not anchored in the reference
+    ///   block.
+    /// - If any input notes were created in block numbers higher than the reference block.
     #[maybe_async]
     pub fn execute_transaction(
         &self,
         account_id: AccountId,
         block_ref: BlockNumber,
-        notes: &[NoteId],
+        notes: InputNotes<InputNote>,
         tx_args: TransactionArgs,
     ) -> Result<ExecutedTransaction, TransactionExecutorError> {
-        let tx_inputs =
-            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, notes))
+        let mut ref_blocks = validate_input_notes(&notes, block_ref)?;
+        ref_blocks.insert(block_ref);
+
+        let (account, seed, ref_block, mmr) =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, ref_blocks))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
 
-        let (stack_inputs, advice_inputs) =
-            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None);
-        let advice_recorder: RecAdviceProvider = advice_inputs.into();
+        validate_account_inputs(&tx_args, &ref_block)?;
 
-        // load note script MAST into the MAST store
-        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
+        let tx_inputs = TransactionInputs::new(account, seed, ref_block, mmr, notes)
+            .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
+
+        let (stack_inputs, advice_inputs) =
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None)
+                .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
+
+        let advice_recorder: RecAdviceProvider = advice_inputs.into();
 
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
             advice_recorder,
-            self.mast_store.clone(),
+            self.data_store.clone(),
             self.authenticator.clone(),
-            self.account_codes.iter().map(|code| code.commitment()).collect(),
+            tx_args.foreign_account_code_commitments(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
-        // execute the transaction kernel
+        // Execute the transaction kernel
         let result = vm_processor::execute(
             &TransactionKernel::main(),
             stack_inputs,
@@ -162,25 +148,7 @@ impl TransactionExecutor {
         )
         .map_err(TransactionExecutorError::TransactionProgramExecutionFailed)?;
 
-        // Attempt to retrieve used account codes based on the advice map
-        let account_codes = self
-            .account_codes
-            .iter()
-            .filter_map(|code| {
-                tx_args
-                    .advice_inputs()
-                    .mapped_values(&code.commitment())
-                    .and(Some(code.clone()))
-            })
-            .collect();
-
-        build_executed_transaction(
-            tx_args,
-            tx_inputs,
-            result.stack_outputs().clone(),
-            host,
-            account_codes,
-        )
+        build_executed_transaction(tx_args, tx_inputs, result.stack_outputs().clone(), host)
     }
 
     // SCRIPT EXECUTION
@@ -201,26 +169,35 @@ impl TransactionExecutor {
         block_ref: BlockNumber,
         tx_script: TransactionScript,
         advice_inputs: AdviceInputs,
+        foreign_account_inputs: Vec<ForeignAccountInputs>,
     ) -> Result<[Felt; 16], TransactionExecutorError> {
-        let tx_inputs =
-            maybe_await!(self.data_store.get_transaction_inputs(account_id, block_ref, &[]))
+        let ref_blocks = [block_ref].into_iter().collect();
+        let (account, seed, ref_block, mmr) =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, ref_blocks))
                 .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+        let tx_args = TransactionArgs::new(
+            Some(tx_script.clone()),
+            None,
+            Default::default(),
+            foreign_account_inputs,
+        );
 
-        let tx_args = TransactionArgs::new(Some(tx_script.clone()), None, Default::default());
+        validate_account_inputs(&tx_args, &ref_block)?;
+
+        let tx_inputs = TransactionInputs::new(account, seed, ref_block, mmr, Default::default())
+            .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
 
         let (stack_inputs, advice_inputs) =
-            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_inputs));
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_inputs))
+                .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
         let advice_recorder: RecAdviceProvider = advice_inputs.into();
-
-        // load transaction script MAST into the MAST store
-        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
 
         let mut host = TransactionHost::new(
             tx_inputs.account().into(),
             advice_recorder,
-            self.mast_store.clone(),
+            self.data_store.clone(),
             self.authenticator.clone(),
-            self.account_codes.iter().map(|code| code.commitment()).collect(),
+            tx_args.foreign_account_code_commitments(),
         )
         .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
 
@@ -235,6 +212,92 @@ impl TransactionExecutor {
 
         Ok(*stack_outputs)
     }
+
+    // CHECK CONSUMABILITY
+    // ============================================================================================
+
+    /// Executes the transaction with specified notes, returning the [NoteAccountExecution::Success]
+    /// if all notes has been consumed successfully and [NoteAccountExecution::Failure] if some note
+    /// returned an error.
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - If required data can not be fetched from the [DataStore].
+    /// - If the transaction host can not be created from the provided values.
+    /// - If the execution of the provided program fails on the stage other than note execution.
+    #[maybe_async]
+    pub(crate) fn try_execute_notes(
+        &self,
+        account_id: AccountId,
+        block_ref: BlockNumber,
+        notes: InputNotes<InputNote>,
+        tx_args: TransactionArgs,
+    ) -> Result<NoteAccountExecution, TransactionExecutorError> {
+        let mut ref_blocks = validate_input_notes(&notes, block_ref)?;
+        ref_blocks.insert(block_ref);
+
+        let (account, seed, ref_block, mmr) =
+            maybe_await!(self.data_store.get_transaction_inputs(account_id, ref_blocks))
+                .map_err(TransactionExecutorError::FetchTransactionInputsFailed)?;
+
+        validate_account_inputs(&tx_args, &ref_block)?;
+
+        let tx_inputs = TransactionInputs::new(account, seed, ref_block, mmr, notes)
+            .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
+
+        let (stack_inputs, advice_inputs) =
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, None)
+                .map_err(TransactionExecutorError::InvalidTransactionInputs)?;
+
+        let advice_provider: MemAdviceProvider = advice_inputs.into();
+
+        let mut host = TransactionHost::new(
+            tx_inputs.account().into(),
+            advice_provider,
+            self.data_store.clone(),
+            self.authenticator.clone(),
+            tx_args.foreign_account_code_commitments(),
+        )
+        .map_err(TransactionExecutorError::TransactionHostCreationFailed)?;
+
+        // execute the transaction kernel
+        let result = vm_processor::execute(
+            &TransactionKernel::main(),
+            stack_inputs,
+            &mut host,
+            self.exec_options,
+        )
+        .map_err(TransactionExecutorError::TransactionProgramExecutionFailed);
+
+        match result {
+            Ok(_) => Ok(NoteAccountExecution::Success),
+            Err(tx_execution_error) => {
+                let notes = host.tx_progress().note_execution();
+
+                // empty notes vector means that we didn't process the notes, so an error
+                // occurred somewhere else
+                if notes.is_empty() {
+                    return Err(tx_execution_error);
+                }
+
+                let ((last_note, last_note_interval), success_notes) = notes
+                    .split_last()
+                    .expect("notes vector should not be empty because we just checked");
+
+                // if the interval end of the last note is specified, then an error occurred after
+                // notes processing
+                if last_note_interval.end().is_some() {
+                    return Err(tx_execution_error);
+                }
+
+                Ok(NoteAccountExecution::Failure {
+                    failed_note_id: *last_note,
+                    successful_notes: success_notes.iter().map(|(note, _)| *note).collect(),
+                    error: Some(tx_execution_error),
+                })
+            },
+        }
+    }
 }
 
 // HELPER FUNCTIONS
@@ -246,7 +309,6 @@ fn build_executed_transaction(
     tx_inputs: TransactionInputs,
     stack_outputs: StackOutputs,
     host: TransactionHost<RecAdviceProvider>,
-    account_codes: Vec<AccountCode>,
 ) -> Result<ExecutedTransaction, TransactionExecutorError> {
     let (advice_recorder, account_delta, output_notes, generated_signatures, tx_progress) =
         host.into_parts();
@@ -290,10 +352,71 @@ fn build_executed_transaction(
     Ok(ExecutedTransaction::new(
         tx_inputs,
         tx_outputs,
-        account_codes,
         account_delta,
         tx_args,
         advice_witness,
         tx_progress.into(),
     ))
+}
+
+/// Validates the account inputs against the reference block header.
+fn validate_account_inputs(
+    tx_args: &TransactionArgs,
+    ref_block: &BlockHeader,
+) -> Result<(), TransactionExecutorError> {
+    // Validate that foreign account inputs are anchored in the reference block
+    for foreign_account in tx_args.foreign_accounts() {
+        let computed_account_root = foreign_account.compute_account_root().map_err(|err| {
+            TransactionExecutorError::InvalidAccountWitness(foreign_account.id(), err)
+        })?;
+        if computed_account_root != ref_block.account_root() {
+            return Err(TransactionExecutorError::ForeignAccountNotAnchoredInReference(
+                foreign_account.id(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Validates that input notes were not created after the reference block.
+///
+/// Returns the set of block numbers required to execute the provided notes.
+fn validate_input_notes(
+    notes: &InputNotes<InputNote>,
+    block_ref: BlockNumber,
+) -> Result<BTreeSet<BlockNumber>, TransactionExecutorError> {
+    // Validate that notes were not created after the reference, and build the set of required
+    // block numbers
+    let mut ref_blocks: BTreeSet<BlockNumber> = BTreeSet::new();
+    for note in notes.iter() {
+        if let Some(location) = note.location() {
+            if location.block_num() > block_ref {
+                return Err(TransactionExecutorError::NoteBlockPastReferenceBlock(
+                    note.id(),
+                    block_ref,
+                ));
+            }
+            ref_blocks.insert(location.block_num());
+        }
+    }
+
+    Ok(ref_blocks)
+}
+
+// HELPER ENUM
+// ================================================================================================
+
+/// Describes whether a transaction with a specified set of notes could be executed against target
+/// account.
+///
+/// [NoteAccountExecution::Failure] holds data for error handling: `failing_note_id` is an ID of a
+/// failing note and `successful_notes` is a vector of note IDs which were successfully executed.
+#[derive(Debug)]
+pub enum NoteAccountExecution {
+    Success,
+    Failure {
+        failed_note_id: NoteId,
+        successful_notes: Vec<NoteId>,
+        error: Option<TransactionExecutorError>,
+    },
 }

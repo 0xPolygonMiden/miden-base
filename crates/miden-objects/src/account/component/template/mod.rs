@@ -123,7 +123,7 @@ impl Deserializable for AccountComponentTemplate {
 ///
 /// let word_representation = WordRepresentation::new_value(
 ///     [first_felt, second_felt, third_felt, last_element],
-///     Some(StorageValueName::new("test_value")?),
+///     Some(StorageValueName::new("test_value")?.into()),
 /// )
 /// .with_description("this is the first entry in the storage layout");
 /// let storage_entry = StorageEntry::new_value(0, word_representation);
@@ -331,10 +331,7 @@ impl Deserializable for AccountComponentMetadata {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::BTreeSet,
-        string::{String, ToString},
-    };
+    use std::{collections::BTreeSet, string::ToString};
 
     use assembly::Assembler;
     use assert_matches::assert_matches;
@@ -349,9 +346,12 @@ mod tests {
         AccountError,
         account::{
             AccountComponent, StorageValueName,
-            component::template::{
-                AccountComponentMetadata, AccountComponentTemplate, InitStorageData,
-                storage::StorageEntry,
+            component::{
+                FieldIdentifier,
+                template::{
+                    AccountComponentMetadata, AccountComponentTemplate, InitStorageData,
+                    storage::StorageEntry,
+                },
             },
         },
         errors::AccountComponentTemplateError,
@@ -372,8 +372,7 @@ mod tests {
         let storage = vec![
             StorageEntry::new_value(0, default_felt_array()),
             StorageEntry::new_multislot(
-                StorageValueName::new("slot1").unwrap(),
-                Some("multi-slot value of arity 2".into()),
+                FieldIdentifier::with_name(StorageValueName::new("slot1").unwrap()),
                 1..3,
                 vec![default_felt_array(), default_felt_array()],
             ),
@@ -413,8 +412,7 @@ mod tests {
     fn binary_serde_roundtrip() {
         let storage = vec![
             StorageEntry::new_multislot(
-                StorageValueName::new("slot1").unwrap(),
-                Option::<String>::None,
+                FieldIdentifier::with_name(StorageValueName::new("slot1").unwrap()),
                 1..3,
                 vec![default_felt_array(), default_felt_array()],
             ),

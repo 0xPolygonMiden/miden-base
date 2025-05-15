@@ -1,11 +1,10 @@
 use alloc::vec::Vec;
 
 use crate::{
-    Digest,
-    account::AccountId,
+    Digest, MIN_PROOF_SECURITY_LEVEL,
     block::{BlockAccountUpdate, BlockHeader, BlockNoteIndex, BlockNoteTree, OutputNoteBatch},
     note::Nullifier,
-    transaction::{OutputNote, TransactionId},
+    transaction::{OrderedTransactionHeaders, OutputNote},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -29,6 +28,7 @@ use crate::{
 /// - A list of new notes created in this block. For private notes, the block contains only note IDs
 ///   and note metadata while for public notes the full note details are included.
 /// - A list of new nullifiers created for all notes that were consumed in the block.
+/// - A list of transaction headers that were included in the block.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvenBlock {
     /// The header of the block, committing to the current state of the chain.
@@ -42,6 +42,10 @@ pub struct ProvenBlock {
 
     /// Nullifiers created by the transactions in this block through the consumption of notes.
     created_nullifiers: Vec<Nullifier>,
+
+    /// The aggregated and flattened transaction headers of all batches in the order in which they
+    /// appeared in the proposed block.
+    transactions: OrderedTransactionHeaders,
 }
 
 impl ProvenBlock {
@@ -56,12 +60,14 @@ impl ProvenBlock {
         updated_accounts: Vec<BlockAccountUpdate>,
         output_note_batches: Vec<OutputNoteBatch>,
         created_nullifiers: Vec<Nullifier>,
+        transactions: OrderedTransactionHeaders,
     ) -> Self {
         Self {
             header,
             updated_accounts,
             output_note_batches,
             created_nullifiers,
+            transactions,
         }
     }
 
@@ -83,6 +89,11 @@ impl ProvenBlock {
     /// Returns the slice of [`OutputNoteBatch`]es for all output notes created in this block.
     pub fn output_note_batches(&self) -> &[OutputNoteBatch] {
         &self.output_note_batches
+    }
+
+    /// Returns the proof security level of the block.
+    pub fn proof_security_level(&self) -> u32 {
+        MIN_PROOF_SECURITY_LEVEL
     }
 
     /// Returns an iterator over all [`OutputNote`]s created in this block.
@@ -123,17 +134,14 @@ impl ProvenBlock {
         &self.created_nullifiers
     }
 
-    /// Returns an iterator over all transactions which affected accounts in the block with
-    /// their corresponding account IDs.
-    pub fn transactions(&self) -> impl Iterator<Item = (TransactionId, AccountId)> + '_ {
-        self.updated_accounts.iter().flat_map(|update| {
-            update
-                .transactions()
-                .iter()
-                .map(|transaction_id| (*transaction_id, update.account_id()))
-        })
+    /// Returns the [`OrderedTransactionHeaders`] of all transactions included in this block.
+    pub fn transactions(&self) -> &OrderedTransactionHeaders {
+        &self.transactions
     }
 }
+
+// SERIALIZATION
+// ================================================================================================
 
 impl Serializable for ProvenBlock {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
@@ -141,6 +149,7 @@ impl Serializable for ProvenBlock {
         self.updated_accounts.write_into(target);
         self.output_note_batches.write_into(target);
         self.created_nullifiers.write_into(target);
+        self.transactions.write_into(target);
     }
 }
 
@@ -151,8 +160,35 @@ impl Deserializable for ProvenBlock {
             updated_accounts: <Vec<BlockAccountUpdate>>::read_from(source)?,
             output_note_batches: <Vec<OutputNoteBatch>>::read_from(source)?,
             created_nullifiers: <Vec<Nullifier>>::read_from(source)?,
+            transactions: OrderedTransactionHeaders::read_from(source)?,
         };
 
         Ok(block)
+    }
+}
+
+// TESTING
+// ================================================================================================
+
+#[cfg(any(feature = "testing", test))]
+impl ProvenBlock {
+    /// Returns a mutable reference to the block's account updates for testing purposes.
+    pub fn updated_accounts_mut(&mut self) -> &mut Vec<BlockAccountUpdate> {
+        &mut self.updated_accounts
+    }
+
+    /// Returns a mutable reference to the block's nullifiers for testing purposes.
+    pub fn created_nullifiers_mut(&mut self) -> &mut Vec<Nullifier> {
+        &mut self.created_nullifiers
+    }
+
+    /// Returns a mutable reference to the block's output note batches for testing purposes.
+    pub fn output_note_batches_mut(&mut self) -> &mut Vec<OutputNoteBatch> {
+        &mut self.output_note_batches
+    }
+
+    /// Sets the block's header for testing purposes.
+    pub fn set_block_header(&mut self, header: BlockHeader) {
+        self.header = header;
     }
 }

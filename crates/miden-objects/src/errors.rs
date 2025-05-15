@@ -2,7 +2,7 @@ use alloc::{boxed::Box, string::String, vec::Vec};
 use core::error::Error;
 
 use assembly::{Report, diagnostics::reporting::PrintDiagnostic};
-use miden_crypto::utils::HexParseError;
+use miden_crypto::{merkle::MmrError, utils::HexParseError};
 use thiserror::Error;
 use vm_core::{Felt, FieldElement, mast::MastForestError};
 use vm_processor::DeserializationError;
@@ -10,7 +10,7 @@ use vm_processor::DeserializationError;
 use super::{
     Digest, MAX_BATCHES_PER_BLOCK, MAX_OUTPUT_NOTES_PER_BATCH, Word,
     account::AccountId,
-    asset::{FungibleAsset, NonFungibleAsset},
+    asset::{FungibleAsset, NonFungibleAsset, TokenSymbol},
     crypto::merkle::MerkleError,
     note::NoteId,
 };
@@ -159,6 +159,8 @@ pub enum AccountIdError {
     AnchorEpochMustNotBeU16Max,
     #[error("least significant byte of account ID suffix must be zero")]
     AccountIdSuffixLeastSignificantByteMustBeZero,
+    #[error("accounts that have the network flag enabled must be public")]
+    NetworkAccountMustBePublic,
     #[error(
         "anchor block must be an epoch block, that is, its block number must be a multiple of 2^{}",
         BlockNumber::EPOCH_LENGTH_EXPONENT
@@ -166,6 +168,31 @@ pub enum AccountIdError {
     AnchorBlockMustBeEpochBlock,
     #[error("failed to decode bech32 string into account ID")]
     Bech32DecodeError(#[source] Bech32Error),
+}
+
+// ACCOUNT TREE ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum AccountTreeError {
+    #[error(
+        "account tree contains multiple account IDs that share the same prefix {duplicate_prefix}"
+    )]
+    DuplicateIdPrefix { duplicate_prefix: AccountIdPrefix },
+    #[error(
+        "entries passed to account tree contain multiple state commitments for the same account ID prefix {prefix}"
+    )]
+    DuplicateStateCommitments { prefix: AccountIdPrefix },
+    #[error("untracked account ID {id} used in partial account tree")]
+    UntrackedAccountId { id: AccountId, source: MerkleError },
+    #[error("new tree root after account witness insertion does not match previous tree root")]
+    TreeRootConflict(#[source] MerkleError),
+    #[error("failed to apply mutations to account tree")]
+    ApplyMutations(#[source] MerkleError),
+    #[error("smt leaf's index is not a valid account ID prefix")]
+    InvalidAccountIdPrefix(#[source] AccountIdError),
+    #[error("account witness merkle path depth {0} does not match AccountTree::DEPTH")]
+    WitnessMerklePathDepthDoesNotMatchAccountTreeDepth(usize),
 }
 
 // BECH32 ERROR
@@ -227,6 +254,18 @@ pub enum AccountDeltaError {
     NotAFungibleFaucetId(AccountId),
 }
 
+// STORAGE MAP ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum StorageMapError {
+    #[error("map entries contain key {key} twice with values {value0} and {value1}",
+      value0 = vm_core::utils::to_hex(Felt::elements_as_bytes(value0)),
+      value1 = vm_core::utils::to_hex(Felt::elements_as_bytes(value1))
+    )]
+    DuplicateKey { key: Digest, value0: Word, value1: Word },
+}
+
 // BATCH ACCOUNT UPDATE ERROR
 // ================================================================================================
 
@@ -245,7 +284,7 @@ pub enum BatchAccountUpdateError {
     )]
     AccountUpdateInitialStateMismatch(TransactionId),
     #[error("failed to merge account delta from transaction {0}")]
-    TransactionUpdateMergeError(TransactionId, #[source] AccountDeltaError),
+    TransactionUpdateMergeError(TransactionId, #[source] Box<AccountDeltaError>),
 }
 
 // ASSET ERROR
@@ -285,8 +324,21 @@ pub enum AssetError {
       expected_ty = AccountType::NonFungibleFaucet
     )]
     NonFungibleFaucetIdTypeMismatch(AccountIdPrefix),
-    #[error("{0}")]
-    TokenSymbolError(String),
+}
+
+// TOKEN SYMBOL ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum TokenSymbolError {
+    #[error("token symbol value {0} cannot exceed {max}", max = TokenSymbol::MAX_ENCODED_VALUE)]
+    ValueTooLarge(u64),
+    #[error("token symbol should have length between 1 and 6 characters, but {0} was provided")]
+    InvalidLength(usize),
+    #[error("token symbol `{0}` contains characters that are not uppercase ASCII")]
+    InvalidCharacter(String),
+    #[error("token symbol data left after decoding the specified number of characters")]
+    DataNotFullyDecoded,
 }
 
 // ASSET VAULT ERROR
@@ -348,8 +400,8 @@ pub enum NoteError {
         node_index_in_block: u16,
         highest_index: usize,
     },
-    #[error("note network execution requires public accounts")]
-    NetworkExecutionRequiresPublicAccount,
+    #[error("note network execution requires a public account with the network flag enabled")]
+    NetworkExecutionRequiresNetworkAccount,
     #[error("note network execution requires a public note but note is of type {0:?}")]
     NetworkExecutionRequiresPublicNote(NoteType),
     #[error("failed to assemble note script:\n{}", PrintDiagnostic::new(.0))]
@@ -364,23 +416,36 @@ pub enum NoteError {
     TooManyInputs(usize),
 }
 
-// CHAIN MMR ERROR
+// PARTIAL BLOCKCHAIN ERROR
 // ================================================================================================
 
 #[derive(Debug, Error)]
-pub enum ChainMmrError {
-    #[error("block num {block_num} exceeds chain length {chain_length} implied by the chain MMR")]
+pub enum PartialBlockchainError {
+    #[error(
+        "block num {block_num} exceeds chain length {chain_length} implied by the partial blockchain"
+    )]
     BlockNumTooBig {
         chain_length: usize,
         block_num: BlockNumber,
     },
-    #[error("duplicate block {block_num} in chain MMR")]
+
+    #[error("duplicate block {block_num} in partial blockchain")]
     DuplicateBlock { block_num: BlockNumber },
-    #[error("chain MMR does not track authentication paths for block {block_num}")]
+
+    #[error("partial blockchain does not track authentication paths for block {block_num}")]
     UntrackedBlock { block_num: BlockNumber },
+
+    #[error(
+        "provided block header with number {block_num} and commitment {block_commitment} is not tracked by partial MMR"
+    )]
+    BlockHeaderCommitmentMismatch {
+        block_num: BlockNumber,
+        block_commitment: Digest,
+        source: MmrError,
+    },
 }
 
-impl ChainMmrError {
+impl PartialBlockchainError {
     pub fn block_num_too_big(chain_length: usize, block_num: BlockNumber) -> Self {
         Self::BlockNumTooBig { chain_length, block_num }
     }
@@ -413,7 +478,7 @@ pub enum TransactionInputError {
     #[error("account seed must not be provided for existing accounts")]
     AccountSeedProvidedForExistingAccount,
     #[error(
-      "anchor block header for epoch {0} (block number = {block_number}) must be provided in the chain mmr for the new account",
+      "anchor block header for epoch {0} (block number = {block_number}) must be provided in the partial blockchain for the new account",
       block_number = BlockNumber::from_epoch(*.0),
     )]
     AnchorBlockHeaderNotProvidedForNewAccount(u16),
@@ -423,21 +488,23 @@ pub enum TransactionInputError {
         "ID {expected} of the new account does not match the ID {actual} computed from the provided seed"
     )]
     InconsistentAccountSeed { expected: AccountId, actual: AccountId },
-    #[error("chain mmr has length {actual} which does not match block number {expected}")]
+    #[error("partial blockchain has length {actual} which does not match block number {expected}")]
     InconsistentChainLength {
         expected: BlockNumber,
         actual: BlockNumber,
     },
     #[error(
-        "chain mmr has commitment {actual} which does not match the block header's chain commitment {expected}"
+        "partial blockchain has commitment {actual} which does not match the block header's chain commitment {expected}"
     )]
     InconsistentChainCommitment { expected: Digest, actual: Digest },
-    #[error("block in which input note with id {0} was created is not in chain mmr")]
-    InputNoteBlockNotInChainMmr(NoteId),
+    #[error("block in which input note with id {0} was created is not in partial blockchain")]
+    InputNoteBlockNotInPartialBlockchain(NoteId),
     #[error("input note with id {0} was not created in block {1}")]
     InputNoteNotInBlock(NoteId, BlockNumber),
     #[error("account ID computed from seed is invalid")]
     InvalidAccountIdSeed(#[source] AccountIdError),
+    #[error("merkle path for {0} is invalid")]
+    InvalidMerklePath(Box<str>, #[source] MerkleError),
     #[error(
         "total number of input notes is {0} which exceeds the maximum of {MAX_INPUT_NOTES_PER_TX}"
     )]
@@ -578,9 +645,9 @@ pub enum ProposedBatchError {
     },
 
     #[error(
-        "unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr"
+        "unable to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in partial blockchain"
     )]
-    UnauthenticatedInputNoteBlockNotInChainMmr {
+    UnauthenticatedInputNoteBlockNotInPartialBlockchain {
         block_number: BlockNumber,
         note_id: NoteId,
     },
@@ -594,21 +661,42 @@ pub enum ProposedBatchError {
         source: MerkleError,
     },
 
-    #[error("chain mmr has length {actual} which does not match block number {expected}")]
+    #[error("partial blockchain has length {actual} which does not match block number {expected}")]
     InconsistentChainLength {
         expected: BlockNumber,
         actual: BlockNumber,
     },
 
-    #[error("chain mmr has root {actual} which does not match block header's root {expected}")]
+    #[error(
+        "partial blockchain has root {actual} which does not match block header's root {expected}"
+    )]
     InconsistentChainRoot { expected: Digest, actual: Digest },
 
     #[error(
-        "block {block_reference} referenced by transaction {transaction_id} is not in the chain mmr"
+        "block {block_reference} referenced by transaction {transaction_id} is not in the partial blockchain"
     )]
     MissingTransactionBlockReference {
         block_reference: Digest,
         transaction_id: TransactionId,
+    },
+}
+
+// PROVEN BATCH ERROR
+// ================================================================================================
+
+#[derive(Debug, Error)]
+pub enum ProvenBatchError {
+    #[error("failed to verify transaction {transaction_id} in transaction batch")]
+    TransactionVerificationFailed {
+        transaction_id: TransactionId,
+        source: Box<dyn Error + Send + Sync + 'static>,
+    },
+    #[error(
+        "batch expiration block number {batch_expiration_block_num} is not greater than the reference block number {reference_block_num}"
+    )]
+    InvalidBatchExpirationBlockNum {
+        batch_expiration_block_num: BlockNumber,
+        reference_block_num: BlockNumber,
     },
 }
 
@@ -672,7 +760,7 @@ pub enum ProposedBlockError {
     },
 
     #[error(
-        "chain mmr has length {chain_length} which does not match the block number {prev_block_num} of the previous block referenced by the to-be-built block"
+        "partial blockchain has length {chain_length} which does not match the block number {prev_block_num} of the previous block referenced by the to-be-built block"
     )]
     ChainLengthNotEqualToPreviousBlockNumber {
         chain_length: BlockNumber,
@@ -680,7 +768,7 @@ pub enum ProposedBlockError {
     },
 
     #[error(
-        "chain mmr has commitment {chain_commitment} which does not match the chain commitment {prev_block_chain_commitment} of the previous block {prev_block_num}"
+        "partial blockchain has commitment {chain_commitment} which does not match the chain commitment {prev_block_chain_commitment} of the previous block {prev_block_num}"
     )]
     ChainRootNotEqualToPreviousBlockChainCommitment {
         chain_commitment: Digest,
@@ -689,7 +777,7 @@ pub enum ProposedBlockError {
     },
 
     #[error(
-        "chain mmr is missing block {reference_block_num} referenced by batch {batch_id} in the block"
+        "partial blockchain is missing block {reference_block_num} referenced by batch {batch_id} in the block"
     )]
     BatchReferenceBlockMissingFromChain {
         reference_block_num: BlockNumber,
@@ -706,9 +794,9 @@ pub enum ProposedBlockError {
     },
 
     #[error(
-        "failed to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in chain mmr"
+        "failed to prove unauthenticated note inclusion because block {block_number} in which note with id {note_id} was created is not in partial blockchain"
     )]
-    UnauthenticatedInputNoteBlockNotInChainMmr {
+    UnauthenticatedInputNoteBlockNotInPartialBlockchain {
         block_number: BlockNumber,
         note_id: NoteId,
     },
@@ -731,7 +819,8 @@ pub enum ProposedBlockError {
     MissingAccountWitness(AccountId),
 
     #[error(
-        "account {account_id} with state {state_commitment} cannot transition to any of the remaining states {remaining_state_commitments:?}"
+        "account {account_id} with state {state_commitment} cannot transition to any of the remaining states {}",
+        remaining_state_commitments.iter().map(Digest::to_hex).collect::<Vec<_>>().join(", ")
     )]
     InconsistentAccountStateTransition {
         account_id: AccountId,
@@ -748,7 +837,7 @@ pub enum ProposedBlockError {
     #[error("failed to merge transaction delta into account {account_id}")]
     AccountUpdateError {
         account_id: AccountId,
-        source: AccountDeltaError,
+        source: Box<AccountDeltaError>,
     },
 }
 
@@ -757,13 +846,20 @@ pub enum ProposedBlockError {
 
 #[derive(Debug, Error)]
 pub enum NullifierTreeError {
+    #[error(
+        "entries passed to nullifier tree contain multiple block numbers for the same nullifier"
+    )]
+    DuplicateNullifierBlockNumbers(#[source] MerkleError),
+
     #[error("attempt to mark nullifier {0} as spent but it is already spent")]
     NullifierAlreadySpent(Nullifier),
+
     #[error("nullifier {nullifier} is not tracked by the partial nullifier tree")]
     UntrackedNullifier {
         nullifier: Nullifier,
         source: MerkleError,
     },
+
     #[error("new tree root after nullifier witness insertion does not match previous tree root")]
     TreeRootConflict(#[source] MerkleError),
 }

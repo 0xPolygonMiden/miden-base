@@ -92,12 +92,16 @@ pub const ERR_NOTE_INVALID_TYPE: u32 = 0x20107;
 pub const ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT: u32 = 0x20108;
 /// The note's tag must fit into a u32 so the 32 most significant bits must be zero.
 pub const ERR_NOTE_TAG_MUST_BE_U32: u32 = 0x20109;
+/// Network execution mode with a specific target can only target network accounts.
+pub const ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT: u32 = 0x2010a;
+/// The specified number of note inputs does not match the actual number.
+pub const ERR_NOTE_INVALID_NUMBER_OF_NOTE_INPUTS: u32 = 0x2010b;
 
-/// Anchor block commitment must not be empty
+/// Anchor block commitment must not be empty.
 pub const ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY: u32 = 0x20140;
-/// Computed account code commitment does not match recorded account code commitment
+/// Computed account code commitment does not match recorded account code commitment.
 pub const ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH: u32 = 0x20141;
-/// Account code must be updatable for it to be possible to set new code
+/// Account code must be updatable for it to be possible to set new code.
 pub const ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE: u32 = 0x20142;
 /// Epoch must be less than u16::MAX (0xffff).
 pub const ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX: u32 = 0x20143;
@@ -107,45 +111,47 @@ pub const ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO: u32 = 0x20144;
 pub const ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE: u32 = 0x20145;
 /// Unknown version in account ID.
 pub const ERR_ACCOUNT_ID_UNKNOWN_VERSION: u32 = 0x20146;
-/// Storage offset is invalid for 0 storage size (should be 0)
+/// Storage size can only be zero if storage offset is also zero.
 pub const ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE: u32 = 0x20147;
 /// The current account is not native
 pub const ERR_ACCOUNT_IS_NOT_NATIVE: u32 = 0x20148;
 /// Account nonce did not increase after a state changing transaction
 pub const ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE: u32 = 0x20149;
-/// Account nonce cannot be increased by a greater than u32 value
+/// Account nonce cannot be increased by a greater than u32 value.
 pub const ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32: u32 = 0x2014a;
-/// Provided procedure index is out of bounds
+/// Provided procedure index is out of bounds.
 pub const ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS: u32 = 0x2014b;
-/// Account procedure is not part of the account code
+/// Account procedure is not part of the account code.
 pub const ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE: u32 = 0x2014c;
-/// Failed to read an account map item from a non-map storage slot
+/// Failed to read an account map item from a non-map storage slot.
 pub const ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT: u32 = 0x2014d;
-/// ID of the new account does not match the ID computed from the seed and anchor block commitment
+/// ID of the new account does not match the ID computed from the seed and anchor block commitment.
 pub const ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH: u32 = 0x2014e;
-/// Failed to write an account map item to a non-map storage slot
+/// Failed to write an account map item to a non-map storage slot.
 pub const ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT: u32 = 0x2014f;
-/// Failed to write an account value item to a non-value storage slot
+/// Failed to write an account value item to a non-value storage slot.
 pub const ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT: u32 = 0x20150;
-/// Computed account storage commitment does not match recorded account storage commitment
+/// Computed account storage commitment does not match recorded account storage commitment.
 pub const ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH: u32 = 0x20151;
-/// Provided storage slot index is out of bounds
+/// Provided storage slot index is out of bounds.
 pub const ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS: u32 = 0x20152;
-/// Number of account procedures exceeds the maximum limit of 256
+/// Number of account procedures exceeds the maximum limit of 256.
 pub const ERR_ACCOUNT_TOO_MANY_PROCEDURES: u32 = 0x20153;
-/// Number of account storage slots exceeds the maximum limit of 255
+/// Number of account storage slots exceeds the maximum limit of 255.
 pub const ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS: u32 = 0x20154;
 /// Depth of the nested FPI calls exceeded 64
 pub const ERR_ACCOUNT_STACK_OVERFLOW: u32 = 0x20155;
 /// Failed to end foreign context because the current account is the native account
 pub const ERR_ACCOUNT_STACK_UNDERFLOW: u32 = 0x20156;
+/// The account ID must have storage mode public if the network flag is set.
+pub const ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT: u32 = 0x20157;
 
 /// Creation of a foreign context against the native account is forbidden
 pub const ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT: u32 = 0x20180;
 /// ID of the provided foreign account equals zero.
 pub const ERR_FOREIGN_ACCOUNT_ID_IS_ZERO: u32 = 0x20181;
-/// State of the current foreign account is invalid.
-pub const ERR_FOREIGN_ACCOUNT_INVALID: u32 = 0x20182;
+/// Commitment of the foreign account in the advice provider does not match the commitment in the account tree.
+pub const ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT: u32 = 0x20182;
 /// Maximum allowed number of foreign account to be loaded (64) was exceeded.
 pub const ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED: u32 = 0x20183;
 
@@ -153,7 +159,7 @@ pub const ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED: u32 = 0x20183;
 pub const ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY: u32 = 0x201c0;
 /// The burn_non_fungible_asset procedure can only be called on a non-fungible faucet
 pub const ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET: u32 = 0x201c1;
-/// Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)
+/// Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets).
 pub const ERR_FAUCET_INVALID_STORAGE_OFFSET: u32 = 0x201c2;
 /// The faucet_is_non_fungible_asset_issued procedure can only be called on a non-fungible faucet
 pub const ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET: u32 = 0x201c3;
@@ -211,7 +217,7 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: u32 = 0x20286;
 /// Failed to remove fungible asset from the asset vault due to the initial value being invalid
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: u32 = 0x20287;
 
-pub const TX_KERNEL_ERRORS: [(u32, &str); 88] = [
+pub const TX_KERNEL_ERRORS: [(u32, &str); 91] = [
     (ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS, "Provided kernel procedure offset is out of bounds"),
 
     (ERR_PROLOGUE_EXISTING_ACCOUNT_MUST_HAVE_NON_ZERO_NONCE, "Existing accounts must have a non-zero nonce"),
@@ -248,39 +254,42 @@ pub const TX_KERNEL_ERRORS: [(u32, &str); 88] = [
     (ERR_NOTE_INVALID_TYPE, "Invalid note type"),
     (ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT, "Number of assets in a note exceed 255"),
     (ERR_NOTE_TAG_MUST_BE_U32, "The note's tag must fit into a u32 so the 32 most significant bits must be zero."),
+    (ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT, "Network execution mode with a specific target can only target network accounts."),
+    (ERR_NOTE_INVALID_NUMBER_OF_NOTE_INPUTS, "The specified number of note inputs does not match the actual number."),
 
-    (ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY, "Anchor block commitment must not be empty"),
-    (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment"),
-    (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code"),
+    (ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY, "Anchor block commitment must not be empty."),
+    (ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH, "Computed account code commitment does not match recorded account code commitment."),
+    (ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE, "Account code must be updatable for it to be possible to set new code."),
     (ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX, "Epoch must be less than u16::MAX (0xffff)."),
     (ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO, "Least significant byte of the account ID suffix must be zero."),
     (ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE, "Unknown account storage mode in account ID."),
     (ERR_ACCOUNT_ID_UNKNOWN_VERSION, "Unknown version in account ID."),
-    (ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE, "Storage offset is invalid for 0 storage size (should be 0)"),
+    (ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE, "Storage size can only be zero if storage offset is also zero."),
     (ERR_ACCOUNT_IS_NOT_NATIVE, "The current account is not native"),
     (ERR_ACCOUNT_NONCE_DID_NOT_INCREASE_AFTER_STATE_CHANGE, "Account nonce did not increase after a state changing transaction"),
-    (ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32, "Account nonce cannot be increased by a greater than u32 value"),
-    (ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS, "Provided procedure index is out of bounds"),
-    (ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE, "Account procedure is not part of the account code"),
-    (ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT, "Failed to read an account map item from a non-map storage slot"),
-    (ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH, "ID of the new account does not match the ID computed from the seed and anchor block commitment"),
-    (ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT, "Failed to write an account map item to a non-map storage slot"),
-    (ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT, "Failed to write an account value item to a non-value storage slot"),
-    (ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH, "Computed account storage commitment does not match recorded account storage commitment"),
-    (ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds"),
-    (ERR_ACCOUNT_TOO_MANY_PROCEDURES, "Number of account procedures exceeds the maximum limit of 256"),
-    (ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS, "Number of account storage slots exceeds the maximum limit of 255"),
+    (ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32, "Account nonce cannot be increased by a greater than u32 value."),
+    (ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS, "Provided procedure index is out of bounds."),
+    (ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE, "Account procedure is not part of the account code."),
+    (ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT, "Failed to read an account map item from a non-map storage slot."),
+    (ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH, "ID of the new account does not match the ID computed from the seed and anchor block commitment."),
+    (ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT, "Failed to write an account map item to a non-map storage slot."),
+    (ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT, "Failed to write an account value item to a non-value storage slot."),
+    (ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH, "Computed account storage commitment does not match recorded account storage commitment."),
+    (ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS, "Provided storage slot index is out of bounds."),
+    (ERR_ACCOUNT_TOO_MANY_PROCEDURES, "Number of account procedures exceeds the maximum limit of 256."),
+    (ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS, "Number of account storage slots exceeds the maximum limit of 255."),
     (ERR_ACCOUNT_STACK_OVERFLOW, "Depth of the nested FPI calls exceeded 64"),
     (ERR_ACCOUNT_STACK_UNDERFLOW, "Failed to end foreign context because the current account is the native account"),
+    (ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT, "The account ID must have storage mode public if the network flag is set."),
 
     (ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT, "Creation of a foreign context against the native account is forbidden"),
     (ERR_FOREIGN_ACCOUNT_ID_IS_ZERO, "ID of the provided foreign account equals zero."),
-    (ERR_FOREIGN_ACCOUNT_INVALID, "State of the current foreign account is invalid."),
+    (ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT, "Commitment of the foreign account in the advice provider does not match the commitment in the account tree."),
     (ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED, "Maximum allowed number of foreign account to be loaded (64) was exceeded."),
 
     (ERR_FAUCET_BURN_CANNOT_EXCEED_EXISTING_TOTAL_SUPPLY, "Asset amount to burn can not exceed the existing total supply"),
     (ERR_FAUCET_BURN_NON_FUNGIBLE_ASSET_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET, "The burn_non_fungible_asset procedure can only be called on a non-fungible faucet"),
-    (ERR_FAUCET_INVALID_STORAGE_OFFSET, "Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)"),
+    (ERR_FAUCET_INVALID_STORAGE_OFFSET, "Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)."),
     (ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET, "The faucet_is_non_fungible_asset_issued procedure can only be called on a non-fungible faucet"),
     (ERR_FAUCET_NEW_TOTAL_SUPPLY_WOULD_EXCEED_MAX_ASSET_AMOUNT, "Asset mint operation would cause the new total supply to exceed the maximum allowed asset amount"),
     (ERR_FAUCET_NON_FUNGIBLE_ASSET_ALREADY_ISSUED, "Failed to mint new non-fungible asset because it was already issued"),
