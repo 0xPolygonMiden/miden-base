@@ -146,7 +146,7 @@ Users can choose whether their accounts are stored publicly or privately. The pr
   The account’s state is stored on-chain, similar to how accounts are stored in public blockchains like Ethereum.
 
 - **Network `Account`s:**
-  The account’s state is stored on-chain, just like **public** accounts. Additionally, the network will monitor this account for any public notes targetted at it and attempt to create network transactions against the account, which consume the notes. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be network accounts.
+  The account’s state is stored on-chain, just like **public** accounts. Additionally, the network will monitor this account for any public notes targeted at it and attempt to create network transactions against the account, which consume the notes. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be network accounts.
 
 - **Private Accounts:**
   Only a commitment (hash) to the account’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.
@@ -155,4 +155,4 @@ The storage mode is chosen during `Account` creation, it cannot be changed later
 
 ### Network Accounts
 
-Users can choose whether their `Account` is a network account or not. The network will monitor this account for any public notes targetted at it and attempt to create network transactions against the account, which consume the notes. Because the network must be able to execute transactions against such an account, the storage mode of such accounts must be **Public**.
+Users can choose whether their `Account` is a network account or not. The network will monitor this account for any public notes targeted at it and attempt to create network transactions against the account, which consume the notes. Because the network must be able to execute transactions against such an account, the storage mode of such accounts must be **Public**.
