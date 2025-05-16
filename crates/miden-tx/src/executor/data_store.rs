@@ -18,7 +18,7 @@ use crate::DataStoreError;
 /// The [DataStore] trait defines the interface that transaction objects use to fetch data
 /// required for transaction execution.
 #[maybe_async_trait]
-pub trait DataStore: MastForestStore {
+pub trait DataStore: MastForestStore + Send + Sync {
     /// Returns all the data required to execute a transaction against the account with the
     /// specified ID and consuming input notes created in blocks in the input `ref_blocks` set.
     ///
