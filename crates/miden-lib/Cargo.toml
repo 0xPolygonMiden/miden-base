@@ -28,6 +28,7 @@ thiserror = { workspace = true }
 [dev-dependencies]
 miden-objects = { workspace = true, features = ["testing"] }
 vm-processor = { workspace = true, features = ["testing"] }
+assert_matches = { workspace = true }
 
 [build-dependencies]
 assembly = { workspace = true }

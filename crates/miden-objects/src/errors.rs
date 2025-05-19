@@ -95,10 +95,8 @@ pub enum AccountError {
     AssetVaultUpdateError(#[source] AssetVaultError),
     #[error("account build error: {0}")]
     BuildError(String, #[source] Option<Box<AccountError>>),
-    #[error("faucet metadata decimals is {actual} which exceeds max value of {max}")]
-    FungibleFaucetTooManyDecimals { actual: u8, max: u8 },
-    #[error("faucet metadata max supply is {actual} which exceeds max value of {max}")]
-    FungibleFaucetMaxSupplyTooLarge { actual: u64, max: u64 },
+    #[error("failed to create basic fungible faucet")]
+    BasicFungibleFaucetError(#[source] BasicFungibleFaucetError),
     #[error("account header data has length {actual} but it must be of length {expected}")]
     HeaderDataIncorrectLength { actual: usize, expected: usize },
     #[error("new account nonce {new} is less than the current nonce {current}")]
@@ -136,6 +134,22 @@ pub enum AccountError {
     /// this error type.
     #[error("assumption violated: {0}")]
     AssumptionViolated(String),
+}
+
+#[derive(Debug, Error)]
+pub enum BasicFungibleFaucetError {
+    #[error("faucet metadata decimals is {actual} which exceeds max value of {max}")]
+    TooManyDecimals { actual: u64, max: u8 },
+    #[error("faucet metadata max supply is {actual} which exceeds max value of {max}")]
+    MaxSupplyTooLarge { actual: u64, max: u64 },
+    #[error(
+        "account interface provided for faucet creation does not have basic fungible faucet component"
+    )]
+    NoAvailableInterface,
+    #[error("storage offset `{0}` is invalid")]
+    InvalidStorageOffset(u8),
+    #[error("invalid token symbol")]
+    InvalidTokenSymbol(#[source] TokenSymbolError),
 }
 
 // ACCOUNT ID ERROR

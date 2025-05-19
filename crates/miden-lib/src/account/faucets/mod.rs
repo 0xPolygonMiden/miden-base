@@ -1,13 +1,16 @@
 use miden_objects::{
-    AccountError, Felt, FieldElement, Word,
+    AccountError, BasicFungibleFaucetError, Felt, FieldElement, Word,
     account::{
-        Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorageMode,
-        AccountType, StorageSlot,
+        Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorage,
+        AccountStorageMode, AccountType, StorageSlot,
     },
     asset::{FungibleAsset, TokenSymbol},
 };
 
-use super::AuthScheme;
+use super::{
+    AuthScheme,
+    interface::{AccountComponentInterface, AccountInterface},
+};
 use crate::account::{auth::RpoFalcon512, components::basic_fungible_faucet_library};
 
 // BASIC FUNGIBLE FAUCET ACCOUNT COMPONENT
@@ -46,21 +49,73 @@ impl BasicFungibleFaucet {
     // --------------------------------------------------------------------------------------------
 
     /// Creates a new [`BasicFungibleFaucet`] component from the given pieces of metadata.
-    pub fn new(symbol: TokenSymbol, decimals: u8, max_supply: Felt) -> Result<Self, AccountError> {
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - the decimals parameter exceeds maximum value of [`Self::MAX_DECIMALS`].
+    /// - the max supply parameter exceeds maximum possible amount for a fungible asset
+    ///   ([`FungibleAsset::MAX_AMOUNT`])
+    pub fn new(
+        symbol: TokenSymbol,
+        decimals: u8,
+        max_supply: Felt,
+    ) -> Result<Self, BasicFungibleFaucetError> {
         // First check that the metadata is valid.
         if decimals > Self::MAX_DECIMALS {
-            return Err(AccountError::FungibleFaucetTooManyDecimals {
-                actual: decimals,
+            return Err(BasicFungibleFaucetError::TooManyDecimals {
+                actual: decimals as u64,
                 max: Self::MAX_DECIMALS,
             });
         } else if max_supply.as_int() > FungibleAsset::MAX_AMOUNT {
-            return Err(AccountError::FungibleFaucetMaxSupplyTooLarge {
+            return Err(BasicFungibleFaucetError::MaxSupplyTooLarge {
                 actual: max_supply.as_int(),
                 max: FungibleAsset::MAX_AMOUNT,
             });
         }
 
         Ok(Self { symbol, decimals, max_supply })
+    }
+
+    /// Attempts to create a new [`BasicFungibleFaucet`] component from the associated account
+    /// interface and storage.
+    ///
+    /// # Errors:
+    /// Returns an error if:
+    /// - the provided [`AccountInterface`] does not contain a
+    ///   [`AccountComponentInterface::BasicFungibleFaucet`] component.
+    /// - the decimals parameter exceeds maximum value of [`Self::MAX_DECIMALS`].
+    /// - the max supply value exceeds maximum possible amount for a fungible asset of
+    ///   [`FungibleAsset::MAX_AMOUNT`].
+    /// - the token symbol encoded value exceeds the maximum value of
+    ///   [`TokenSymbol::MAX_ENCODED_VALUE`].
+    fn try_from_interface(
+        interface: AccountInterface,
+        storage: &AccountStorage,
+    ) -> Result<Self, BasicFungibleFaucetError> {
+        for component in interface.components().iter() {
+            if let AccountComponentInterface::BasicFungibleFaucet(offset) = component {
+                // obtain metadata from storage using offset provided by BasicFungibleFaucet
+                // interface
+                let faucet_metadata = storage
+                    .get_item(*offset)
+                    .map_err(|_| BasicFungibleFaucetError::InvalidStorageOffset(*offset))?;
+                let [max_supply, decimals, token_symbol, _] = *faucet_metadata;
+
+                // verify metadata values
+                let token_symbol = TokenSymbol::try_from(token_symbol)
+                    .map_err(BasicFungibleFaucetError::InvalidTokenSymbol)?;
+                let decimals = decimals.as_int().try_into().map_err(|_| {
+                    BasicFungibleFaucetError::TooManyDecimals {
+                        actual: decimals.as_int(),
+                        max: Self::MAX_DECIMALS,
+                    }
+                })?;
+
+                return BasicFungibleFaucet::new(token_symbol, decimals, max_supply);
+            }
+        }
+
+        Err(BasicFungibleFaucetError::NoAvailableInterface)
     }
 }
 
@@ -74,6 +129,16 @@ impl From<BasicFungibleFaucet> for AccountComponent {
         AccountComponent::new(basic_fungible_faucet_library(), vec![StorageSlot::Value(metadata)])
             .expect("basic fungible faucet component should satisfy the requirements of a valid account component")
             .with_supported_type(AccountType::FungibleFaucet)
+    }
+}
+
+impl TryFrom<Account> for BasicFungibleFaucet {
+    type Error = BasicFungibleFaucetError;
+
+    fn try_from(account: Account) -> Result<Self, Self::Error> {
+        let account_interface = AccountInterface::from(&account);
+
+        BasicFungibleFaucet::try_from_interface(account_interface, account.storage())
     }
 }
 
@@ -115,7 +180,10 @@ pub fn create_basic_fungible_faucet(
         .account_type(AccountType::FungibleFaucet)
         .storage_mode(account_storage_mode)
         .with_component(auth_component)
-        .with_component(BasicFungibleFaucet::new(symbol, decimals, max_supply)?)
+        .with_component(
+            BasicFungibleFaucet::new(symbol, decimals, max_supply)
+                .map_err(AccountError::BasicFungibleFaucetError)?,
+        )
         .build()?;
 
     Ok((account, account_seed))
@@ -126,12 +194,19 @@ pub fn create_basic_fungible_faucet(
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
     use miden_objects::{
-        FieldElement, ONE, block::BlockHeader, crypto::dsa::rpo_falcon512, digest,
+        BasicFungibleFaucetError, Digest, FieldElement, ONE, Word, ZERO,
+        block::BlockHeader,
+        crypto::dsa::rpo_falcon512::{self, PublicKey},
+        digest,
     };
-    use vm_processor::Word;
 
-    use super::{AccountStorageMode, AuthScheme, Felt, TokenSymbol, create_basic_fungible_faucet};
+    use super::{
+        AccountBuilder, AccountStorageMode, AccountType, AuthScheme, BasicFungibleFaucet, Felt,
+        TokenSymbol, create_basic_fungible_faucet,
+    };
+    use crate::account::auth::RpoFalcon512;
 
     #[test]
     fn faucet_contract_creation() {
@@ -184,5 +259,42 @@ mod tests {
         );
 
         assert!(faucet_account.is_faucet());
+    }
+
+    #[test]
+    fn faucet_create_from_account() {
+        // prepare the test data
+        let mock_public_key = PublicKey::new([ZERO, ONE, Felt::new(2), Felt::new(3)]);
+        let mock_seed = Digest::from([ZERO, ONE, Felt::new(2), Felt::new(3)]).as_bytes();
+
+        // valid account
+        let token_symbol = TokenSymbol::new("POL").expect("invalid token symbol");
+        let faucet_account = AccountBuilder::new(mock_seed)
+            .account_type(AccountType::FungibleFaucet)
+            .with_component(
+                BasicFungibleFaucet::new(token_symbol, 10, Felt::new(100))
+                    .expect("failed to create a fungible faucet component"),
+            )
+            .with_component(RpoFalcon512::new(mock_public_key))
+            .build_existing()
+            .expect("failed to create wallet account");
+
+        let basic_ff = BasicFungibleFaucet::try_from(faucet_account)
+            .expect("basic fungible faucet creation failed");
+        assert_eq!(basic_ff.symbol, token_symbol);
+        assert_eq!(basic_ff.decimals, 10);
+        assert_eq!(basic_ff.max_supply, Felt::new(100));
+
+        // invalid account: basic fungible faucet component is missing
+        let invalid_faucet_account = AccountBuilder::new(mock_seed)
+            .account_type(AccountType::FungibleFaucet)
+            .with_component(RpoFalcon512::new(mock_public_key))
+            .build_existing()
+            .expect("failed to create wallet account");
+
+        let err = BasicFungibleFaucet::try_from(invalid_faucet_account)
+            .err()
+            .expect("basic fungible faucet creation should fail");
+        assert_matches!(err, BasicFungibleFaucetError::NoAvailableInterface);
     }
 }
