@@ -202,4 +202,3 @@ pub const ERR_VAULT_NON_FUNGIBLE_ASSET_ALREADY_EXISTS: MasmError = MasmError::fr
 pub const ERR_VAULT_NON_FUNGIBLE_ASSET_TO_REMOVE_NOT_FOUND: MasmError = MasmError::from_static_str("failed to remove non-existent non-fungible asset from the vault");
 /// Error Message: "failed to remove fungible asset from the asset vault due to the initial value being invalid"
 pub const ERR_VAULT_REMOVE_FUNGIBLE_ASSET_FAILED_INITIAL_VALUE_INVALID: MasmError = MasmError::from_static_str("failed to remove fungible asset from the asset vault due to the initial value being invalid");
-
