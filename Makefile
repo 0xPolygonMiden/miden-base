@@ -121,6 +121,10 @@ build-async: ## Build with the `async` feature enabled (only libraries)
 bench-tx: ## Run transaction benchmarks
 	cargo run --bin bench-tx
 
+.PHONY: bench-prover
+bench-prover: ## Run prover benchmarks and consolidate results.
+	cargo bench --bin bench-prover --bench benches
+	cargo run --bin bench-prover
 
 # --- installing ----------------------------------------------------------------------------------
 
