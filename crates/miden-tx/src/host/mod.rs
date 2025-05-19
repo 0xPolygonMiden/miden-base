@@ -58,8 +58,8 @@ pub struct TransactionHost<A> {
     /// This field is updated by the [TransactionHost::on_event()] handler.
     account_delta: AccountDeltaTracker,
 
-    /// A map of the account's procedure MAST roots to the corresponding procedure indexes in the
-    /// account code.
+    /// A map of the procedure MAST roots to the corresponding procedure indices for all the
+    /// account codes involved in the transaction (for native and foreign accounts alike).
     acct_procedure_index_map: AccountProcedureIndexMap,
 
     /// The list of notes created while executing a transaction stored as note_ptr |-> note_builder
@@ -90,14 +90,14 @@ impl<A: AdviceProvider> TransactionHost<A> {
         adv_provider: A,
         mast_store: Arc<dyn MastForestStore>,
         authenticator: Option<Arc<dyn TransactionAuthenticator>>,
-        mut account_code_commitments: BTreeSet<Digest>,
+        mut foreign_account_code_commitments: BTreeSet<Digest>,
     ) -> Result<Self, TransactionHostError> {
         // currently, the executor/prover do not keep track of the code commitment of the native
         // account, so we add it to the set here
-        account_code_commitments.insert(account.code_commitment());
+        foreign_account_code_commitments.insert(account.code_commitment());
 
         let proc_index_map =
-            AccountProcedureIndexMap::new(account_code_commitments, &adv_provider)?;
+            AccountProcedureIndexMap::new(foreign_account_code_commitments, &adv_provider)?;
 
         Ok(Self {
             adv_provider,

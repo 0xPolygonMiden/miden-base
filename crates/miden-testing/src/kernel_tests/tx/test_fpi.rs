@@ -18,11 +18,11 @@ use miden_lib::{
 use miden_objects::{
     FieldElement,
     account::{
-        Account, AccountBuilder, AccountComponent, AccountHeader, AccountProcedureInfo,
-        AccountStorage, StorageSlot,
+        Account, AccountBuilder, AccountComponent, AccountProcedureInfo, AccountStorage,
+        PartialAccount, StorageSlot,
     },
     testing::{account_component::AccountMockComponent, storage::STORAGE_LEAVES_2},
-    transaction::{ForeignAccountInputs, TransactionScript},
+    transaction::{AccountInputs, TransactionScript},
 };
 use miden_tx::TransactionExecutorError;
 use rand::{Rng, SeedableRng};
@@ -957,7 +957,7 @@ fn test_nested_fpi_stack_overflow() {
 
             mock_chain.prove_next_block();
 
-            let foreign_accounts: Vec<ForeignAccountInputs> = foreign_accounts
+            let foreign_accounts: Vec<AccountInputs> = foreign_accounts
                 .iter()
                 .map(|acc| mock_chain.get_foreign_account_inputs(acc.id()))
                 .collect();
@@ -987,7 +987,7 @@ fn test_nested_fpi_stack_overflow() {
             end
             ",
                 foreign_account_proc_hash =
-                    foreign_accounts.last().unwrap().account_code().procedures()[0].mast_root(),
+                    foreign_accounts.last().unwrap().code().procedures()[0].mast_root(),
                 foreign_prefix = foreign_accounts.last().unwrap().id().prefix().as_felt(),
                 foreign_suffix = foreign_accounts.last().unwrap().id().suffix(),
             );
@@ -1194,13 +1194,15 @@ fn test_fpi_stale_account() {
     // any non-validity of the account witness is caught in
     // TransactionExecutor::execute_transaction() (see `test_fpi_anchoring_validations()` for
     // context on this check)
-    let overridden_foreign_account_inputs = ForeignAccountInputs::new(
-        AccountHeader::from(foreign_account.clone()),
-        foreign_account.storage().get_header(),
+    let overridden_partial_accounts = PartialAccount::new(
+        foreign_account.id(),
+        foreign_account.nonce(),
         foreign_account.code().clone(),
-        foreign_account_inputs.witness().clone(),
-        foreign_account_inputs.storage_map_proofs().to_vec(),
+        foreign_account.storage().into(),
+        foreign_account.vault().into(),
     );
+    let overridden_foreign_account_inputs =
+        AccountInputs::new(overridden_partial_accounts, foreign_account_inputs.witness().clone());
 
     // The account tree from which the transaction inputs are fetched here has the state from the
     // original unmodified foreign account. This should result in the foreign account's proof to be

@@ -9,7 +9,7 @@
 - Added getter for proof security level in `ProvenBatch` and `ProvenBlock` (#1259).
 - [BREAKING] Replaced the `ProvenBatch::new_unchecked` with the `ProvenBatch::new` method to initialize the struct with validations (#1260).
 - Added pretty print for `AccountCode` (#1273).
-- [BREAKING] Add `NetworkAccount` configuration (#1275).
+- [BREAKING] Add `AccountStorageMode::Network` for network accounts (#1275, #1349).
 - Added support for environment variables to set up the `miden-proving-service` worker (#1281).
 - Added field identifier structs for component metadata (#1292).
 - Move `NullifierTree` and `BlockChain` from node to base (#1304).
@@ -18,10 +18,18 @@
 - Fix error when creating accounts with empty storage (#1307).
 - [BREAKING] Move `MockChain` and `TransactionContext` to new `miden-testing` crate (#1309).
 - [BREAKING] Add support for private notes in `MockChain` (#1310).
+- Generalized account-related inputs to the transaction kernel (#1311).
 - [BREAKING] Refactor `MockChain` to use batch and block provers (#1315).
 - [BREAKING] Move the number of note inputs to the separate memory address (#1327).
 - [BREAKING] Change Token Symbol encoding (#1334).
 - [BREAKING] Upgrade VM to 0.14 and refactor transaction kernel error extraction (#1353).
+- Add iterators over concrete asset types in `NoteAssets` (#1346).
+
+## 0.8.3 (2025-04-22) - `miden-proving-service` crate only
+
+### Fixes
+
+- Version check always fails (#1300).
 
 ## 0.8.2 (2025-04-18) - `miden-proving-service` crate only
 

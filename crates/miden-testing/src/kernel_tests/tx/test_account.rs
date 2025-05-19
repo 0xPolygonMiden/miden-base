@@ -3,8 +3,7 @@ use assembly::diagnostics::{WrapErr, miette};
 use miden_lib::{
     errors::tx_kernel_errors::{
         ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX,
-        ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO,
-        ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT, ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE,
+        ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO, ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE,
         ERR_ACCOUNT_ID_UNKNOWN_VERSION, ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS,
         ERR_FAUCET_INVALID_STORAGE_OFFSET,
     },
@@ -15,7 +14,7 @@ use miden_objects::{
     account::{
         Account, AccountBuilder, AccountCode, AccountComponent, AccountId, AccountIdAnchor,
         AccountIdVersion, AccountProcedureInfo, AccountStorage, AccountStorageMode, AccountType,
-        NetworkAccount, StorageSlot,
+        StorageSlot,
     },
     assembly::Library,
     asset::AssetVault,
@@ -132,11 +131,6 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
         (ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, None),
         (ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET, None),
         (
-            // Set network flag to true while storage mode is public.
-            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE | (1 << 98),
-            None,
-        ),
-        (
             // Set version to a non-zero value (10).
             ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0x0a << 64),
             Some(ERR_ACCOUNT_ID_UNKNOWN_VERSION),
@@ -147,14 +141,9 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
             Some(ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX),
         ),
         (
-            // Set storage mode to an unknown value (0b01).
-            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0b01 << (64 + 6)),
+            // Set storage mode to an unknown value (0b11).
+            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (0b11 << (64 + 6)),
             Some(ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE),
-        ),
-        (
-            // Set network flag to true while storage mode is private.
-            ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE | (1 << 98),
-            Some(ERR_ACCOUNT_ID_NON_PUBLIC_NETWORK_ACCOUNT),
         ),
         (
             // Set lower 8 bits to a non-zero value (1).
@@ -723,7 +712,6 @@ fn create_procedure_metadata_test_account(
         [9; 32],
         account_type,
         AccountStorageMode::Private,
-        NetworkAccount::Disabled,
         version,
         code.commitment(),
         storage.commitment(),
