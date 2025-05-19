@@ -159,8 +159,6 @@ pub enum AccountIdError {
     AnchorEpochMustNotBeU16Max,
     #[error("least significant byte of account ID suffix must be zero")]
     AccountIdSuffixLeastSignificantByteMustBeZero,
-    #[error("accounts that have the network flag enabled must be public")]
-    NetworkAccountMustBePublic,
     #[error(
         "anchor block must be an epoch block, that is, its block number must be a multiple of 2^{}",
         BlockNumber::EPOCH_LENGTH_EXPONENT
@@ -400,7 +398,7 @@ pub enum NoteError {
         node_index_in_block: u16,
         highest_index: usize,
     },
-    #[error("note network execution requires a public account with the network flag enabled")]
+    #[error("note network execution requires the target to be a network account")]
     NetworkExecutionRequiresNetworkAccount,
     #[error("note network execution requires a public note but note is of type {0:?}")]
     NetworkExecutionRequiresPublicNote(NoteType),
@@ -557,14 +555,14 @@ pub enum ProvenTransactionError {
     InputNotesError(TransactionInputError),
     #[error("private account {0} should not have account details")]
     PrivateAccountWithDetails(AccountId),
-    #[error("public account {0} is missing its account details")]
-    PublicAccountMissingDetails(AccountId),
-    #[error("new public account {0} is missing its account details")]
-    NewPublicAccountRequiresFullDetails(AccountId),
+    #[error("on-chain account {0} is missing its account details")]
+    OnChainAccountMissingDetails(AccountId),
+    #[error("new on-chain account {0} is missing its account details")]
+    NewOnChainAccountRequiresFullDetails(AccountId),
     #[error(
-        "existing public account {0} should only provide delta updates instead of full details"
+        "existing on-chain account {0} should only provide delta updates instead of full details"
     )]
-    ExistingPublicAccountRequiresDeltaDetails(AccountId),
+    ExistingOnChainAccountRequiresDeltaDetails(AccountId),
     #[error("failed to construct output notes for proven transaction")]
     OutputNotesError(TransactionOutputError),
     #[error(

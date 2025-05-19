@@ -6,9 +6,8 @@ use miden_crypto::merkle::{SmtProof, SmtProofError};
 use super::{BlockHeader, Digest, Felt, Hasher, PartialBlockchain, Word};
 use crate::{
     MAX_INPUT_NOTES_PER_TX, TransactionInputError,
-    account::{
-        Account, AccountCode, AccountHeader, AccountId, AccountIdAnchor, AccountStorageHeader,
-    },
+    account::{Account, AccountCode, AccountId, AccountIdAnchor, PartialAccount, PartialStorage},
+    asset::PartialVault,
     block::{AccountWitness, BlockNumber},
     note::{Note, NoteId, NoteInclusionProof, NoteLocation, Nullifier},
     utils::serde::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
@@ -536,73 +535,65 @@ pub fn validate_account_seed(
     }
 }
 
-// FOREIGN ACCOUNT INPUTS
+// ACCOUNT INPUTS
 // ================================================================================================
 
-/// Contains information about a foreign account, with everything required to execute its code.
+/// Contains information about an account, with everything required to execute a transaction.
+///
+/// `AccountInputs` combines a partial account representation with the merkle proof that verifies
+/// the account's inclusion in the account tree. The partial account should contain verifiable
+/// access to the parts of the state of the account of which the transaction will make use.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ForeignAccountInputs {
-    /// Account header of the foreign account.
-    account_header: AccountHeader,
-    /// Header information about the account's storage.
-    storage_header: AccountStorageHeader,
-    /// Code associated with the account.
-    account_code: AccountCode,
+pub struct AccountInputs {
+    /// Partial representation of the account's state.
+    partial_account: PartialAccount,
     /// Proof of the account's inclusion in the account tree for this account's state commitment.
     witness: AccountWitness,
-    /// Storage SMT proof for storage map values that the transaction will access.
-    storage_map_proofs: Vec<SmtProof>,
 }
 
-impl ForeignAccountInputs {
-    /// Creates a new [`ForeignAccountInputs`]
-    pub fn new(
-        account_header: AccountHeader,
-        storage_header: AccountStorageHeader,
-        account_code: AccountCode,
-        witness: AccountWitness,
-        storage_map_proofs: Vec<SmtProof>,
-    ) -> ForeignAccountInputs {
-        ForeignAccountInputs {
-            account_header,
-            storage_header,
-            account_code,
-            witness,
-            storage_map_proofs,
-        }
+impl AccountInputs {
+    /// Creates a new instance of `AccountInputs` with the specified partial account and witness.
+    pub fn new(partial_account: PartialAccount, witness: AccountWitness) -> AccountInputs {
+        AccountInputs { partial_account, witness }
     }
 
-    /// Returns the account's [`AccountId`]
+    /// Returns the account ID.
     pub fn id(&self) -> AccountId {
-        self.account_header.id()
+        self.partial_account.id()
     }
 
-    /// Returns the account's [`AccountHeader`]
-    pub fn account_header(&self) -> &AccountHeader {
-        &self.account_header
+    /// Returns a reference to the partial account representation.
+    pub fn account(&self) -> &PartialAccount {
+        &self.partial_account
     }
 
-    /// Returns the account's [`AccountStorageHeader`].
-    pub fn storage_header(&self) -> &AccountStorageHeader {
-        &self.storage_header
+    /// Returns a reference to the account code.
+    pub fn code(&self) -> &AccountCode {
+        self.partial_account.code()
     }
 
-    /// Returns the account's storage maps.
-    pub fn storage_map_proofs(&self) -> &[SmtProof] {
-        &self.storage_map_proofs
+    /// Returns a reference to the partial representation of the account storage.
+    pub fn storage(&self) -> &PartialStorage {
+        self.partial_account.storage()
     }
 
-    /// Returns the account's [`AccountCode`].
-    pub fn account_code(&self) -> &AccountCode {
-        &self.account_code
+    /// Returns a reference to the partial vault representation of the account.
+    pub fn vault(&self) -> &PartialVault {
+        self.partial_account.vault()
     }
 
-    /// Returns the account witness.
+    /// Returns a reference to the account's witness.
     pub fn witness(&self) -> &AccountWitness {
         &self.witness
     }
 
-    /// Computes account root based on the account witness.
+    /// Decomposes the `AccountInputs` into its constituent parts.
+    pub fn into_parts(self) -> (PartialAccount, AccountWitness) {
+        (self.partial_account, self.witness)
+    }
+
+    /// Computes the account root based on the account witness.
+    /// This root should be equal to the account root in the reference block header.
     pub fn compute_account_root(&self) -> Result<Digest, SmtProofError> {
         let smt_merkle_path = self.witness.path().clone();
         let smt_leaf = self.witness.leaf();
@@ -610,70 +601,27 @@ impl ForeignAccountInputs {
 
         Ok(root)
     }
+}
 
-    /// Returns `true` if the [`ForeignAccountInputs`]'s inner fields are cohesive.
-    pub fn is_valid(&self) -> bool {
-        self.account_header.code_commitment() == self.account_code.commitment()
-            && self.account_header.storage_commitment() == self.storage_header.compute_commitment()
-            && self.account_header.commitment() == self.witness.state_commitment()
-    }
-
-    /// Extends the storage proofs with the input `smt_proofs` and returns the new structure
-    #[must_use]
-    pub fn with_storage_map_proofs(
-        mut self,
-        smt_proofs: impl IntoIterator<Item = SmtProof>,
-    ) -> Self {
-        self.storage_map_proofs.extend(smt_proofs);
-        self
-    }
-
-    /// Consumes the [`ForeignAccountInputs`] and returns its parts.
-    pub fn into_parts(
-        self,
-    ) -> (AccountHeader, AccountStorageHeader, AccountCode, AccountWitness, Vec<SmtProof>) {
-        (
-            self.account_header,
-            self.storage_header,
-            self.account_code,
-            self.witness,
-            self.storage_map_proofs,
-        )
+impl Serializable for AccountInputs {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        target.write(&self.partial_account);
+        target.write(&self.witness);
     }
 }
 
-impl Serializable for ForeignAccountInputs {
-    fn write_into<W: crate::utils::ByteWriter>(&self, target: &mut W) {
-        self.account_header.write_into(target);
-        self.storage_header.write_into(target);
-        self.account_code.write_into(target);
-        self.witness.write_into(target);
-        self.storage_map_proofs.write_into(target);
-    }
-}
+impl Deserializable for AccountInputs {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let partial_account = source.read()?;
+        let witness = source.read()?;
 
-impl Deserializable for ForeignAccountInputs {
-    fn read_from<R: crate::utils::ByteReader>(
-        source: &mut R,
-    ) -> Result<Self, crate::utils::DeserializationError> {
-        let account_header = AccountHeader::read_from(source)?;
-        let storage_header = AccountStorageHeader::read_from(source)?;
-        let account_code = AccountCode::read_from(source)?;
-        let account_witness = AccountWitness::read_from(source)?;
-        let storage_maps = Vec::<SmtProof>::read_from(source)?;
-        Ok(ForeignAccountInputs::new(
-            account_header,
-            storage_header,
-            account_code,
-            account_witness,
-            storage_maps,
-        ))
+        Ok(AccountInputs { partial_account, witness })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::vec::Vec;
+    use alloc::vec::Vec;
 
     use miden_crypto::merkle::MerklePath;
     use vm_core::{
@@ -682,12 +630,12 @@ mod tests {
     };
     use vm_processor::SMT_DEPTH;
 
-    use super::ForeignAccountInputs;
     use crate::{
-        account::{Account, AccountCode, AccountHeader, AccountId, AccountStorage},
+        account::{Account, AccountCode, AccountId, AccountStorage},
         asset::AssetVault,
         block::AccountWitness,
         testing::account_id::ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
+        transaction::AccountInputs,
     };
 
     #[test]
@@ -706,20 +654,13 @@ mod tests {
         }
         let merkle_path = MerklePath::new(merkle_nodes);
 
-        let header: AccountHeader = account.clone().into();
-        let (_, _, storage, code, _) = account.into_parts();
-
-        let fpi_inputs = ForeignAccountInputs::new(
-            header,
-            storage.get_header(),
-            code,
+        let fpi_inputs = AccountInputs::new(
+            account.into(),
             AccountWitness::new(id, commitment, merkle_path).unwrap(),
-            vec![],
         );
 
         let serialized = fpi_inputs.to_bytes();
-        let deserialized = ForeignAccountInputs::read_from_bytes(&serialized).unwrap();
+        let deserialized = AccountInputs::read_from_bytes(&serialized).unwrap();
         assert_eq!(deserialized, fpi_inputs);
-        assert!(deserialized.is_valid());
     }
 }

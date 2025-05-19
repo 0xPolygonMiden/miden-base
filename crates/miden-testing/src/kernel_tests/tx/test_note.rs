@@ -7,7 +7,9 @@ use miden_crypto::{
 };
 use miden_lib::{
     account::{auth::RpoFalcon512, wallets::BasicWallet},
-    errors::tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
+    errors::{
+        MasmError, tx_kernel_errors::ERR_NOTE_ATTEMPT_TO_ACCESS_NOTE_SENDER_FROM_INCORRECT_CONTEXT,
+    },
     transaction::{TransactionKernel, memory::CURRENT_INPUT_NOTE_PTR},
 };
 use miden_objects::{
@@ -18,7 +20,7 @@ use miden_objects::{
         NoteRecipient, NoteScript, NoteTag, NoteType,
     },
     testing::{account_id::ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE, note::NoteBuilder},
-    transaction::{ForeignAccountInputs, OutputNote, TransactionArgs},
+    transaction::{AccountInputs, OutputNote, TransactionArgs},
 };
 use miden_tx::TransactionExecutorError;
 use rand::SeedableRng;
@@ -380,7 +382,7 @@ fn test_note_script_and_note_args() {
         None,
         Some(note_args_map),
         tx_context.tx_args().advice_inputs().clone().map,
-        Vec::<ForeignAccountInputs>::new(),
+        Vec::<AccountInputs>::new(),
     );
 
     tx_context.set_tx_args(tx_args);
@@ -625,33 +627,34 @@ fn test_build_note_metadata() {
 pub fn test_timelock() -> anyhow::Result<()> {
     let mut mock_chain = MockChain::new();
     let account = mock_chain.add_pending_existing_wallet(Auth::NoAuth, vec![]);
-    const TIMESTAMP_ERROR: u32 = 123;
+    const TIMESTAMP_ERROR: MasmError = MasmError::from_static_str("123");
 
     let code = format!(
-        "	
+        r#"
       use.miden::note
       use.miden::tx
 
-      begin	
-          # store the note inputs to memory starting at address 0	
-          push.0 exec.note::get_inputs	
-          # => [num_inputs, inputs_ptr]	
+      begin
+          # store the note inputs to memory starting at address 0
+          push.0 exec.note::get_inputs
+          # => [num_inputs, inputs_ptr]
 
-          # make sure the number of inputs is 1	
-          eq.1 assert.err=789	
-          # => [inputs_ptr]	
+          # make sure the number of inputs is 1
+          eq.1 assert.err="number of note inputs is not 1"
+          # => [inputs_ptr]
 
-          # read the timestamp at which the note can be consumed	
-          mem_load	
-          # => [timestamp]	
+          # read the timestamp at which the note can be consumed
+          mem_load
+          # => [timestamp]
 
-          exec.tx::get_block_timestamp	
-          # => [block_timestamp, timestamp]	
-          # ensure block timestamp is newer than timestamp	
+          exec.tx::get_block_timestamp
+          # => [block_timestamp, timestamp]
+          # ensure block timestamp is newer than timestamp
 
-          lte assert.err={TIMESTAMP_ERROR}	
-          # => []	
-      end"
+          lte assert.err="{}"
+          # => []
+      end"#,
+        TIMESTAMP_ERROR.message()
     );
 
     let lock_timestamp = 2_000_000_000;

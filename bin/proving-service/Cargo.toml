@@ -27,11 +27,11 @@ clap = { version = "4.5", features = ["derive", "env"] }
 miden-block-prover = { workspace = true, default-features = false }
 miden-lib = { workspace = true, default-features = false }
 miden-objects = { workspace = true, default-features = false, features = [
-  "std",
+    "std",
 ] }
 miden-tx = { workspace = true, default-features = false, features = ["std"] }
 miden-tx-batch-prover = { workspace = true, default-features = false, features = [
-  "std",
+    "std",
 ] }
 opentelemetry = { version = "0.29", features = ["metrics", "trace"] }
 opentelemetry-otlp = { version = "0.29", features = ["grpc-tonic"] }
@@ -51,30 +51,30 @@ tokio = { version = "1.44", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["net"] }
 thiserror = { workspace = true }
 tonic = { version = "0.12", default-features = false, features = [
-  "codegen",
-  "prost",
-  "transport",
+    "codegen",
+    "prost",
+    "transport",
 ] }
 tonic-health = { version = "0.12" }
 tonic-web = { version = "0.12" }
 tracing = { version = "0.1" }
 tracing-opentelemetry = "0.30"
 tracing-subscriber = { version = "0.3", features = [
-  "fmt",
-  "json",
-  "env-filter",
+    "fmt",
+    "json",
+    "env-filter",
 ] }
 uuid = { version = "1.16", features = ["v4"] }
 
 [dev-dependencies]
 miden-lib = { workspace = true, default-features = false, features = [
-  "testing",
+    "testing",
 ] }
 miden-objects = { workspace = true, default-features = false, features = [
-  "testing",
+    "testing",
 ] }
 miden-tx = { workspace = true, default-features = false, features = [
-  "testing",
+    "testing",
 ] }
 miden-testing = { workspace = true, default-features = false }
 

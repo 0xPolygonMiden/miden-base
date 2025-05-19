@@ -20,17 +20,13 @@ use.kernel::tx
 # ERRORS
 # =================================================================================================
 
-# For faucets the FAUCET_STORAGE_DATA_SLOT storage slot is reserved and can not be used with set_account_item
-const.ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED=0x000201c7
+const.ERR_FAUCET_STORAGE_DATA_SLOT_IS_RESERVED="for faucets the FAUCET_STORAGE_DATA_SLOT storage slot is reserved and can not be used with set_account_item"
 
-# The faucet_get_total_fungible_asset_issuance procedure can only be called on a fungible faucet
-const.ERR_FAUCET_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET=0x000201c8
+const.ERR_FAUCET_TOTAL_ISSUANCE_PROC_CAN_ONLY_BE_CALLED_ON_FUNGIBLE_FAUCET="the faucet_get_total_fungible_asset_issuance procedure can only be called on a fungible faucet"
 
-# The faucet_is_non_fungible_asset_issued procedure can only be called on a non-fungible faucet
-const.ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET=0x000201c3
+const.ERR_FAUCET_IS_NF_ASSET_ISSUED_PROC_CAN_ONLY_BE_CALLED_ON_NON_FUNGIBLE_FAUCET="the faucet_is_non_fungible_asset_issued procedure can only be called on a non-fungible faucet"
 
-# Provided kernel procedure offset is out of bounds
-const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS=0x00020000
+const.ERR_KERNEL_PROCEDURE_OFFSET_OUT_OF_BOUNDS="provided kernel procedure offset is out of bounds"
 
 # EVENTS
 # =================================================================================================
@@ -956,7 +952,7 @@ end
 #! - STORAGE_ROOT is the commitment of the foreign account's storage.
 #! - STORAGE_SLOT_DATA is the data contained in the storage slot which is constructed as follows:
 #!   [SLOT_VALUE, slot_type, 0, 0, 0].
-#! - CODE_ROOT is the commitment of the foreign account's code.
+#! - CODE_COMMITMENT is the commitment of the foreign account's code.
 #! - ACCOUNT_PROCEDURE_DATA is the information about account procedure which is constructed as
 #!   follows: [PROCEDURE_MAST_ROOT, storage_offset, 0, 0, 0].
 #!

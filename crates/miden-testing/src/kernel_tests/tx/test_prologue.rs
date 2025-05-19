@@ -31,7 +31,7 @@ use miden_lib::{
 use miden_objects::{
     account::{
         Account, AccountBuilder, AccountId, AccountIdAnchor, AccountIdVersion,
-        AccountProcedureInfo, AccountStorageMode, AccountType, NetworkAccount, StorageSlot,
+        AccountProcedureInfo, AccountStorageMode, AccountType, StorageSlot,
     },
     block::{BlockHeader, BlockNumber},
     testing::{
@@ -39,7 +39,7 @@ use miden_objects::{
         account_id::{ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET, ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET},
         constants::FUNGIBLE_FAUCET_INITIAL_BALANCE,
     },
-    transaction::{ForeignAccountInputs, TransactionArgs, TransactionScript},
+    transaction::{AccountInputs, TransactionArgs, TransactionScript},
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -92,7 +92,7 @@ fn test_transaction_prologue() {
         Some(tx_script),
         Some(note_args_map),
         tx_context.tx_args().advice_inputs().clone().map,
-        Vec::<ForeignAccountInputs>::new(),
+        Vec::<AccountInputs>::new(),
     );
 
     tx_context.set_tx_args(tx_args);
@@ -505,7 +505,10 @@ pub fn create_accounts_with_anchor_block_zero() -> anyhow::Result<()> {
     // block.
     mock_chain.prove_next_block();
 
-    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Public)?;
+
+    // Test account creation with network storage mode.
+    create_multiple_accounts_test(&mock_chain, &genesis_block_header, AccountStorageMode::Network)
 }
 
 /// Tests that a valid account of each type can be created successfully with an epoch block whose
@@ -543,7 +546,6 @@ fn compute_valid_account_id(
         init_seed,
         account.account_type(),
         AccountStorageMode::Public,
-        NetworkAccount::Disabled,
         AccountIdVersion::Version0,
         account.code().commitment(),
         account.storage().commitment(),

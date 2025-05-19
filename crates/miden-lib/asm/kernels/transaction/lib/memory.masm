@@ -4,20 +4,15 @@ use.kernel::constants
 # ERRORS
 # =================================================================================================
 
-# Number of assets in a note exceed 255
-const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT=0x00020108
+const.ERR_NOTE_NUM_OF_ASSETS_EXCEED_LIMIT="number of assets in a note exceed 255"
 
-# The current account is not native
-const.ERR_ACCOUNT_IS_NOT_NATIVE=0x00020148
+const.ERR_ACCOUNT_IS_NOT_NATIVE="the current account is not native"
 
-# Depth of the nested FPI calls exceeded 64
-const.ERR_ACCOUNT_STACK_OVERFLOW=0x00020155
+const.ERR_ACCOUNT_STACK_OVERFLOW="depth of the nested FPI calls exceeded 64"
 
-# Failed to end foreign context because the current account is the native account
-const.ERR_ACCOUNT_STACK_UNDERFLOW=0x00020156
+const.ERR_ACCOUNT_STACK_UNDERFLOW="failed to end foreign context because the current account is the native account"
 
-# Creation of a foreign context against the native account is forbidden
-const.ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT=0x00020180
+const.ERR_FOREIGN_ACCOUNT_CONTEXT_AGAINST_NATIVE_ACCOUNT="creation of a foreign context against the native account is forbidden"
 
 # MEMORY ADDRESS CONSTANTS
 # =================================================================================================
