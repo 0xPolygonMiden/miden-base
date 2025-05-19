@@ -24,7 +24,7 @@
 - [BREAKING] Change Token Symbol encoding (#1334).
 - [BREAKING] Upgrade VM to 0.14 and refactor transaction kernel error extraction (#1353).
 - Add iterators over concrete asset types in `NoteAssets` (#1346).
-- Add the ability to create `BasicFungibleFaucet` from `Account` (#1375).
+- Add the ability to create `BasicFungibleFaucet` from `Account` (#1376).
 
 ## 0.8.3 (2025-04-22) - `miden-proving-service` crate only
 
