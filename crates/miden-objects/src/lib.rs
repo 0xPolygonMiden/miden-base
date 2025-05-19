@@ -41,7 +41,7 @@ pub mod assembly {
         Assembler, AssemblyError, Compile, CompileOptions, DefaultSourceManager, KernelLibrary,
         Library, LibraryNamespace, LibraryPath, SourceManager, Version,
         ast::{Module, ModuleKind, ProcedureName, QualifiedProcedureName},
-        mast,
+        diagnostics, mast,
     };
 }
 
