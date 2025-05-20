@@ -88,8 +88,9 @@ impl NoteTag {
     ///
     /// # Errors
     ///
-    /// This will return an error if the account_id is not for a public account and the execution
-    /// hint is set to [NoteExecutionMode::Network].
+    /// Returns an error if:
+    /// - [`NoteExecutionMode::Network`] is provided but the storage mode of the `account_id` is not
+    ///   [`AccountStorageMode::Network`](crate::account::AccountStorageMode::Network).
     pub fn from_account_id(
         account_id: AccountId,
         execution: NoteExecutionMode,
@@ -115,8 +116,8 @@ impl NoteTag {
                 Ok(Self(high_bits | LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED))
             },
             NoteExecutionMode::Network => {
-                if !account_id.is_public() {
-                    Err(NoteError::NetworkExecutionRequiresPublicAccount)
+                if !account_id.is_network() {
+                    Err(NoteError::NetworkExecutionRequiresNetworkAccount)
                 } else {
                     let prefix_id: u64 = account_id.prefix().into();
 
@@ -316,16 +317,18 @@ mod tests {
         account::AccountId,
         note::NoteType,
         testing::account_id::{
+            ACCOUNT_ID_NETWORK_FUNGIBLE_FAUCET, ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET,
             ACCOUNT_ID_PRIVATE_FUNGIBLE_FAUCET, ACCOUNT_ID_PRIVATE_NON_FUNGIBLE_FAUCET,
             ACCOUNT_ID_PRIVATE_SENDER, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET,
             ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1, ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2,
             ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_3, ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET,
             ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET_1,
+            ACCOUNT_ID_REGULAR_NETWORK_ACCOUNT_IMMUTABLE_CODE,
             ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2,
             ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE,
-            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_2, ACCOUNT_ID_SENDER,
+            ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2, ACCOUNT_ID_SENDER,
         },
     };
 
@@ -342,7 +345,8 @@ mod tests {
             AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE).unwrap(),
             AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE_2).unwrap(),
             AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE).unwrap(),
-            AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_2).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_UPDATABLE_CODE_ON_CHAIN_2)
+                .unwrap(),
             AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET).unwrap(),
             AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_1).unwrap(),
             AccountId::try_from(ACCOUNT_ID_PUBLIC_FUNGIBLE_FAUCET_2).unwrap(),
@@ -350,18 +354,23 @@ mod tests {
             AccountId::try_from(ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET).unwrap(),
             AccountId::try_from(ACCOUNT_ID_PUBLIC_NON_FUNGIBLE_FAUCET_1).unwrap(),
         ];
+        let network_accounts = [
+            AccountId::try_from(ACCOUNT_ID_REGULAR_NETWORK_ACCOUNT_IMMUTABLE_CODE).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_NETWORK_FUNGIBLE_FAUCET).unwrap(),
+            AccountId::try_from(ACCOUNT_ID_NETWORK_NON_FUNGIBLE_FAUCET).unwrap(),
+        ];
 
-        for account_id in private_accounts {
+        for account_id in private_accounts.into_iter().chain(public_accounts) {
             assert_matches!(
                 NoteTag::from_account_id(account_id, NoteExecutionMode::Network).unwrap_err(),
-                NoteError::NetworkExecutionRequiresPublicAccount,
-                "Tag generation must fail if network execution and private account ID are mixed"
+                NoteError::NetworkExecutionRequiresNetworkAccount,
+                "tag generation must fail if network execution is attempted with private or public account ID"
             )
         }
 
-        for account_id in public_accounts {
+        for account_id in network_accounts {
             let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Network)
-                .expect("tag generation must work with network execution and public account ID");
+                .expect("tag generation must work with network execution and network account ID");
             assert!(tag.is_single_target());
             assert_eq!(tag.execution_mode(), NoteExecutionMode::Network);
 
@@ -404,13 +413,27 @@ mod tests {
             tag.validate(NoteType::Encrypted)
                 .expect("local execution should support encrypted notes");
         }
+
+        for account_id in network_accounts {
+            let tag = NoteTag::from_account_id(account_id, NoteExecutionMode::Local)
+                .expect("Tag generation must work with local execution and network account ID");
+            assert!(!tag.is_single_target());
+            assert_eq!(tag.execution_mode(), NoteExecutionMode::Local);
+
+            tag.validate(NoteType::Public)
+                .expect("local execution should support public notes");
+            tag.validate(NoteType::Private)
+                .expect("local execution should support private notes");
+            tag.validate(NoteType::Encrypted)
+                .expect("local execution should support encrypted notes");
+        }
     }
 
     #[test]
     fn test_from_account_id_values() {
-        // Private Account ID with the following bit pattern in the first and second byte:
-        // 0b11001100_01010101
-        //   ^^^^^^^^ ^^^^^^  <- these are the 14 bits used in the tag.
+        /// Private Account ID with the following bit pattern in the first and second byte:
+        /// 0b11001100_01010101
+        ///   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
         const PRIVATE_ACCOUNT_INT: u128 = ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE
             | 0x0055_0000_0000_0000_0000_0000_0000_0000;
         let private_account_id = AccountId::try_from(PRIVATE_ACCOUNT_INT).unwrap();
@@ -418,38 +441,64 @@ mod tests {
         // Expected private tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
         let expected_private_local_tag = NoteTag(0b11110011_00010101_00000000_00000000);
 
-        // Public Account ID with the following bit pattern in the first and second byte:
-        // 0b10101010_01010101_11001100_01110111
-        //   ^^^^^^^^ ^^^^^^^^ ^^^^^^^^ ^^^^^^  <- 30 bits of the network tag.
-        //   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
+        /// Public Account ID with the following bit pattern in the first and second byte:
+        /// 0b10101010_01010101_11001100_10101010
+        ///   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
         const PUBLIC_ACCOUNT_INT: u128 = ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE
-            | 0x0055_cc77_0000_0000_0000_0000_0000_0000;
+            | 0x0055_ccaa_0000_0000_0000_0000_0000_0000;
         let public_account_id = AccountId::try_from(PUBLIC_ACCOUNT_INT).unwrap();
 
         // Expected public tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
         let expected_public_local_tag = NoteTag(0b11101010_10010101_00000000_00000000);
 
-        // Expected public tag with leading 00 tag bits for network execution.
-        let expected_public_network_tag = NoteTag(0b00101010_10010101_01110011_00011101);
+        /// Network Account ID with the following bit pattern in the first and second byte:
+        /// 0b10101010_11001100_01110111_11001100
+        ///   ^^^^^^^^ ^^^^^^^^ ^^^^^^^^ ^^^^^^  <- 30 bits of the network tag.
+        ///   ^^^^^^^^ ^^^^^^  <- 14 bits of the local tag.
+        const NETWORK_ACCOUNT_INT: u128 = ACCOUNT_ID_REGULAR_NETWORK_ACCOUNT_IMMUTABLE_CODE
+            | 0x00cc_77cc_0000_0000_0000_0000_0000_0000;
+        let network_account_id = AccountId::try_from(NETWORK_ACCOUNT_INT).unwrap();
 
-        assert_eq!(
-            NoteTag::from_account_id(public_account_id, NoteExecutionMode::Network).unwrap(),
-            expected_public_network_tag,
-        );
+        // Expected network tag with LOCAL_EXECUTION_WITH_ALL_NOTE_TYPES_ALLOWED.
+        let expected_network_local_tag = NoteTag(0b11101010_10110011_00000000_00000000);
+
+        // Expected network tag with leading 00 tag bits for network execution.
+        let expected_network_network_tag = NoteTag(0b00101010_10110011_00011101_11110011);
+
+        // Public and Private storage modes with NoteExecutionMode::Network should fail.
+        // ----------------------------------------------------------------------------------------
+
         assert_matches!(
             NoteTag::from_account_id(private_account_id, NoteExecutionMode::Network),
-            Err(NoteError::NetworkExecutionRequiresPublicAccount)
+            Err(NoteError::NetworkExecutionRequiresNetworkAccount)
         );
+        assert_matches!(
+            NoteTag::from_account_id(public_account_id, NoteExecutionMode::Network),
+            Err(NoteError::NetworkExecutionRequiresNetworkAccount)
+        );
+
+        // NoteExecutionMode::Local
+        // ----------------------------------------------------------------------------------------
 
         assert_eq!(
             NoteTag::from_account_id(private_account_id, NoteExecutionMode::Local).unwrap(),
             expected_private_local_tag,
         );
-
-        // We expect the 16th most significant bit to be cut off.
         assert_eq!(
             NoteTag::from_account_id(public_account_id, NoteExecutionMode::Local).unwrap(),
             expected_public_local_tag,
+        );
+        assert_eq!(
+            NoteTag::from_account_id(network_account_id, NoteExecutionMode::Local).unwrap(),
+            expected_network_local_tag,
+        );
+
+        // NoteExecutionMode::Network
+        // ----------------------------------------------------------------------------------------
+
+        assert_eq!(
+            NoteTag::from_account_id(network_account_id, NoteExecutionMode::Network).unwrap(),
+            expected_network_network_tag,
         );
     }
 

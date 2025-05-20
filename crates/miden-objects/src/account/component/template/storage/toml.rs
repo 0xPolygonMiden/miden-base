@@ -1,26 +1,29 @@
 use alloc::{
+    collections::BTreeMap,
     string::{String, ToString},
     vec::Vec,
 };
 use core::fmt;
-use std::collections::BTreeMap;
 
 use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
-    de::{Error, SeqAccess, Visitor, value::MapAccessDeserializer},
-    ser::SerializeStruct,
+    de::{self, Error, MapAccess, SeqAccess, Visitor, value::MapAccessDeserializer},
+    ser::{SerializeMap, SerializeStruct},
 };
 use thiserror::Error;
 use vm_core::Felt;
 
 use super::{
-    FeltRepresentation, InitStorageData, MapEntry, MapRepresentation, StorageEntry,
-    StorageValueNameError, WordRepresentation, placeholder::TemplateType,
+    FeltRepresentation, InitStorageData, MapEntry, MapRepresentation, MultiWordRepresentation,
+    StorageEntry, StorageValueNameError, WordRepresentation, placeholder::TemplateType,
 };
 use crate::{
     account::{
         AccountComponentMetadata, StorageValueName,
-        component::template::storage::placeholder::{TEMPLATE_REGISTRY, TemplateFelt},
+        component::{
+            FieldIdentifier,
+            template::storage::placeholder::{TEMPLATE_REGISTRY, TemplateFelt},
+        },
     },
     errors::AccountComponentTemplateError,
     utils::parse_hex_string_as_word,
@@ -48,8 +51,8 @@ impl AccountComponentMetadata {
 
     /// Serializes the account component template into a TOML string.
     pub fn as_toml(&self) -> Result<String, AccountComponentTemplateError> {
-        let toml = toml::to_string_pretty(self)
-            .map_err(AccountComponentTemplateError::TomlSerializationError)?;
+        let toml =
+            toml::to_string(self).map_err(AccountComponentTemplateError::TomlSerializationError)?;
         Ok(toml)
     }
 }
@@ -63,19 +66,21 @@ impl Serialize for WordRepresentation {
         S: Serializer,
     {
         match self {
-            WordRepresentation::Template { name, description, r#type } => {
-                // Serialize as a table with keys: "name", "description", "type".
+            WordRepresentation::Template { identifier, r#type } => {
                 let mut state = serializer.serialize_struct("WordRepresentation", 3)?;
-                state.serialize_field("name", name)?;
-                state.serialize_field("description", description)?;
+                state.serialize_field("name", &identifier.name())?;
+                state.serialize_field("description", &identifier.description())?;
                 state.serialize_field("type", r#type)?;
                 state.end()
             },
-            WordRepresentation::Value { name, description, value } => {
-                // Serialize as a table with keys: "name", "description", "value".
+            WordRepresentation::Value { identifier, value } => {
                 let mut state = serializer.serialize_struct("WordRepresentation", 3)?;
-                state.serialize_field("name", name)?;
-                state.serialize_field("description", description)?;
+
+                state.serialize_field("name", &identifier.as_ref().map(|id| id.name()))?;
+                state.serialize_field(
+                    "description",
+                    &identifier.as_ref().map(|id| id.description()),
+                )?;
                 state.serialize_field("value", value)?;
                 state.end()
             },
@@ -138,7 +143,7 @@ impl<'de> Deserialize<'de> for WordRepresentation {
 
             fn visit_map<M>(self, map: M) -> Result<Self::Value, M::Error>
             where
-                M: serde::de::MapAccess<'de>,
+                M: MapAccess<'de>,
             {
                 #[derive(Deserialize, Debug)]
                 struct WordRepresentationHelper {
@@ -153,25 +158,21 @@ impl<'de> Deserialize<'de> for WordRepresentation {
                 let helper =
                     WordRepresentationHelper::deserialize(MapAccessDeserializer::new(map))?;
 
-                // If a value field is present, assume a Value variant.
                 if let Some(value) = helper.value {
-                    let name = helper.name.map(parse_name).transpose()?;
-                    Ok(WordRepresentation::Value {
-                        value,
-                        name,
-                        description: helper.description,
-                    })
+                    let identifier = helper
+                        .name
+                        .map(|n| parse_field_identifier::<M::Error>(n, helper.description.clone()))
+                        .transpose()?;
+                    Ok(WordRepresentation::Value { value, identifier })
                 } else {
                     // Otherwise, we expect a Template variant (name is required for identification)
-                    let name = expect_parse_value_name(helper.name, "word template")?;
-
-                    // Get the type, or the default if it was not specified
-                    let r#type = helper.r#type.unwrap_or(TemplateType::native_word());
-                    Ok(WordRepresentation::Template {
-                        r#type,
-                        name,
-                        description: helper.description,
-                    })
+                    let identifier = expect_parse_field_identifier::<M::Error>(
+                        helper.name,
+                        helper.description,
+                        "word template",
+                    )?;
+                    let r#type = helper.r#type.unwrap_or_else(TemplateType::native_word);
+                    Ok(WordRepresentation::Template { r#type, identifier })
                 }
             }
         }
@@ -189,22 +190,24 @@ impl Serialize for FeltRepresentation {
         S: Serializer,
     {
         match self {
-            FeltRepresentation::Value { name, description, value } => {
+            FeltRepresentation::Value { identifier, value } => {
                 let hex = value.to_string();
-                if name.is_none() && description.is_none() {
+                if identifier.is_none() {
                     serializer.serialize_str(&hex)
                 } else {
                     let mut state = serializer.serialize_struct("FeltRepresentation", 3)?;
-                    state.serialize_field("name", name)?;
-                    state.serialize_field("description", description)?;
+                    if let Some(id) = identifier {
+                        state.serialize_field("name", &id.name)?;
+                        state.serialize_field("description", &id.description)?;
+                    }
                     state.serialize_field("value", &hex)?;
                     state.end()
                 }
             },
-            FeltRepresentation::Template { name, description, r#type } => {
+            FeltRepresentation::Template { identifier, r#type } => {
                 let mut state = serializer.serialize_struct("FeltRepresentation", 3)?;
-                state.serialize_field("name", name)?;
-                state.serialize_field("description", description)?;
+                state.serialize_field("name", &identifier.name)?;
+                state.serialize_field("description", &identifier.description)?;
                 state.serialize_field("type", r#type)?;
                 state.end()
             },
@@ -220,7 +223,7 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
         // Felts can be deserialized as either:
         //
         // - Scalars (parsed from strings)
-        // - A table object that can or cannot harcode a value. If not present, this is a
+        // - A table object that can or cannot hardcode a value. If not present, this is a
         //   placeholder type
         #[derive(Deserialize)]
         #[serde(untagged)]
@@ -241,29 +244,29 @@ impl<'de> Deserialize<'de> for FeltRepresentation {
             Intermediate::Scalar(s) => {
                 let felt = Felt::parse_felt(&s)
                     .map_err(|e| D::Error::custom(format!("failed to parse Felt: {}", e)))?;
-                Ok(FeltRepresentation::Value {
-                    name: None,
-                    description: None,
-                    value: felt,
-                })
+                Ok(FeltRepresentation::Value { identifier: None, value: felt })
             },
             Intermediate::Map { name, description, value, r#type } => {
                 // Get the defined type, or the default if it was not specified
-                let felt_type = r#type.unwrap_or(TemplateType::native_felt());
-
+                let felt_type = r#type.unwrap_or_else(TemplateType::native_felt);
                 if let Some(val_str) = value {
                     // Parse into felt from the input string
                     let felt =
                         TEMPLATE_REGISTRY.try_parse_felt(&felt_type, &val_str).map_err(|e| {
                             D::Error::custom(format!("failed to parse {felt_type} as Felt: {}", e))
                         })?;
-                    let name = name.map(parse_name).transpose()?;
-                    Ok(FeltRepresentation::Value { value: felt, name, description })
+                    let identifier = name
+                        .map(|n| parse_field_identifier::<D::Error>(n, description.clone()))
+                        .transpose()?;
+                    Ok(FeltRepresentation::Value { identifier, value: felt })
                 } else {
                     // No value provided, so this is a placeholder
-                    let name = expect_parse_value_name(name, "map template")?;
-
-                    Ok(FeltRepresentation::Template { r#type: felt_type, name, description })
+                    let identifier = expect_parse_field_identifier::<D::Error>(
+                        name,
+                        description,
+                        "map template",
+                    )?;
+                    Ok(FeltRepresentation::Template { r#type: felt_type, identifier })
                 }
             },
         }
@@ -288,8 +291,8 @@ enum StorageValues {
 
 #[derive(Default, Debug, Deserialize, Serialize)]
 struct RawStorageEntry {
-    name: Option<String>,
-    description: Option<String>,
+    #[serde(flatten)]
+    identifier: Option<FieldIdentifier>,
     slot: Option<u8>,
     slots: Option<Vec<u8>>,
     #[serde(rename = "type")]
@@ -302,34 +305,36 @@ impl From<StorageEntry> for RawStorageEntry {
     fn from(entry: StorageEntry) -> Self {
         match entry {
             StorageEntry::Value { slot, word_entry } => match word_entry {
-                WordRepresentation::Value { name, description, value } => RawStorageEntry {
+                WordRepresentation::Value { identifier, value } => RawStorageEntry {
                     slot: Some(slot),
-                    name: name.as_ref().map(StorageValueName::to_string),
-                    description,
+                    identifier,
                     value: Some(value),
                     ..Default::default()
                 },
-                WordRepresentation::Template { name, description, r#type } => RawStorageEntry {
+                WordRepresentation::Template { identifier, r#type } => RawStorageEntry {
                     slot: Some(slot),
-                    name: Some(name.to_string()),
-                    description,
+                    identifier: Some(identifier),
                     word_type: Some(r#type),
                     ..Default::default()
                 },
             },
             StorageEntry::Map { slot, map } => RawStorageEntry {
-                name: Some(map.name().to_string()),
-                description: map.description().cloned(),
                 slot: Some(slot),
+                identifier: Some(FieldIdentifier {
+                    name: map.name().clone(),
+                    description: map.description().cloned(),
+                }),
                 values: Some(StorageValues::MapEntries(map.into())),
                 ..Default::default()
             },
-            StorageEntry::MultiSlot { name, description, slots, values } => RawStorageEntry {
-                name: Some(name.to_string()),
-                description,
-                slots: Some(slots.collect()),
-                values: Some(StorageValues::Words(values)),
-                ..Default::default()
+            StorageEntry::MultiSlot { slots, word_entries } => match word_entries {
+                MultiWordRepresentation::Value { identifier, values } => RawStorageEntry {
+                    slot: None,
+                    identifier: Some(identifier),
+                    slots: Some(slots.collect()),
+                    values: Some(StorageValues::Words(values)),
+                    ..Default::default()
+                },
             },
         }
     }
@@ -355,56 +360,50 @@ impl<'de> Deserialize<'de> for StorageEntry {
         if let Some(word_entry) = raw.value {
             // If a value was provided, this is a WordRepresentation::Value entry
             let slot = raw.slot.ok_or_else(|| missing_field_for("slot", "value entry"))?;
-            let name = raw.name.map(parse_name).transpose()?;
-
+            let identifier = raw.identifier;
             Ok(StorageEntry::Value {
                 slot,
-                word_entry: WordRepresentation::Value {
-                    value: word_entry,
-                    name,
-                    description: raw.description,
-                },
+                word_entry: WordRepresentation::Value { value: word_entry, identifier },
             })
         } else if let Some(StorageValues::MapEntries(map_entries)) = raw.values {
             // If `values` field contains key/value pairs, deserialize as map
-            let name = expect_parse_value_name(raw.name, "map entry")?;
+            let identifier =
+                raw.identifier.ok_or_else(|| missing_field_for("identifier", "map entry"))?;
+            let name = identifier.name;
             let slot = raw.slot.ok_or_else(|| missing_field_for("slot", "map entry"))?;
             let mut map = MapRepresentation::new(map_entries, name);
-            if let Some(description) = raw.description {
-                map = map.with_description(description);
+            if let Some(desc) = identifier.description {
+                map = map.with_description(desc);
             }
-
             Ok(StorageEntry::Map { slot, map })
         } else if let Some(StorageValues::Words(values)) = raw.values {
-            let name = expect_parse_value_name(raw.name, "multislot entry")?;
+            let identifier = raw
+                .identifier
+                .ok_or_else(|| missing_field_for("identifier", "multislot entry"))?;
+
             let mut slots =
                 raw.slots.ok_or_else(|| missing_field_for("slots", "multislot entry"))?;
 
             // Sort so we can check contiguity
             slots.sort_unstable();
-
             for pair in slots.windows(2) {
                 if pair[1] != pair[0] + 1 {
                     return Err(serde::de::Error::custom(format!(
-                        "`slots` in the `{name}` storage entry are not contiguous"
+                        "`slots` in the `{}` storage entry are not contiguous",
+                        identifier.name
                     )));
                 }
             }
-
             let start = slots[0];
             let end = slots.last().expect("checked validity") + 1;
-
-            Ok(StorageEntry::new_multislot(name, raw.description, start..end, values))
+            Ok(StorageEntry::new_multislot(identifier, start..end, values))
         } else if let Some(word_type) = raw.word_type {
-            // If a type was provided instead, this is a WordRepresentation::Value entry
+            // If a type was provided instead, this is a WordRepresentation::Template entry
             let slot = raw.slot.ok_or_else(|| missing_field_for("slot", "single-slot entry"))?;
-            let name = expect_parse_value_name(raw.name, "single-slot entry")?;
-            let word_entry = WordRepresentation::Template {
-                r#type: word_type,
-                name,
-                description: raw.description,
-            };
-
+            let identifier = raw
+                .identifier
+                .ok_or_else(|| missing_field_for("identifier", "single-slot entry"))?;
+            let word_entry = WordRepresentation::Template { r#type: word_type, identifier };
             Ok(StorageEntry::Value { slot, word_entry })
         } else {
             Err(D::Error::custom("placeholder storage entries require the `type` field"))
@@ -490,6 +489,63 @@ pub enum InitStorageDataError {
     InvalidStorageValueName(#[source] StorageValueNameError),
 }
 
+impl Serialize for FieldIdentifier {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(2))?;
+        map.serialize_entry("name", &self.name)?;
+        map.serialize_entry("description", &self.description)?;
+        map.end()
+    }
+}
+
+struct FieldIdentifierVisitor;
+
+impl<'de> Visitor<'de> for FieldIdentifierVisitor {
+    type Value = FieldIdentifier;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a map with 'name' and optionally 'description'")
+    }
+
+    fn visit_map<M>(self, mut map: M) -> Result<FieldIdentifier, M::Error>
+    where
+        M: MapAccess<'de>,
+    {
+        let mut name = None;
+        let mut description = None;
+        while let Some(key) = map.next_key::<String>()? {
+            match key.as_str() {
+                "name" => {
+                    name = Some(map.next_value()?);
+                },
+                "description" => {
+                    let d: String = map.next_value()?;
+                    // Normalize empty or whitespace-only strings into None
+                    description = if d.trim().is_empty() { None } else { Some(d) };
+                },
+                _ => {
+                    // Ignore other values as FieldIdentifiers are flattened within other structs
+                    let _: de::IgnoredAny = map.next_value()?;
+                },
+            }
+        }
+        let name = name.ok_or_else(|| de::Error::missing_field("name"))?;
+        Ok(FieldIdentifier { name, description })
+    }
+}
+
+impl<'de> Deserialize<'de> for FieldIdentifier {
+    fn deserialize<D>(deserializer: D) -> Result<FieldIdentifier, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_map(FieldIdentifierVisitor)
+    }
+}
+
 // UTILS / HELPERS
 // ================================================================================================
 
@@ -498,17 +554,29 @@ fn missing_field_for<E: serde::de::Error>(field: &str, context: &str) -> E {
 }
 
 /// Checks than an optional (but expected) name field has been defined and is correct.
-fn expect_parse_value_name<E: serde::de::Error>(
+fn expect_parse_field_identifier<E: serde::de::Error>(
     n: Option<String>,
+    description: Option<String>,
     context: &str,
-) -> Result<StorageValueName, E> {
+) -> Result<FieldIdentifier, E> {
     let name = n.ok_or_else(|| missing_field_for("name", context))?;
-    parse_name(name)
+    parse_field_identifier(name, description)
 }
 
-/// Tries to parse a string into a [StorageValueName].
-fn parse_name<E: serde::de::Error>(n: String) -> Result<StorageValueName, E> {
-    StorageValueName::new(n).map_err(|err| E::custom(format!("invalid `name`: {err}")))
+/// Tries to parse a string into a [FieldIdentifier].
+fn parse_field_identifier<E: serde::de::Error>(
+    n: String,
+    description: Option<String>,
+) -> Result<FieldIdentifier, E> {
+    StorageValueName::new(n)
+        .map_err(|err| E::custom(format!("invalid `name`: {err}")))
+        .map(|storage_name| {
+            if let Some(desc) = description {
+                FieldIdentifier::with_description(storage_name, desc)
+            } else {
+                FieldIdentifier::with_name(storage_name)
+            }
+        })
 }
 
 // TESTS

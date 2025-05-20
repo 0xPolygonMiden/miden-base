@@ -4,7 +4,7 @@ An `Account` represents the primary entity of the protocol. Capable of holding a
 
 ## What is the purpose of an account?
 
-In Miden's hybrid UTXO- and account-based model `Account`s enable the creation of expressive smart contracts via a Turing-complete language.
+In Miden's hybrid UTXO- and account-based model, accounts enable the creation of expressive smart contracts via a Turing-complete language.
 
 ## Account core elements
 
@@ -70,7 +70,7 @@ An `Account` ID can be encoded in different formats:
 Every Miden `Account` is essentially a smart contract. The `Code` component defines the account’s functions, which can be invoked through both [Note scripts](note.md#script) and [transaction scripts](transaction.md#inputs). Key characteristics include:
 
 - **Mutable access:** Only the `Account`’s own functions can modify its storage and vault. All state changes—such as updating storage slots, incrementing the nonce, or transferring assets—must occur through these functions.
-- **Function commitment:** Each function can be called by its [MAST](https://0xpolygonmiden.github.io/miden-vm/user_docs/assembly/main.html) root. The root represents the underlying code tree as a 32-byte commitment. This ensures integrity, i.e., the caller calls what he expects.
+- **Function commitment:** Each function can be called by its [MAST](https://0xMiden.github.io/miden-vm/user_docs/assembly/main.html) root. The root represents the underlying code tree as a 32-byte commitment. This ensures integrity, i.e., the caller calls what he expects.
 - **Note creation:** `Account` functions can generate new notes.
 
 ### Storage
@@ -88,7 +88,7 @@ The [storage](https://docs.rs/miden-objects/latest/miden_objects/account/struct.
 > [!Note]
 > A collection of [assets](asset.md) stored by the `Account`.
 
-Large amounts of fungible and non-fungible assets can be stored in the `Account`s vault.
+Large amounts of fungible and non-fungible assets can be stored in the account's vault.
 
 ### Nonce
 
@@ -97,7 +97,7 @@ Large amounts of fungible and non-fungible assets can be stored in the `Account`
 
 The nonce enforces ordering and prevents replay attacks. It must strictly increase with every `Account` state update. The increment must be less than $2^{32}$ but always greater than the previous nonce, ensuring a well-defined sequence of state changes.
 
-If a smart contract function should be callable by other users, it must increment the `Account`'s nonce. Otherwise, only the contract owner—i.e., the party possessing the contract's key—can execute the function.
+If a smart contract function should be callable by other users, it must increment the account's nonce. Otherwise, only the contract owner—i.e., the party possessing the contract's key—can execute the function.
 
 ## Account lifecycle
 
@@ -124,7 +124,7 @@ However, a user can locally create a new `Account` ID before it’s recognized n
 
 ### Account type
 
-There are two main categories of `Account`s in Miden: **basic accounts** and **faucets**.
+There are two main categories of accounts in Miden: **basic accounts** and **faucets**.
 
 - **Basic Accounts:**
   Basic Accounts may be either mutable or immutable:
@@ -136,16 +136,23 @@ There are two main categories of `Account`s in Miden: **basic accounts** and **f
   - *Fungible Faucet:* Can issue fungible [assets](asset.md).
   - *Non-fungible Faucet:* Can issue non-fungible [assets](asset.md).
 
-Type and mutability are encoded in the two most significant bits of the `Account`'s [ID](#id).
+Type and mutability are encoded in the two most significant bits of the account's [ID](#id).
 
 ### Account storage mode
 
-Users can choose whether their `Account`s are stored publicly or privately. The preference is encoded in the third and forth most significant bits of the `Account`s [ID](#id):
+Users can choose whether their accounts are stored publicly or privately. The preference is encoded in the third and forth most significant bits of the account's [ID](#id):
 
-- **Public `Account`s:**
-  The `Account`’s state is stored on-chain, similar to how `Account`s are stored in public blockchains like Ethereum. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be public.
+- **Public Accounts:**
+  The account’s state is stored on-chain, similar to how accounts are stored in public blockchains like Ethereum.
 
-- **Private `Account`s:**
-  Only a commitment (hash) to the `Account`’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.
+- **Network `Account`s:**
+  The account’s state is stored on-chain, just like **public** accounts. Additionally, the network will monitor this account for any public notes targeted at it and attempt to create network transactions against the account, which consume the notes. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be network accounts.
+
+- **Private Accounts:**
+  Only a commitment (hash) to the account’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.
 
 The storage mode is chosen during `Account` creation, it cannot be changed later.
+
+### Network Accounts
+
+Users can choose whether their `Account` is a network account or not. The network will monitor this account for any public notes targeted at it and attempt to create network transactions against the account, which consume the notes. Because the network must be able to execute transactions against such an account, the storage mode of such accounts must be **Public**.

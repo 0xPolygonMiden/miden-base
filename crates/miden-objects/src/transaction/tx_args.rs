@@ -1,9 +1,13 @@
-use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use alloc::{
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
+    vec::Vec,
+};
 
 use assembly::{Assembler, Compile};
 use miden_crypto::merkle::InnerNodeInfo;
 
-use super::{Digest, Felt, Word};
+use super::{AccountInputs, Digest, Felt, Word};
 use crate::{
     MastForest, MastNodeId, TransactionScriptError,
     note::{NoteId, NoteRecipient},
@@ -22,11 +26,13 @@ use crate::{
 ///   different from note inputs, as the user executing the transaction can specify arbitrary note
 ///   args.
 /// - Advice inputs: Provides data needed by the runtime, like the details of public output notes.
+/// - Account inputs: Provides account data that will be accessed in the transaction.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct TransactionArgs {
     tx_script: Option<TransactionScript>,
     note_args: BTreeMap<NoteId, Word>,
     advice_inputs: AdviceInputs,
+    foreign_account_inputs: Vec<AccountInputs>,
 }
 
 impl TransactionArgs {
@@ -42,6 +48,7 @@ impl TransactionArgs {
         tx_script: Option<TransactionScript>,
         note_args: Option<BTreeMap<NoteId, Word>>,
         advice_map: AdviceMap,
+        foreign_account_inputs: Vec<AccountInputs>,
     ) -> Self {
         let mut advice_inputs = AdviceInputs::default().with_map(advice_map);
         // add transaction script inputs to the advice inputs' map
@@ -54,23 +61,21 @@ impl TransactionArgs {
             tx_script,
             note_args: note_args.unwrap_or_default(),
             advice_inputs,
+            foreign_account_inputs,
         }
     }
 
     /// Returns new [TransactionArgs] instantiated with the provided transaction script.
-    pub fn with_tx_script(tx_script: TransactionScript) -> Self {
-        Self::new(Some(tx_script), Some(BTreeMap::default()), AdviceMap::default())
+    #[must_use]
+    pub fn with_tx_script(mut self, tx_script: TransactionScript) -> Self {
+        self.tx_script = Some(tx_script);
+        self
     }
 
     /// Returns new [TransactionArgs] instantiated with the provided note arguments.
-    pub fn with_note_args(note_args: BTreeMap<NoteId, Word>) -> Self {
-        Self::new(None, Some(note_args), AdviceMap::default())
-    }
-
-    /// Returns the provided [TransactionArgs] with advice inputs extended with the passed-in
-    /// `advice_inputs`.
-    pub fn with_advice_inputs(mut self, advice_inputs: AdviceInputs) -> Self {
-        self.advice_inputs.extend(advice_inputs);
+    #[must_use]
+    pub fn with_note_args(mut self, note_args: BTreeMap<NoteId, Word>) -> Self {
+        self.note_args = note_args;
         self
     }
 
@@ -92,6 +97,19 @@ impl TransactionArgs {
         &self.advice_inputs
     }
 
+    /// Returns a reference to the foreign account inputs in the transaction args.
+    pub fn foreign_account_inputs(&self) -> &[AccountInputs] {
+        &self.foreign_account_inputs
+    }
+
+    /// Collects and returns a set containing all code commitments from foreign accounts.
+    pub fn foreign_account_code_commitments(&self) -> BTreeSet<Digest> {
+        self.foreign_account_inputs()
+            .iter()
+            .map(|acc| acc.code().commitment())
+            .collect()
+    }
+
     // STATE MUTATORS
     // --------------------------------------------------------------------------------------------
 
@@ -109,7 +127,7 @@ impl TransactionArgs {
         let script_encoded: Vec<Felt> = script.into();
 
         let new_elements = [
-            (note_recipient.digest(), note_recipient.to_elements()),
+            (note_recipient.digest(), note_recipient.format_for_advice()),
             (inputs.commitment(), inputs.format_for_advice()),
             (script.root(), script_encoded),
         ];
@@ -134,6 +152,11 @@ impl TransactionArgs {
         }
     }
 
+    /// Extends the advice inputs in self with the provided ones.
+    pub fn extend_advice_inputs(&mut self, advice_inputs: AdviceInputs) {
+        self.advice_inputs.extend(advice_inputs);
+    }
+
     /// Extends the internal advice inputs' map with the provided key-value pairs.
     pub fn extend_advice_map<T: IntoIterator<Item = (Digest, Vec<Felt>)>>(&mut self, iter: T) {
         self.advice_inputs.extend_map(iter)
@@ -150,6 +173,7 @@ impl Serializable for TransactionArgs {
         self.tx_script.write_into(target);
         self.note_args.write_into(target);
         self.advice_inputs.write_into(target);
+        self.foreign_account_inputs.write_into(target);
     }
 }
 
@@ -158,8 +182,14 @@ impl Deserializable for TransactionArgs {
         let tx_script = Option::<TransactionScript>::read_from(source)?;
         let note_args = BTreeMap::<NoteId, Word>::read_from(source)?;
         let advice_inputs = AdviceInputs::read_from(source)?;
+        let foreign_account_inputs = Vec::<AccountInputs>::read_from(source)?;
 
-        Ok(Self { tx_script, note_args, advice_inputs })
+        Ok(Self {
+            tx_script,
+            note_args,
+            advice_inputs,
+            foreign_account_inputs,
+        })
     }
 }
 
@@ -275,7 +305,7 @@ mod tests {
 
     #[test]
     fn test_tx_args_serialization() {
-        let args = TransactionArgs::new(None, None, AdviceMap::default());
+        let args = TransactionArgs::new(None, None, AdviceMap::default(), std::vec::Vec::default());
         let bytes: std::vec::Vec<u8> = args.to_bytes();
         let decoded = TransactionArgs::read_from_bytes(&bytes).unwrap();
 

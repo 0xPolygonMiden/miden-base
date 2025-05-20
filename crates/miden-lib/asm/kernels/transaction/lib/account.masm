@@ -10,71 +10,49 @@ use.kernel::memory
 # ERRORS
 # =================================================================================================
 
-# Account nonce cannot be increased by a greater than u32 value
-const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x0002014a
+const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32="account nonce cannot be increased by a greater than u32 value"
 
-# Account code must be updatable for it to be possible to set new code
-const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE=0x00020142
+const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE="account code must be updatable for it to be possible to set new code"
 
-# Anchor block commitment must not be empty
-const.ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY=0x00020140
+const.ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY="anchor block commitment must not be empty"
 
-# ID of the new account does not match the ID computed from the seed and anchor block commitment
-const.ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH=0x0002014e
+const.ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH="ID of the new account does not match the ID computed from the seed and anchor block commitment"
 
-# Failed to write an account value item to a non-value storage slot
-const.ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT=0x00020150
+const.ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT="failed to write an account value item to a non-value storage slot"
 
-# Failed to write an account map item to a non-map storage slot
-const.ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x0002014f
+const.ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT="failed to write an account map item to a non-map storage slot"
 
-# Account procedure is not part of the account code
-const.ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE=0x0002014c
+const.ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE="account procedure is not part of the account code"
 
-# Provided procedure index is out of bounds
-const.ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS=0x0002014b
+const.ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS="provided procedure index is out of bounds"
 
-# Provided storage slot index is out of bounds
-const.ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x00020152
+const.ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS="provided storage slot index is out of bounds"
 
-# Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)
-const.ERR_FAUCET_INVALID_STORAGE_OFFSET=0x000201c2
+const.ERR_FAUCET_INVALID_STORAGE_OFFSET="storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)"
 
-# Computed account code commitment does not match recorded account code commitment
-const.ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH=0x00020141
+const.ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH="computed account code commitment does not match recorded account code commitment"
 
-# Number of account procedures exceeds the maximum limit of 256
-const.ERR_ACCOUNT_TOO_MANY_PROCEDURES=0x00020153
+const.ERR_ACCOUNT_TOO_MANY_PROCEDURES="number of account procedures exceeds the maximum limit of 256"
 
-# Number of account storage slots exceeds the maximum limit of 255
-const.ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS=0x00020154
+const.ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS="number of account storage slots exceeds the maximum limit of 255"
 
-# Computed account storage commitment does not match recorded account storage commitment
-const.ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH=0x00020151
+const.ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH="computed account storage commitment does not match recorded account storage commitment"
 
-# Storage offset is invalid for 0 storage size (should be 0)
-const.ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE=0x00020147
+const.ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE="storage size can only be zero if storage offset is also zero"
 
-# ID of the provided foreign account equals zero.
-const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020181
+const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO="ID of the provided foreign account equals zero"
 
-# Maximum allowed number of foreign account to be loaded (64) was exceeded.
-const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED=0x00020183
+const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED="maximum allowed number of foreign account to be loaded (64) was exceeded"
 
-# State of the current foreign account is invalid.
-const.ERR_FOREIGN_ACCOUNT_INVALID=0x00020182
+const.ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT="commitment of the foreign account in the advice provider does not match the commitment in the account tree"
 
-# Unknown version in account ID.
-const.ERR_ACCOUNT_ID_UNKNOWN_VERSION=0x00020146
+const.ERR_ACCOUNT_ID_UNKNOWN_VERSION="unknown version in account ID"
 
-# Epoch must be less than u16::MAX (0xffff).
-const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX=0x00020143
+const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX="epoch must be less than u16::MAX (0xffff)"
 
-# Unknown account storage mode in account ID.
-const.ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE=0x00020145
+const.ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE="unknown account storage mode in account ID"
 
-# Failed to read an account map item from a non-map storage slot
-const.ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x0002014d
+const.ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT="failed to read an account map item from a non-map storage slot"
 
 # CONSTANTS
 # =================================================================================================
@@ -400,14 +378,18 @@ export.apply_storage_offset
     # => [offset_slot_index]
 end
 
-#! Validates all account procedures storage metadata by checking that:
-#! - All storage offsets and sizes are in bounds.
-#! - All procedures not accessing storage have offset and size set to 0.
-#! - No storage offset of a faucet account's procedure is 0 with a size != 0 (to prevent access to
-#!   the reserved storage slot).
+#! Validates all account procedure's storage metadata.
 #!
 #! Inputs:  []
 #! Outputs: []
+#!
+#! Panics if:
+#! - Storage offset + storage size > number of storage slots.
+#! - Storage size is zero and storage offset is non-zero.
+#!   - This is validated to ensure users do not accidentally set a non-zero offset with a
+#!     zero size which would prevent any access to storage.
+#! - The storage offset of a faucet account's procedure is 0 with a size != 0.
+#!   - This prevents access to the reserved storage slot.
 export.validate_procedure_metadata
     # get number of account procedures and number of storage slots
     exec.memory::get_num_account_procedures exec.memory::get_num_storage_slots
@@ -433,20 +415,14 @@ export.validate_procedure_metadata
             # Procedures that do not access storage are defined with (offset, size) = (0, 0).
             # But we want to fail on tuples defined with a zero size but non-zero offset, since that
             # is a logic error.
-            # We want to panic when we see this condition, so we use assertz rather than assert.
-            # So we can assert this with: (size == 0 && offset != 0) == 0.
+            # We assert this with: (size == 0 && offset != 0) == 0.
             dup.1 eq.0 dup.1 eq.0 not and assertz.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # No procedure should access the reserved faucet slot (slot 0). However (0, 0) should
             # still be allowed per the above.
-            # We want to panic when we see this condition, so we use assertz rather than assert.
-            # So we can assert this with: (offset == 0 && size != 0) == 0.
+            # We assert this with: (offset == 0 && size != 0) == 0.
             dup.1 eq.0 not dup.1 eq.0 and assertz.err=ERR_FAUCET_INVALID_STORAGE_OFFSET
-            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
-
-            # assert that storage offset is in bounds
-            dup dup.4 lt assert.err=ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
             # assert that storage limit is in bounds
@@ -464,15 +440,10 @@ export.validate_procedure_metadata
             dup exec.get_procedure_metadata
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
-            # assert that storage offset is in bounds
-            dup dup.4 lt assert.err=ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS
-            # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
-
             # Procedures that do not access storage are defined with (offset, size) = (0, 0).
             # But we want to fail on tuples defined with a zero size but non-zero offset, since that
             # is a logic error.
-            # We want to panic when we see this condition, so we use assertz rather than assert.
-            # So we can assert this with: (size == 0 && offset != 0) == 0.
+            # We assert this with: (size == 0 && offset != 0) == 0.
             dup.1 eq.0 dup.1 eq.0 not and assertz.err=ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE
             # => [storage_offset, storage_size, index, num_storage_slots, num_account_procedures]
 
@@ -584,7 +555,11 @@ export.get_map_item
     exec.get_item swapw
     # => [KEY, ROOT]
 
-    # fetch the VALUE located under KEY in the tree
+    # see hash_map_key's docs for why this is done
+    exec.hash_map_key
+    # => [HASHED_KEY, ROOT]
+
+    # fetch the VALUE located under HASHED_KEY in the tree
     exec.smt::get
     # => [VALUE, ROOT]
 
@@ -629,13 +604,17 @@ export.set_map_item.12
     emit.ACCOUNT_STORAGE_BEFORE_SET_MAP_ITEM_EVENT
     # => [index, KEY, NEW_VALUE, OLD_ROOT]
 
-    # duplicate the KEY and the NEW_VALUE to be able to emit an event after an account storage item
-    # is being updated
+    # duplicate the original KEY and the NEW_VALUE to be able to emit an event after the
+    # account storage item was updated
     movdn.12 movupw.2 dupw.2 dupw.2
     # => [KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
 
-    # set the NEW_VALUE under KEY in the tree
-    # note smt::set expects the stack to be [NEW_VALUE, KEY, OLD_ROOT, ...]
+    # see hash_map_key's docs for why this is done
+    exec.hash_map_key
+    # => [HASHED_KEY, NEW_VALUE, OLD_ROOT, KEY, NEW_VALUE, index, ...]
+
+    # set the NEW_VALUE under HASHED_KEY in the tree
+    # note smt::set expects the stack to be [NEW_VALUE, HASHED_KEY, OLD_ROOT, ...]
     swapw exec.smt::set
     # => [OLD_MAP_VALUE, NEW_ROOT, KEY, NEW_VALUE, index, ...]
 
@@ -742,7 +721,7 @@ end
 #!
 #! Validation is performed via the following steps:
 #! 1. Retrieve the anchor block commitment by computing the block number of the anchor block and
-#!    retrieving it from the chain mmr.
+#!    retrieving it from the partial blockchain.
 #! 2. Compute the hash of (SEED, CODE_COMMITMENT, STORAGE_COMMITMENT, ANCHOR_BLOCK_COMMITMENT).
 #! 3. Assert the two least significant elements of the digest are equal to the account ID of the
 #!    account the transaction is being executed against.
@@ -750,7 +729,7 @@ end
 #! Inputs:  []
 #! Outputs: []
 export.validate_seed
-    # Load the block commitment of the anchor block from the chain mmr.
+    # Load the block commitment of the anchor block from the partial blockchain.
     # This is the block commitment to which the account ID is anchored and is derived from.
     # ---------------------------------------------------------------------------------------------
 
@@ -762,8 +741,8 @@ export.validate_seed
     dup.3 exec.account_id::id_anchor_block_num
     # => [anchor_block_num, 0, 0, account_id_prefix, account_id_suffix]
 
-    exec.memory::get_chain_mmr_ptr swap
-    # => [anchor_block_num, chain_mmr_ptr, 0, 0, account_id_prefix, account_id_suffix]
+    exec.memory::get_partial_blockchain_ptr swap
+    # => [anchor_block_num, partial_blockchain_ptr, 0, 0, account_id_prefix, account_id_suffix]
 
     exec.mmr::get
     # => [ANCHOR_BLOCK_COMMITMENT, 0, 0, account_id_prefix, account_id_suffix]
@@ -1114,21 +1093,32 @@ export.validate_current_foreign_account
     # => [ACCOUNT_DB_ROOT]
 
     # get the current account ID
-    exec.memory::get_account_id swap drop
-    # => [account_id_prefix, ACCOUNT_DB_ROOT]
+    push.0.0 exec.memory::get_account_id
+    # => [account_id_prefix, account_id_suffix, 0, 0, ACCOUNT_DB_ROOT]
 
-    # push the depth of the account database tree
-    push.ACCOUNT_TREE_DEPTH
-    # => [depth, account_id_prefix, ACCOUNT_DB_ROOT]
+    # retrieve the commitment of the foreign account from the current account tree
+    # this would abort if the proof for the commitment was invalid for the account root,
+    # so this implicitly verifies its correctness
+    exec.smt::get
+    # => [FOREIGN_ACCOUNT_COMMITMENT, ACCOUNT_DB_ROOT]
 
-    # get the foreign account commitment
-    exec.get_current_commitment
-    # => [FOREIGN_ACCOUNT_COMMITMENT, depth, account_id_prefix, ACCOUNT_DB_ROOT]
-
-    # verify that the account database has the hash of the current foreign account
-    mtree_verify.err=ERR_FOREIGN_ACCOUNT_INVALID
-    # => [FOREIGN_ACCOUNT_COMMITMENT, depth, account_id_prefix, ACCOUNT_DB_ROOT]
+    # get the foreign account's commitment from memory and compare with the verified commitment
+    exec.get_current_commitment assert_eqw.err=ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT
+    # => [ACCOUNT_DB_ROOT]
 
     # clean the stack
-    dropw drop drop dropw
+    dropw
+end
+
+#! Hashes the provided map key before using it as the key in an SMT.
+#!
+#! Because the keys of the map are user-chosen and thus not necessarily uniformly distributed, the
+#! tree could be imbalanced and made less efficient. To mitigate that, the keys used in the
+#! storage map are hashed before they are inserted into the SMT, which creates a uniform distribution.
+#!
+#! Inputs:  [KEY]
+#! Outputs: [HASHED_KEY]
+proc.hash_map_key
+  hash
+  # => [HASHED_KEY]
 end

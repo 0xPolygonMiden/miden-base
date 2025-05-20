@@ -5,17 +5,13 @@ A `Transaction` in Miden is the state transition of a single account. A `Transac
 Miden's `Transaction` model aims for the following:
 
 - **Parallel transaction execution**: Accounts can update their state independently from each other and in parallel.
-- **Private transaction execution**: Client-side `Transaction` proving allows the network to verify transactions validity with zero knowledge.
+- **Private transaction execution**: Client-side `Transaction` proving allows the network to verify transactions validity with zero-knowledge.
 
 <p style="text-align: center;">
     <img src="img/transaction/transaction-diagram.png" style="width:70%;" alt="Transaction diagram"/>
 </p>
 
-Compared to most blockchains, where a `Transaction` typically involves more than one account (e.g., sender and receiver), a `Transaction` in Miden involves a single account. To illustrate, Alice (Account 1) sends 3 ETH to Bob (Account 2). In Miden, sending 3 ETH from Alice to Bob takes two transactions: one in which Alice creates a note containing 3 ETH and one in which Bob consumes that note and receives the 3 ETH. This model removes the need for a global lock on the blockchain's state, enabling Miden to process transactions in parallel.
-
-<p style="text-align: center;">
-    <img src="img/transaction/one-transfer-two-transactions.gif" style="width:70%;" alt="Example: One transfer, two transactions"/>
-</p>
+Compared to most blockchains, where a `Transaction` typically involves more than one account (e.g., sender and receiver), a `Transaction` in Miden involves a single account. To illustrate, Alice sends 5 ETH to Bob. In Miden, sending 5 ETH from Alice to Bob takes two transactions, one in which Alice creates a note containing 5 ETH and one in which Bob consumes that note and receives the 5 ETH. This model removes the need for a global lock on the blockchain's state, enabling Miden to process transactions in parallel.
 
 Currently the protocol limits the number of notes that can be consumed and produced in a transaction to 1000 each, which means that in a single `Transaction` an application could serve up to 2000 different user requests like deposits or withdrawals into/from a pool.
 
@@ -63,7 +59,7 @@ Let's assume account A wants to create a P2ID note. P2ID notes are pay-to-ID not
 
 In this example, account A uses the basic wallet and the authentication component provided by `miden-lib`. The basic wallet component defines the methods `wallets::basic::create_note` and `wallets::basic::move_asset_to_note` to create notes with assets, and `wallets::basic::receive_asset` to receive assets. The authentication component exposes `auth::basic::auth_tx_rpo_falcon512` which allows for signing a transaction. Some account methods like `account::get_id` are always exposed.
 
-The executor inputs to the Miden VM a `Transaction` script in which he places on the stack the data (tag, aux, note_type, execution_hint, RECIPIENT) of the note(s) that he wants to create using `wallets::basic::create_note` during the said `Transaction`. The [`NoteRecipient`](https://github.com/0xPolygonMiden/miden-base/blob/main/crates/miden-objects/src/note/recipient.rs) is a value that describes under which condition a note can be consumed and is built using a `serial_number`, the `note_script` (in this case P2ID script) and the `note_inputs`. The Miden VM will execute the `Transaction` script and create the note(s). After having been created, the executor can use `wallets::basic::move_asset_to_note` to move assets from the account's vault to the notes vault.
+The executor inputs to the Miden VM a `Transaction` script in which he places on the stack the data (tag, aux, note_type, execution_hint, RECIPIENT) of the note(s) that he wants to create using `wallets::basic::create_note` during the said `Transaction`. The [`NoteRecipient`](https://github.com/0xMiden/miden-base/blob/main/crates/miden-objects/src/note/recipient.rs) is a value that describes under which condition a note can be consumed and is built using a `serial_number`, the `note_script` (in this case P2ID script) and the `note_inputs`. The Miden VM will execute the `Transaction` script and create the note(s). After having been created, the executor can use `wallets::basic::move_asset_to_note` to move assets from the account's vault to the notes vault.
 
 After finalizing the `Transaction` the updated state and created note(s) can now be submitted to the Miden operator to be recorded on-chain.
 

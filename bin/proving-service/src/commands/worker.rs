@@ -56,30 +56,31 @@ impl std::str::FromStr for ProverType {
 /// Starts a worker.
 #[derive(Debug, Parser)]
 pub struct StartWorker {
-    /// The host of the worker
-    #[clap(long, default_value = "0.0.0.0")]
-    host: String,
+    /// Use localhost (127.0.0.1) instead of 0.0.0.0
+    #[arg(long, env = "MPS_WORKER_LOCALHOST")]
+    localhost: bool,
     /// The port of the worker
-    #[clap(long, default_value = "50051")]
+    #[arg(long, default_value = "50051", env = "MPS_WORKER_PORT")]
     port: u16,
     /// The type of prover that the worker will be handling
-    #[clap(long)]
+    #[arg(long, env = "MPS_WORKER_PROVER_TYPE")]
     prover_type: ProverType,
 }
 
 impl StartWorker {
     /// Starts a worker.
     ///
-    /// This method receives the host and port from the CLI and starts a worker on that address.
-    /// In case that one of the parameters is not provided, it will default to `0.0.0.0` for the
-    /// host and `50051` for the port.
+    /// This method receives the port from the CLI and starts a worker on that port.
+    /// The host will be 127.0.0.1 if --localhost is specified, otherwise 0.0.0.0.
+    /// In case that the port is not provided, it will default to `50051`.
     ///
     /// The worker includes a health reporter that will mark the service as serving, following the
     /// [gRPC health checking protocol](
     /// https://github.com/grpc/grpc-proto/blob/master/grpc/health/v1/health.proto).
     #[instrument(target = MIDEN_PROVING_SERVICE, name = "worker:execute")]
     pub async fn execute(&self) -> Result<(), String> {
-        let worker_addr = format!("{}:{}", self.host, self.port);
+        let host = if self.localhost { "127.0.0.1" } else { "0.0.0.0" };
+        let worker_addr = format!("{}:{}", host, self.port);
         let rpc = RpcListener::new(
             TcpListener::bind(&worker_addr).await.map_err(|err| err.to_string())?,
             self.prover_type,

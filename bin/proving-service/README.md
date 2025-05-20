@@ -13,6 +13,8 @@ The proxy uses [Cloudflare's Pingora crate](https://crates.io/crates/pingora), w
 ## Debian Installation
 
 #### Prover
+
+Install the Debian package:
 ```bash
 set -e
 
@@ -22,9 +24,12 @@ sudo sha256sum prover.deb | awk '{print $1}' > prover.sha256
 sudo diff prover.sha256 prover.checksum
 sudo dpkg -i prover.deb
 sudo rm prover.deb
+```
 
-sudo chown -R miden-prover /opt/miden-prover
+Edit the configuration file `/lib/systemd/system/miden-prover.service.env`
 
+Run the service:
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable miden-prover
 sudo systemctl start miden-prover
@@ -40,9 +45,14 @@ sudo sha256sum prover-proxy.deb | awk '{print $1}' > prover-proxy.sha256
 sudo diff prover-proxy.sha256 prover-proxy.checksum
 sudo dpkg -i prover-proxy.deb
 sudo rm prover-proxy.deb
+```
 
-sudo chown -R miden-prover-proxy /opt/miden-prover-proxy
+Edit the configuration file `/lib/systemd/system/miden-prover-proxy.service.env`
 
+Edit the service file to specify workers `/lib/systemd/system/miden-prover-proxy.service`
+
+Run the service:
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable miden-prover-proxy
 sudo systemctl start miden-prover-proxy
@@ -63,17 +73,35 @@ The CLI can be installed from the source code using specific git revisions with 
 To start the worker service you will need to run:
 
 ```bash
-miden-proving-service start-worker --host 0.0.0.0 --port 8082 --prover-type transaction
+miden-proving-service start-worker --port 8082 --prover-type transaction
 ```
 
-This will spawn a worker using the hosts and ports defined in the command options. In case that one of the values is not present, it will default to `0.0.0.0` for the host and `50051` for the port.
+This will spawn a worker using the port defined in the command option. The host will be 0.0.0.0 by default, or 127.0.0.1 if the --localhost flag is used. In case that the port is not provided, it will default to `50051`. This command will start a worker that can handle transaction and batch proving requests.
 
 The `--prover-type` flag is required and specifies which type of proof the worker will handle. The available options are:
 - `transaction`: For transaction proofs
 - `batch`: For batch proofs
 - `block`: For block proofs
 
-Each worker can only handle one type of proof. If you need to handle multiple proof types, you should start multiple workers, each with a different proof type.
+Each worker can only handle one type of proof. If you need to handle multiple proof types, you should start multiple workers, each with a different proof type. Additionally, you can use the `--localhost` flag to bind to 127.0.0.1 instead of 0.0.0.0.
+
+### Worker Configuration
+
+The worker can be configured using the following environment variables:
+
+| Variable                  | Description                     | Default       |
+|---------------------------|---------------------------------|---------------|
+| `MPS_WORKER_LOCALHOST`    | Use localhost (127.0.0.1)       | `false`       |
+| `MPS_WORKER_PORT`         | The port number for the worker  | `50051`       |
+| `MPS_WORKER_PROVER_TYPE`  | The supported prover type       | `transaction` |
+
+For example:
+```bash
+export MPS_WORKER_LOCALHOST="true"
+export MPS_WORKER_PORT="8082"
+export MPS_WORKER_PROVER_TYPE="block"
+miden-proving-service start-worker
+```
 
 ## Proxy
 
@@ -116,23 +144,22 @@ At the moment, when a worker added to the proxy stops working and can not connec
 To update the workers on a running proxy, two commands are provided: `add-worker` and `remove-worker`. These commands will update the workers on the proxy and will not require a restart. To use these commands, you will need to run:
 
 ```bash
-miden-proving-service add-worker --proxy-host <proxy-host> --proxy-update-workers-port <proxy-update-workers-port> [worker1] [worker2] ... [workerN]
-miden-proving-service remove-worker --proxy-host <proxy-host> --proxy-update-workers-port <proxy-update-workers-port> [worker1] [worker2] ... [workerN]
+miden-proving-service add-worker --control-port <port> [worker1] [worker2] ... [workerN]
+miden-proving-service remove-worker --control-port <port> [worker1] [worker2] ... [workerN]
 ```
 For example:
 
 ```bash
 # To add 0.0.0.0:8085 and 200.58.70.4:50051 to the workers list:
-miden-proving-service add-workers --proxy-host 0.0.0.0 --proxy-update-workers-port 8083 0.0.0.0:8085 200.58.70.4:50051
+miden-proving-service add-workers --control-port 8083 0.0.0.0:8085 200.58.70.4:50051
 # To remove 158.12.12.3:8080 and 122.122.6.6:50051 from the workers list:
-miden-proving-service remove-workers --proxy-host 0.0.0.0 --proxy-update-workers-port 8083 158.12.12.3:8080 122.122.6.6:50051
+miden-proving-service remove-workers --control-port 8083 158.12.12.3:8080 122.122.6.6:50051
 ```
 
-The `--proxy-host` and `--proxy-update-workers-port` flags are required to specify the proxy's host and the port where the proxy is listening for updates. The workers are passed as arguments in the format `host:port`. Both flags can be used from environment variables, `MPS_PROXY_HOST` and `MPS_PROXY_UPDATE_WORKERS_PORT` respectively. For example:
+The `--control-port` flag is required to specify the port where the proxy is listening for updates. The workers are passed as arguments in the format `host:port`. The port can be specified via the `MPS_CONTROL_PORT` environment variable. For example:
 
 ```bash
-export MPS_PROXY_HOST="0.0.0.0"
-export MPS_PROXY_UPDATE_WORKERS_PORT="8083"
+export MPS_CONTROL_PORT="8083"
 miden-proving-service add-workers 0.0.0.0:8085
 ```
 
@@ -213,31 +240,33 @@ If Docker is not an option, Jaeger can also be set up directly on your machine o
 
 ## Metrics
 
-The proxy includes a service that can optionally expose metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is controlled by the `enable_metrics` configuration option.
+The proxy includes a service that can optionally expose metrics to be consumed by [Prometheus](https://prometheus.io/docs/introduction/overview/). This service is enabled by specifying a metrics port.
 
 ### Enabling Prometheus Metrics
 
-To enable Prometheus metrics, set the `enable_metrics` field to `true`. This can be done via environment variables or command-line arguments.
+To enable Prometheus metrics, simply specify a port on which to expose the metrics. This can be done via environment variables or command-line arguments.
 
 #### Using Environment Variables
 
 Set the following environment variable:
 
 ```bash
-export MPS_ENABLE_METRICS=true
+export MPS_METRICS_PORT=6192  # Set to enable metrics on port 6192
 ```
+
+To disable metrics, simply don't set the MPS_METRICS_PORT environment variable.
 
 #### Using Command-Line Arguments
 
-Pass the `--enable-metrics` flag when starting the proxy:
+Specify a metrics port using the `--metrics-port` flag when starting the proxy:
 
 ```bash
-miden-proving-service start-proxy --enable-metrics [worker1] [worker2] ... [workerN]
+miden-proving-service start-proxy --metrics-port 6192 [worker1] [worker2] ... [workerN]
 ```
 
-When enabled, the Prometheus metrics will be available at the host and port specified by the `prometheus_host` and `prometheus_port` fields in the configuration. By default, these are set to `0.0.0.0` and `9090`, respectively.
+If you don't specify a metrics port, metrics will be disabled.
 
-If metrics are not enabled, the proxy will log that Prometheus metrics are not enabled.
+When enabled, the Prometheus metrics will be available at `http://0.0.0.0:<metrics_port>` (e.g., `http://0.0.0.0:6192`).
 
 The metrics architecture works by having the proxy expose metrics at an endpoint (`/metrics`) in a format Prometheus can read. Prometheus periodically scrapes this endpoint, adds timestamps to the metrics, and stores them in its time-series database. Then, we can use tools like Grafana to query Prometheus and visualize these metrics in configurable dashboards.
 
@@ -255,7 +284,7 @@ docker run -d -p 3000:3000 --name grafana grafana/grafana-enterprise:latest
 
 In case that Docker is not an option, Prometheus and Grafana can also be set up directly on your machine or hosted in the cloud. See the [Prometheus documentation](https://prometheus.io/docs/prometheus/latest/getting_started/) and [Grafana documentation](https://grafana.com/docs/grafana/latest/setup-grafana/) for alternative installation methods.
 
-A prometheus configuration file is provided in this repository, you will need to modify the `scrape_configs` section to include the host and port of the proxy service.
+A prometheus configuration file is provided in this repository, you will need to modify the `scrape_configs` section to include the URL of the proxy service (e.g., `http://0.0.0.0:6192`).
 
 Then, to add the new Prometheus collector as a datasource for Grafana, you can [follow this tutorial](https://grafana.com/docs/grafana-cloud/connect-externally-hosted/existing-datasource/). A Grafana dashboard under the name `proxy_grafana_dashboard.json` is provided, see this [link](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/import-dashboards/) to import it. Otherwise, you can [create your own dashboard](https://grafana.com/docs/grafana/latest/getting-started/build-first-dashboard/) using the metrics provided by the proxy and export it by following this [link](https://grafana.com/docs/grafana/latest/dashboards/share-dashboards-panels/#export-a-dashboard-as-json).
 

@@ -13,7 +13,7 @@ use vm_core::{
 use vm_processor::{DeserializationError, Digest};
 
 use super::{
-    InitStorageData, MapEntry, StorageValueName, TemplateRequirementsIter,
+    FieldIdentifier, InitStorageData, MapEntry, StorageValueName, TemplateRequirementsIter,
     placeholder::{PlaceholderTypeRequirement, TEMPLATE_REGISTRY, TemplateType},
 };
 use crate::account::{StorageMap, component::template::AccountComponentTemplateError};
@@ -36,10 +36,7 @@ pub enum WordRepresentation {
     Template {
         /// The type associated with this templated word.
         r#type: TemplateType,
-        /// A human-readable identifier for the template.
-        name: StorageValueName,
-        /// An optional description explaining the purpose of this template.
-        description: Option<String>,
+        identifier: FieldIdentifier,
     },
 
     /// A predefined value that can be used directly within storage.
@@ -47,10 +44,7 @@ pub enum WordRepresentation {
     /// This variant may contain either a fully hardcoded word or a structured set of felts, some
     /// of which may themselves be templates.
     Value {
-        /// An optional name to identify this value externally.
-        name: Option<StorageValueName>,
-        /// An optional description explaining the role of this value.
-        description: Option<String>,
+        identifier: Option<FieldIdentifier>,
         /// The 4-felt representation of the stored word.
         value: [FeltRepresentation; 4],
     },
@@ -58,33 +52,33 @@ pub enum WordRepresentation {
 
 impl WordRepresentation {
     /// Constructs a new `Template` variant.
-    pub fn new_template(r#type: TemplateType, name: StorageValueName) -> Self {
-        WordRepresentation::Template { name, description: None, r#type }
+    pub fn new_template(r#type: TemplateType, identifier: FieldIdentifier) -> Self {
+        WordRepresentation::Template { r#type, identifier }
     }
 
     /// Constructs a new `Value` variant.
     pub fn new_value(
         value: impl Into<[FeltRepresentation; 4]>,
-        name: Option<StorageValueName>,
+        identifier: Option<FieldIdentifier>,
     ) -> Self {
-        WordRepresentation::Value {
-            name,
-            description: None,
-            value: value.into(),
-        }
+        WordRepresentation::Value { identifier, value: value.into() }
     }
 
     /// Sets the description of the [`WordRepresentation`] and returns `self`.
     pub fn with_description(self, description: impl Into<String>) -> Self {
         match self {
-            WordRepresentation::Template { r#type, name, .. } => WordRepresentation::Template {
+            WordRepresentation::Template { r#type, identifier } => WordRepresentation::Template {
                 r#type,
-                name,
-                description: Some(description.into()),
+                identifier: FieldIdentifier {
+                    name: identifier.name,
+                    description: Some(description.into()),
+                },
             },
-            WordRepresentation::Value { name, value, .. } => WordRepresentation::Value {
-                name,
-                description: Some(description.into()),
+            WordRepresentation::Value { identifier, value } => WordRepresentation::Value {
+                identifier: identifier.map(|id| FieldIdentifier {
+                    name: id.name,
+                    description: Some(description.into()),
+                }),
                 value,
             },
         }
@@ -95,8 +89,8 @@ impl WordRepresentation {
     /// - For the `Value` variant, it returns `Some` if a name is present, or `None` otherwise.
     pub fn name(&self) -> Option<&StorageValueName> {
         match self {
-            WordRepresentation::Template { name, .. } => Some(name),
-            WordRepresentation::Value { name, .. } => name.as_ref(),
+            WordRepresentation::Template { identifier, .. } => Some(&identifier.name),
+            WordRepresentation::Value { identifier, .. } => identifier.as_ref().map(|id| &id.name),
         }
     }
 
@@ -104,8 +98,10 @@ impl WordRepresentation {
     /// Both variants store an `Option<String>`, which is converted to an `Option<&str>`.
     pub fn description(&self) -> Option<&str> {
         match self {
-            WordRepresentation::Template { description, .. } => description.as_deref(),
-            WordRepresentation::Value { description, .. } => description.as_deref(),
+            WordRepresentation::Template { identifier, .. } => identifier.description.as_deref(),
+            WordRepresentation::Value { identifier, .. } => {
+                identifier.as_ref().and_then(|id| id.description.as_deref())
+            },
         }
     }
 
@@ -139,15 +135,13 @@ impl WordRepresentation {
         let placeholder_key =
             placeholder_prefix.with_suffix(self.name().unwrap_or(&StorageValueName::empty()));
         match self {
-            // If it's a template, return the corresponding requirements
-            WordRepresentation::Template { description, r#type, .. } => Box::new(iter::once((
+            WordRepresentation::Template { identifier, r#type } => Box::new(iter::once((
                 placeholder_key,
                 PlaceholderTypeRequirement {
-                    description: description.clone(),
+                    description: identifier.description.clone(),
                     r#type: r#type.clone(),
                 },
             ))),
-            // Otherwise, return inner iterators
             WordRepresentation::Value { value, .. } => Box::new(
                 value
                     .iter()
@@ -167,8 +161,8 @@ impl WordRepresentation {
         placeholder_prefix: StorageValueName,
     ) -> Result<Word, AccountComponentTemplateError> {
         match self {
-            WordRepresentation::Template { name: placeholder_key, r#type, .. } => {
-                let placeholder_path = placeholder_prefix.with_suffix(placeholder_key);
+            WordRepresentation::Template { identifier, r#type } => {
+                let placeholder_path = placeholder_prefix.with_suffix(&identifier.name);
                 let maybe_value = init_storage_data.get(&placeholder_path);
                 if let Some(value) = maybe_value {
                     let parsed_value = TEMPLATE_REGISTRY
@@ -182,13 +176,16 @@ impl WordRepresentation {
                     ))
                 }
             },
-            WordRepresentation::Value { value, name, .. } => {
+            WordRepresentation::Value { value, identifier } => {
                 let mut result = [Felt::ZERO; 4];
 
                 for (index, felt_repr) in value.iter().enumerate() {
-                    let placeholder = placeholder_prefix
-                        .clone()
-                        .with_suffix(&name.clone().unwrap_or(StorageValueName::empty()));
+                    let placeholder = placeholder_prefix.clone().with_suffix(
+                        identifier
+                            .as_ref()
+                            .map(|id| &id.name)
+                            .unwrap_or(&StorageValueName::empty()),
+                    );
                     result[index] = felt_repr.try_build_felt(init_storage_data, placeholder)?;
                 }
                 // SAFETY: result is guaranteed to have all its 4 indices rewritten
@@ -221,16 +218,14 @@ impl WordRepresentation {
 impl Serializable for WordRepresentation {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
-            WordRepresentation::Template { name, description, r#type } => {
+            WordRepresentation::Template { identifier, r#type } => {
                 target.write_u8(0);
-                target.write(name);
-                target.write(description);
+                target.write(identifier);
                 target.write(r#type);
             },
-            WordRepresentation::Value { name, description, value } => {
+            WordRepresentation::Value { identifier, value } => {
                 target.write_u8(1);
-                target.write(name);
-                target.write(description);
+                target.write(identifier);
                 target.write(value);
             },
         }
@@ -242,19 +237,17 @@ impl Deserializable for WordRepresentation {
         let tag = source.read_u8()?;
         match tag {
             0 => {
-                let name = StorageValueName::read_from(source)?;
-                let description = Option::<String>::read_from(source)?;
+                let identifier = FieldIdentifier::read_from(source)?;
                 let r#type = TemplateType::read_from(source)?;
-                Ok(WordRepresentation::Template { name, description, r#type })
+                Ok(WordRepresentation::Template { identifier, r#type })
             },
             1 => {
-                let name = Option::<StorageValueName>::read_from(source)?;
-                let description = Option::<String>::read_from(source)?;
+                let identifier = Option::<FieldIdentifier>::read_from(source)?;
                 let value = <[FeltRepresentation; 4]>::read_from(source)?;
-                Ok(WordRepresentation::Value { name, description, value })
+                Ok(WordRepresentation::Value { identifier, value })
             },
             other => Err(DeserializationError::InvalidValue(format!(
-                "Unknown tag for WordRepresentation: {}",
+                "unknown tag for WordRepresentation: {}",
                 other
             ))),
         }
@@ -263,7 +256,7 @@ impl Deserializable for WordRepresentation {
 
 impl From<[FeltRepresentation; 4]> for WordRepresentation {
     fn from(value: [FeltRepresentation; 4]) -> Self {
-        WordRepresentation::new_value(value, Option::<StorageValueName>::None)
+        WordRepresentation::new_value(value, Option::<FieldIdentifier>::None)
     }
 }
 
@@ -271,7 +264,7 @@ impl From<[Felt; 4]> for WordRepresentation {
     fn from(value: [Felt; 4]) -> Self {
         WordRepresentation::new_value(
             value.map(FeltRepresentation::from),
-            Option::<StorageValueName>::None,
+            Option::<FieldIdentifier>::None,
         )
     }
 }
@@ -293,9 +286,8 @@ pub enum FeltRepresentation {
     /// The optional name allows for identification, and the description offers additional context.
     Value {
         /// An optional identifier for this felt value.
-        name: Option<StorageValueName>,
         /// An optional explanation of the felt's purpose.
-        description: Option<String>,
+        identifier: Option<FieldIdentifier>,
         /// The actual felt value.
         value: Felt,
     },
@@ -309,46 +301,51 @@ pub enum FeltRepresentation {
         /// The expected type for this felt element.
         r#type: TemplateType,
         /// A unique name for the felt template.
-        name: StorageValueName,
         /// An optional description that explains the purpose of this template.
-        description: Option<String>,
+        identifier: FieldIdentifier,
     },
 }
 
 impl FeltRepresentation {
     /// Creates a new [`FeltRepresentation::Value`] variant.
-    pub fn new_value(value: impl Into<Felt>, name: Option<StorageValueName>) -> FeltRepresentation {
+    pub fn new_value(value: impl Into<Felt>, name: Option<StorageValueName>) -> Self {
         FeltRepresentation::Value {
             value: value.into(),
-            name,
-            description: None,
+            identifier: name.map(FieldIdentifier::with_name),
         }
     }
 
     /// Creates a new [`FeltRepresentation::Template`] variant.
     ///
     /// The name will be used for identification at the moment of instantiating the componentn.
-    pub fn new_template(r#type: TemplateType, name: StorageValueName) -> FeltRepresentation {
-        FeltRepresentation::Template { name, description: None, r#type }
+    pub fn new_template(r#type: TemplateType, name: StorageValueName) -> Self {
+        FeltRepresentation::Template {
+            r#type,
+            identifier: FieldIdentifier::with_name(name),
+        }
     }
 
     /// Sets the description of the [`FeltRepresentation`] and returns `self`.
     pub fn with_description(self, description: impl Into<String>) -> Self {
         match self {
-            FeltRepresentation::Template { r#type, name, .. } => FeltRepresentation::Template {
+            FeltRepresentation::Template { r#type, identifier } => FeltRepresentation::Template {
                 r#type,
-                name,
-                description: Some(description.into()),
+                identifier: FieldIdentifier {
+                    name: identifier.name,
+                    description: Some(description.into()),
+                },
             },
-            FeltRepresentation::Value { name, value, .. } => FeltRepresentation::Value {
-                name,
-                description: Some(description.into()),
+            FeltRepresentation::Value { identifier, value } => FeltRepresentation::Value {
+                identifier: identifier.map(|id| FieldIdentifier {
+                    name: id.name,
+                    description: Some(description.into()),
+                }),
                 value,
             },
         }
     }
 
-    /// Returns the type name.
+    /// Returns the felt type.
     pub fn felt_type(&self) -> TemplateType {
         match self {
             FeltRepresentation::Template { r#type, .. } => r#type.clone(),
@@ -366,8 +363,8 @@ impl FeltRepresentation {
         placeholder_prefix: StorageValueName,
     ) -> Result<Felt, AccountComponentTemplateError> {
         match self {
-            FeltRepresentation::Template { name, r#type, .. } => {
-                let placeholder_key = placeholder_prefix.with_suffix(name);
+            FeltRepresentation::Template { identifier, r#type } => {
+                let placeholder_key = placeholder_prefix.with_suffix(&identifier.name);
                 let raw_value = init_storage_data.get(&placeholder_key).ok_or(
                     AccountComponentTemplateError::PlaceholderValueNotProvided(placeholder_key),
                 )?;
@@ -390,10 +387,10 @@ impl FeltRepresentation {
         placeholder_prefix: StorageValueName,
     ) -> TemplateRequirementsIter<'_> {
         match self {
-            FeltRepresentation::Template { name, description, r#type } => Box::new(iter::once((
-                placeholder_prefix.with_suffix(name),
+            FeltRepresentation::Template { identifier, r#type } => Box::new(iter::once((
+                placeholder_prefix.with_suffix(&identifier.name),
                 PlaceholderTypeRequirement {
-                    description: description.clone(),
+                    description: identifier.description.clone(),
                     r#type: r#type.clone(),
                 },
             ))),
@@ -430,16 +427,14 @@ impl Default for FeltRepresentation {
 impl Serializable for FeltRepresentation {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         match self {
-            FeltRepresentation::Value { name, description, value } => {
+            FeltRepresentation::Value { identifier, value } => {
                 target.write_u8(0);
-                target.write(name);
-                target.write(description);
+                target.write(identifier);
                 target.write(value);
             },
-            FeltRepresentation::Template { name, description, r#type } => {
+            FeltRepresentation::Template { identifier, r#type } => {
                 target.write_u8(1);
-                target.write(name);
-                target.write(description);
+                target.write(identifier);
                 target.write(r#type);
             },
         }
@@ -451,16 +446,14 @@ impl Deserializable for FeltRepresentation {
         let tag = source.read_u8()?;
         match tag {
             0 => {
-                let name = Option::<StorageValueName>::read_from(source)?;
-                let description = Option::<String>::read_from(source)?;
+                let identifier = Option::<FieldIdentifier>::read_from(source)?;
                 let value = Felt::read_from(source)?;
-                Ok(FeltRepresentation::Value { value, name, description })
+                Ok(FeltRepresentation::Value { value, identifier })
             },
             1 => {
-                let name = StorageValueName::read_from(source)?;
-                let description = Option::<String>::read_from(source)?;
+                let identifier = FieldIdentifier::read_from(source)?;
                 let r#type = TemplateType::read_from(source)?;
-                Ok(FeltRepresentation::Template { r#type, name, description })
+                Ok(FeltRepresentation::Template { r#type, identifier })
             },
             other => Err(DeserializationError::InvalidValue(format!(
                 "Unknown tag for FeltRepresentation: {}",
@@ -478,9 +471,8 @@ impl Deserializable for FeltRepresentation {
 #[cfg_attr(feature = "std", derive(::serde::Deserialize, ::serde::Serialize))]
 pub struct MapRepresentation {
     /// The human-readable name of the map slot.
-    name: StorageValueName,
     /// An optional description for the slot, explaining its purpose.
-    description: Option<String>,
+    identifier: FieldIdentifier,
     /// Storage map entries, consisting of a list of keys associated with their values.
     entries: Vec<MapEntry>,
 }
@@ -490,17 +482,18 @@ impl MapRepresentation {
     pub fn new(entries: Vec<MapEntry>, name: impl Into<StorageValueName>) -> Self {
         Self {
             entries,
-            name: name.into(),
-            description: None,
+            identifier: FieldIdentifier::with_name(name.into()),
         }
     }
 
     /// Sets the description of the [`MapRepresentation`] and returns `self`.
     pub fn with_description(self, description: impl Into<String>) -> Self {
         MapRepresentation {
-            name: self.name,
             entries: self.entries,
-            description: Some(description.into()),
+            identifier: FieldIdentifier {
+                name: self.identifier.name,
+                description: Some(description.into()),
+            },
         }
     }
 
@@ -510,7 +503,7 @@ impl MapRepresentation {
         Box::new(
             self.entries
                 .iter()
-                .flat_map(move |entry| entry.template_requirements(self.name.clone())),
+                .flat_map(move |entry| entry.template_requirements(self.identifier.name.clone())),
         )
     }
 
@@ -521,12 +514,12 @@ impl MapRepresentation {
 
     /// Returns a reference to the map's name within the storage metadata.
     pub fn name(&self) -> &StorageValueName {
-        &self.name
+        &self.identifier.name
     }
 
     /// Returns a reference to the field's description.
     pub fn description(&self) -> Option<&String> {
-        self.description.as_ref()
+        self.identifier.description.as_ref()
     }
 
     /// Returns the number of key-value pairs in the map.
@@ -551,9 +544,12 @@ impl MapRepresentation {
             .entries
             .iter()
             .map(|map_entry| {
-                let key = map_entry.key().try_build_word(init_storage_data, self.name().clone())?;
-                let value =
-                    map_entry.value().try_build_word(init_storage_data, self.name().clone())?;
+                let key = map_entry
+                    .key()
+                    .try_build_word(init_storage_data, self.identifier.name.clone())?;
+                let value = map_entry
+                    .value()
+                    .try_build_word(init_storage_data, self.identifier.name.clone())?;
                 Ok((key.into(), value))
             })
             .collect::<Result<Vec<(Digest, Word)>, _>>()?;
@@ -569,9 +565,6 @@ impl MapRepresentation {
     pub(crate) fn validate(&self) -> Result<(), AccountComponentTemplateError> {
         let mut seen_keys = BTreeSet::new();
         for entry in self.entries() {
-            // Until instantiating the component we can only tell if keys are duplicate for any
-            // predefined entries, so try to build any keys in the map to see if we have
-            // duplicates
             entry.key().validate()?;
             entry.value().validate()?;
             if let Ok(key) = entry
@@ -599,16 +592,84 @@ impl From<MapRepresentation> for Vec<MapEntry> {
 impl Serializable for MapRepresentation {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
         self.entries.write_into(target);
-        self.name.write_into(target);
-        self.description.write_into(target);
+        target.write(&self.identifier);
     }
 }
 
 impl Deserializable for MapRepresentation {
     fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
         let entries = Vec::<MapEntry>::read_from(source)?;
-        let name = StorageValueName::read_from(source)?;
-        let description = Option::<String>::read_from(source)?;
-        Ok(Self { entries, name, description })
+        let identifier = FieldIdentifier::read_from(source)?;
+        Ok(Self { entries, identifier })
+    }
+}
+
+// MULTI-WORD VALUE
+// ================================================================================================
+
+/// Defines how multi-slot values are represented within the component's storage description.
+///
+/// Each multi-word value representation can be:
+/// - A predefined value that may contain a hardcoded word or a mix of fixed and templated felts.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MultiWordRepresentation {
+    // TODO: Once there are multi-slot template types, add a MultiWordRepresentation::Template
+    // here
+    Value {
+        /// The human-readable name of this multi-slot entry.
+        identifier: FieldIdentifier,
+        /// A list of values to fill the logical slot, with a length equal to the number of slots.
+        values: Vec<[FeltRepresentation; 4]>,
+    },
+}
+
+impl MultiWordRepresentation {
+    /// Returns the number of words in this representation.
+    pub fn num_words(&self) -> usize {
+        match self {
+            MultiWordRepresentation::Value { values, .. } => values.len(),
+        }
+    }
+
+    /// Validates the multi-slot value.
+    pub fn validate(&self) -> Result<(), AccountComponentTemplateError> {
+        match self {
+            MultiWordRepresentation::Value { values, .. } => {
+                for slot_word in values {
+                    for felt_in_slot in slot_word {
+                        felt_in_slot.validate()?;
+                    }
+                }
+            },
+        }
+        Ok(())
+    }
+}
+
+impl Serializable for MultiWordRepresentation {
+    fn write_into<W: ByteWriter>(&self, target: &mut W) {
+        match self {
+            MultiWordRepresentation::Value { identifier, values } => {
+                target.write_u8(0u8);
+                target.write(identifier);
+                target.write(values);
+            },
+        }
+    }
+}
+impl Deserializable for MultiWordRepresentation {
+    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
+        let variant_tag = source.read_u8()?;
+        match variant_tag {
+            0 => {
+                let identifier: FieldIdentifier = source.read()?;
+                let values: Vec<[FeltRepresentation; 4]> = source.read()?;
+                Ok(MultiWordRepresentation::Value { identifier, values })
+            },
+            _ => Err(DeserializationError::InvalidValue(format!(
+                "unknown variant tag `{}` for MultiWordRepresentation",
+                variant_tag
+            ))),
+        }
     }
 }

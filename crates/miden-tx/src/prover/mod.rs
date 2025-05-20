@@ -1,20 +1,22 @@
 #[cfg(feature = "async")]
 use alloc::boxed::Box;
-use alloc::{sync::Arc, vec::Vec};
+use alloc::{collections::BTreeSet, sync::Arc, vec::Vec};
 
 use miden_lib::transaction::TransactionKernel;
 use miden_objects::{
     account::delta::AccountUpdateDetails,
-    assembly::Library,
+    assembly::DefaultSourceManager,
     transaction::{OutputNote, ProvenTransaction, ProvenTransactionBuilder, TransactionWitness},
 };
 pub use miden_prover::ProvingOptions;
 use miden_prover::prove;
-use vm_processor::MemAdviceProvider;
+use vm_processor::{Digest, MemAdviceProvider};
 use winter_maybe_async::*;
 
 use super::{TransactionHost, TransactionProverError};
-use crate::executor::TransactionMastStore;
+
+mod mast_store;
+pub use mast_store::TransactionMastStore;
 
 // TRANSACTION PROVER TRAIT
 // ================================================================================================
@@ -55,14 +57,6 @@ impl LocalTransactionProver {
             proof_options,
         }
     }
-
-    /// Loads the provided library code into the internal MAST forest store.
-    ///
-    /// TODO: this is a work-around to support accounts which were complied with user-defined
-    /// libraries. Once Miden Assembler supports library vendoring, this should go away.
-    pub fn load_library(&mut self, library: &Library) {
-        self.mast_store.insert(library.mast_forest().clone());
-    }
 }
 
 impl Default for LocalTransactionProver {
@@ -81,17 +75,7 @@ impl TransactionProver for LocalTransactionProver {
         &self,
         tx_witness: TransactionWitness,
     ) -> Result<ProvenTransaction, TransactionProverError> {
-        let TransactionWitness {
-            tx_inputs,
-            tx_args,
-            advice_witness,
-            account_codes,
-        } = tx_witness;
-
-        for account_code in &account_codes {
-            // load the code mast forest to the mast store
-            self.mast_store.load_account_code(account_code);
-        }
+        let TransactionWitness { tx_inputs, tx_args, advice_witness } = tx_witness;
 
         let account = tx_inputs.account();
         let input_notes = tx_inputs.input_notes();
@@ -100,26 +84,38 @@ impl TransactionProver for LocalTransactionProver {
 
         // execute and prove
         let (stack_inputs, advice_inputs) =
-            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_witness));
+            TransactionKernel::prepare_inputs(&tx_inputs, &tx_args, Some(advice_witness))
+                .map_err(TransactionProverError::InvalidTransactionInputs)?;
         let advice_provider: MemAdviceProvider = advice_inputs.into();
 
         // load the store with account/note/tx_script MASTs
-        self.mast_store.load_transaction_code(&tx_inputs, &tx_args);
+        self.mast_store.load_transaction_code(account.code(), input_notes, &tx_args);
+
+        let account_code_commitments: BTreeSet<Digest> = tx_args
+            .foreign_account_inputs()
+            .iter()
+            .map(|acc| acc.code().commitment())
+            .collect();
 
         let mut host: TransactionHost<_> = TransactionHost::new(
             account.into(),
             advice_provider,
             self.mast_store.clone(),
             None,
-            account_codes.iter().map(|c| c.commitment()).collect(),
+            account_code_commitments,
         )
         .map_err(TransactionProverError::TransactionHostCreationFailed)?;
 
+        // For the prover, we assume that the transaction witness was successfully executed and so
+        // there is no need to provide the actual source manager, as it is only used to improve
+        // error quality. So we simply pass an empty one.
+        let source_manager = Arc::new(DefaultSourceManager::default());
         let (stack_outputs, proof) = maybe_await!(prove(
             &TransactionKernel::main(),
             stack_inputs,
             &mut host,
-            self.proof_options.clone()
+            self.proof_options.clone(),
+            source_manager
         ))
         .map_err(TransactionProverError::TransactionProgramExecutionFailed)?;
 
@@ -146,7 +142,8 @@ impl TransactionProver for LocalTransactionProver {
         .add_input_notes(input_notes)
         .add_output_notes(output_notes);
 
-        let builder = match account.is_public() {
+        // If the account is on-chain, add the update details.
+        let builder = match account.is_onchain() {
             true => {
                 let account_update_details = if account.is_new() {
                     let mut account = account.clone();
