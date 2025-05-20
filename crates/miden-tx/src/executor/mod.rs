@@ -452,3 +452,21 @@ pub enum NoteAccountExecution {
         error: Option<TransactionExecutorError>,
     },
 }
+
+#[test]
+fn tx_executor_is_send() {
+    fn assert_send<T: Send>() {}
+    assert_send::<TransactionExecutor>();
+}
+
+#[test]
+fn tx_executor_is_sync() {
+    fn assert_sync<T: Sync>() {}
+    assert_sync::<TransactionExecutor>();
+}
+
+#[test]
+fn tx_executor_is_send_and_sync() {
+    fn assert_both<T: Send + Sync>() {}
+    assert_both::<TransactionExecutor>();
+}
