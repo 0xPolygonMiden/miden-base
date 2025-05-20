@@ -5,7 +5,7 @@ A `Transaction` in Miden is the state transition of a single account. A `Transac
 Miden's `Transaction` model aims for the following:
 
 - **Parallel transaction execution**: Accounts can update their state independently from each other and in parallel.
-- **Private transaction execution**: Client-side `Transaction` proving allows the network to verify transactions validity with zero knowledge.
+- **Private transaction execution**: Client-side `Transaction` proving allows the network to verify transactions validity with zero-knowledge.
 
 <p style="text-align: center;">
     <img src="img/transaction/transaction-diagram.png" style="width:70%;" alt="Transaction diagram"/>

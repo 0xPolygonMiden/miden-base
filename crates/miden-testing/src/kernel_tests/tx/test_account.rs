@@ -1,10 +1,11 @@
 use anyhow::Context;
+use assembly::diagnostics::{WrapErr, miette};
 use miden_lib::{
     errors::tx_kernel_errors::{
         ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX,
         ERR_ACCOUNT_ID_LEAST_SIGNIFICANT_BYTE_MUST_BE_ZERO, ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE,
         ERR_ACCOUNT_ID_UNKNOWN_VERSION, ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS,
-        ERR_FAUCET_INVALID_STORAGE_OFFSET, TX_KERNEL_ERRORS,
+        ERR_FAUCET_INVALID_STORAGE_OFFSET,
     },
     transaction::TransactionKernel,
     utils::word_to_masm_push_string,
@@ -151,7 +152,6 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
         ),
     ];
 
-    let error_map = alloc::collections::BTreeMap::from(TX_KERNEL_ERRORS);
     for (account_id, expected_error) in test_cases.iter() {
         // Manually split the account ID into prefix and suffix since we can't use AccountId methods
         // on invalid ids.
@@ -173,14 +173,13 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
         match (result, expected_error) {
             (Ok(_), None) => (),
             (Ok(_), Some(err)) => {
-                anyhow::bail!("expected error {} but validation was successful", error_map[err])
+                anyhow::bail!("expected error {err} but validation was successful")
             },
-            (Err(ExecutionError::FailedAssertion { err_code, .. }), Some(err)) => {
-                if err_code != *err {
+            (Err(ExecutionError::FailedAssertion { err_code, err_msg, .. }), Some(err)) => {
+                if err_code != err.code() {
                     anyhow::bail!(
-                        "actual error {err_code} ({}) did not match expected error {err} ({})",
-                        error_map[&err_code],
-                        error_map[err]
+                        "actual error \"{}\" (code: {err_code}) did not match expected error {err}",
+                        err_msg.as_ref().map(AsRef::as_ref).unwrap_or("<no message>")
                     );
                 }
             },
@@ -197,7 +196,7 @@ pub fn test_account_validate_id() -> anyhow::Result<()> {
 }
 
 #[test]
-fn test_is_faucet_procedure() {
+fn test_is_faucet_procedure() -> miette::Result<()> {
     let test_cases = [
         ACCOUNT_ID_REGULAR_PUBLIC_ACCOUNT_IMMUTABLE_CODE,
         ACCOUNT_ID_REGULAR_PRIVATE_ACCOUNT_UPDATABLE_CODE,
@@ -226,7 +225,7 @@ fn test_is_faucet_procedure() {
 
         let process = CodeExecutor::with_advice_provider(MemAdviceProvider::default())
             .run(&code)
-            .unwrap();
+            .wrap_err("failed to execute is_faucet procedure")?;
 
         let is_faucet = account_id.is_faucet();
         assert_eq!(
@@ -236,6 +235,8 @@ fn test_is_faucet_procedure() {
             account_id
         );
     }
+
+    Ok(())
 }
 
 // ACCOUNT STORAGE TESTS

@@ -10,71 +10,49 @@ use.kernel::memory
 # ERRORS
 # =================================================================================================
 
-# Account nonce cannot be increased by a greater than u32 value.
-const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32=0x0002014a
+const.ERR_ACCOUNT_NONCE_INCREASE_MUST_BE_U32="account nonce cannot be increased by a greater than u32 value"
 
-# Account code must be updatable for it to be possible to set new code.
-const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE=0x00020142
+const.ERR_ACCOUNT_CODE_IS_NOT_UPDATABLE="account code must be updatable for it to be possible to set new code"
 
-# Anchor block commitment must not be empty.
-const.ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY=0x00020140
+const.ERR_ACCOUNT_ANCHOR_BLOCK_COMMITMENT_MUST_NOT_BE_EMPTY="anchor block commitment must not be empty"
 
-# ID of the new account does not match the ID computed from the seed and anchor block commitment.
-const.ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH=0x0002014e
+const.ERR_ACCOUNT_SEED_ANCHOR_BLOCK_COMMITMENT_DIGEST_MISMATCH="ID of the new account does not match the ID computed from the seed and anchor block commitment"
 
-# Failed to write an account value item to a non-value storage slot.
-const.ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT=0x00020150
+const.ERR_ACCOUNT_SETTING_VALUE_ITEM_ON_NON_VALUE_SLOT="failed to write an account value item to a non-value storage slot"
 
-# Failed to write an account map item to a non-map storage slot.
-const.ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT=0x0002014f
+const.ERR_ACCOUNT_SETTING_MAP_ITEM_ON_NON_MAP_SLOT="failed to write an account map item to a non-map storage slot"
 
-# Account procedure is not part of the account code.
-const.ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE=0x0002014c
+const.ERR_ACCOUNT_PROC_NOT_PART_OF_ACCOUNT_CODE="account procedure is not part of the account code"
 
-# Provided procedure index is out of bounds.
-const.ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS=0x0002014b
+const.ERR_ACCOUNT_PROC_INDEX_OUT_OF_BOUNDS="provided procedure index is out of bounds"
 
-# Provided storage slot index is out of bounds.
-const.ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS=0x00020152
+const.ERR_ACCOUNT_STORAGE_SLOT_INDEX_OUT_OF_BOUNDS="provided storage slot index is out of bounds"
 
-# Storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets).
-const.ERR_FAUCET_INVALID_STORAGE_OFFSET=0x000201c2
+const.ERR_FAUCET_INVALID_STORAGE_OFFSET="storage offset is invalid for a faucet account (0 is prohibited as it is the reserved data slot for faucets)"
 
-# Computed account code commitment does not match recorded account code commitment.
-const.ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH=0x00020141
+const.ERR_ACCOUNT_CODE_COMMITMENT_MISMATCH="computed account code commitment does not match recorded account code commitment"
 
-# Number of account procedures exceeds the maximum limit of 256.
-const.ERR_ACCOUNT_TOO_MANY_PROCEDURES=0x00020153
+const.ERR_ACCOUNT_TOO_MANY_PROCEDURES="number of account procedures exceeds the maximum limit of 256"
 
-# Number of account storage slots exceeds the maximum limit of 255.
-const.ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS=0x00020154
+const.ERR_ACCOUNT_TOO_MANY_STORAGE_SLOTS="number of account storage slots exceeds the maximum limit of 255"
 
-# Computed account storage commitment does not match recorded account storage commitment.
-const.ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH=0x00020151
+const.ERR_ACCOUNT_STORAGE_COMMITMENT_MISMATCH="computed account storage commitment does not match recorded account storage commitment"
 
-# Storage size can only be zero if storage offset is also zero.
-const.ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE=0x00020147
+const.ERR_ACCOUNT_INVALID_STORAGE_OFFSET_FOR_SIZE="storage size can only be zero if storage offset is also zero"
 
-# ID of the provided foreign account equals zero.
-const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO=0x00020181
+const.ERR_FOREIGN_ACCOUNT_ID_IS_ZERO="ID of the provided foreign account equals zero"
 
-# Maximum allowed number of foreign account to be loaded (64) was exceeded.
-const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED=0x00020183
+const.ERR_FOREIGN_ACCOUNT_MAX_NUMBER_EXCEEDED="maximum allowed number of foreign account to be loaded (64) was exceeded"
 
-# Commitment of the foreign account in the advice provider does not match the commitment in the account tree.
-const.ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT=0x00020182
+const.ERR_FOREIGN_ACCOUNT_INVALID_COMMITMENT="commitment of the foreign account in the advice provider does not match the commitment in the account tree"
 
-# Unknown version in account ID.
-const.ERR_ACCOUNT_ID_UNKNOWN_VERSION=0x00020146
+const.ERR_ACCOUNT_ID_UNKNOWN_VERSION="unknown version in account ID"
 
-# Epoch must be less than u16::MAX (0xffff).
-const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX=0x00020143
+const.ERR_ACCOUNT_ID_EPOCH_MUST_BE_LESS_THAN_U16_MAX="epoch must be less than u16::MAX (0xffff)"
 
-# Unknown account storage mode in account ID.
-const.ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE=0x00020145
+const.ERR_ACCOUNT_ID_UNKNOWN_STORAGE_MODE="unknown account storage mode in account ID"
 
-# Failed to read an account map item from a non-map storage slot.
-const.ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT=0x0002014d
+const.ERR_ACCOUNT_READING_MAP_VALUE_FROM_NON_MAP_SLOT="failed to read an account map item from a non-map storage slot"
 
 # CONSTANTS
 # =================================================================================================

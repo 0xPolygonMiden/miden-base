@@ -27,11 +27,9 @@ const.MAX_BLOCK_NUM=0xFFFFFFFF
 # ERRORS
 # =================================================================================================
 
-# Number of output notes in the transaction exceeds the maximum limit of 1024
-const.ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT=0x000200c1
+const.ERR_TX_NUMBER_OF_OUTPUT_NOTES_EXCEEDS_LIMIT="number of output notes in the transaction exceeds the maximum limit of 1024"
 
-# Invalid note type
-const.ERR_NOTE_INVALID_TYPE=0x00020107
+const.ERR_NOTE_INVALID_TYPE="invalid note type"
 
 # The 2 highest bits in the u32 tag have the following meaning:
 #
@@ -53,23 +51,19 @@ const.ERR_NOTE_INVALID_TYPE=0x00020107
 # users won't see the note 2. generate slightly more load as extra validation is performed for the
 # invalid tags. None of these scenarios have any significant impact.
 
-# Invalid note type for the given note tag prefix
-const.ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX=0x00020106
+const.ERR_NOTE_INVALID_NOTE_TYPE_FOR_NOTE_TAG_PREFIX="invalid note type for the given note tag prefix"
 
-# The note's tag must fit into a u32 so the 32 most significant bits must be zero.
-const.ERR_NOTE_TAG_MUST_BE_U32=0x00020109
+const.ERR_NOTE_TAG_MUST_BE_U32="the note's tag must fit into a u32 so the 32 most significant bits must be zero"
 
-# Adding a fungible asset to a note cannot exceed the max_amount of 9223372036854775807
-const.ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED=0x00020104
+const.ERR_NOTE_FUNGIBLE_MAX_AMOUNT_EXCEEDED="adding a fungible asset to a note cannot exceed the max_amount of 9223372036854775807"
 
-# Non-fungible asset that already exists in the note cannot be added again
-const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS=0x00020240
+const.ERR_NON_FUNGIBLE_ASSET_ALREADY_EXISTS="non-fungible asset that already exists in the note cannot be added again"
 
-# Failed to find note at the given index; index must be within [0, num_of_notes]
-const.ERR_NOTE_INVALID_INDEX=0x00020105
+const.ERR_NOTE_INVALID_INDEX="failed to find note at the given index; index must be within [0, num_of_notes]"
 
-# Transaction expiration block delta must be within 0x1 and 0xFFFF.
-const.ERR_TX_INVALID_EXPIRATION_DELTA=0x000200c0
+const.ERR_NOTE_NETWORK_EXECUTION_DOES_NOT_TARGET_NETWORK_ACCOUNT="network execution mode with a specific target can only target network accounts"
+
+const.ERR_TX_INVALID_EXPIRATION_DELTA="transaction expiration block delta must be within 0x1 and 0xFFFF"
 
 # EVENTS
 # =================================================================================================
