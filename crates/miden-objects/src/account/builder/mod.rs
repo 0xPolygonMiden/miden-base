@@ -401,5 +401,12 @@ mod tests {
         assert_matches!(build_error, AccountError::BuildError(msg, _) if msg == "account asset vault must be empty on new accounts")
     }
 
-    // TODO: Test that a BlockHeader with a number which is not a multiple of 2^16 returns an error.
+    #[test]
+    fn account_id_anchor_invalid_block_number() {
+        use crate::block::BlockNumber;
+        let block_number = 42; // not a multiple of 2^16
+        let block_commitment = Digest::default();
+        let result = AccountIdAnchor::new(BlockNumber::from(block_number), block_commitment);
+        assert!(result.is_err(), "Expected error for block number not multiple of 2^16");
+    }
 }
