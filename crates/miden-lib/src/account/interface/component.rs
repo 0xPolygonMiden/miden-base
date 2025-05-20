@@ -27,13 +27,13 @@ pub enum AccountComponentInterface {
     /// Exposes procedures from the
     /// [`BasicFungibleFaucet`][crate::account::faucets::BasicFungibleFaucet] module.
     ///
-    /// Internal value holds the storage index where faucet metadata is stored. This metadata slot
-    /// has a format of `max_supply || faucet_decimals || token_symbol || 0`
+    /// Internal value holds the storage slot index where faucet metadata is stored. This metadata
+    /// slot has a format of `[max_supply, faucet_decimals, token_symbol, 0]`.
     BasicFungibleFaucet(u8),
     /// Exposes procedures from the
     /// [`RpoFalcon512`][crate::account::auth::RpoFalcon512] module.
     ///
-    /// Internal value holds the storage index where the public key for the RpoFalcon512
+    /// Internal value holds the storage slot index where the public key for the RpoFalcon512
     /// authentication scheme is stored.
     RpoFalcon512(u8),
     /// A non-standard, custom interface which exposes the contained procedures.
