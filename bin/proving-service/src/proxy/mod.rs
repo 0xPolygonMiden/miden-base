@@ -577,8 +577,7 @@ impl ProxyHttp for LoadBalancer {
         _upstream_response: &mut ResponseHeader,
         ctx: &mut Self::CTX,
     ) -> Result<()> {
-        ProxyHttpDefaultImpl
-            .upstream_response_filter(_session, _upstream_response, &mut ())
+        ProxyHttpDefaultImpl.upstream_response_filter(_session, _upstream_response, &mut ())
     }
 
     #[tracing::instrument(name = "proxy:response_filter", parent = &ctx.parent_span, skip(_session, _upstream_response))]
