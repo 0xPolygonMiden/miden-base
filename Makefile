@@ -126,4 +126,4 @@ bench-tx: ## Run transaction benchmarks
 
 .PHONY: install-proving-service
 install-proving-service: ## Install proving service's CLI
-	$(BUILD_GENERATED_FILES_IN_SRC) cargo install --path bin/proving-service --bin miden-proving-service --locked --features concurrent
+	$(BUILD_GENERATED_FILES_IN_SRC) cargo install --path bin/proving-service --bin miden-proving-service --features concurrent
