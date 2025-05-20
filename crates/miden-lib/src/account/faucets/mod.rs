@@ -1,5 +1,5 @@
 use miden_objects::{
-    AccountError, BasicFungibleFaucetError, Felt, FieldElement, Word,
+    AccountError, Felt, FieldElement, FungibleFaucetError, Word,
     account::{
         Account, AccountBuilder, AccountComponent, AccountIdAnchor, AccountStorage,
         AccountStorageMode, AccountType, StorageSlot,
@@ -59,15 +59,15 @@ impl BasicFungibleFaucet {
         symbol: TokenSymbol,
         decimals: u8,
         max_supply: Felt,
-    ) -> Result<Self, BasicFungibleFaucetError> {
+    ) -> Result<Self, FungibleFaucetError> {
         // First check that the metadata is valid.
         if decimals > Self::MAX_DECIMALS {
-            return Err(BasicFungibleFaucetError::TooManyDecimals {
+            return Err(FungibleFaucetError::TooManyDecimals {
                 actual: decimals as u64,
                 max: Self::MAX_DECIMALS,
             });
         } else if max_supply.as_int() > FungibleAsset::MAX_AMOUNT {
-            return Err(BasicFungibleFaucetError::MaxSupplyTooLarge {
+            return Err(FungibleFaucetError::MaxSupplyTooLarge {
                 actual: max_supply.as_int(),
                 max: FungibleAsset::MAX_AMOUNT,
             });
@@ -91,21 +91,21 @@ impl BasicFungibleFaucet {
     fn try_from_interface(
         interface: AccountInterface,
         storage: &AccountStorage,
-    ) -> Result<Self, BasicFungibleFaucetError> {
+    ) -> Result<Self, FungibleFaucetError> {
         for component in interface.components().iter() {
             if let AccountComponentInterface::BasicFungibleFaucet(offset) = component {
                 // obtain metadata from storage using offset provided by BasicFungibleFaucet
                 // interface
                 let faucet_metadata = storage
                     .get_item(*offset)
-                    .map_err(|_| BasicFungibleFaucetError::InvalidStorageOffset(*offset))?;
+                    .map_err(|_| FungibleFaucetError::InvalidStorageOffset(*offset))?;
                 let [max_supply, decimals, token_symbol, _] = *faucet_metadata;
 
                 // verify metadata values
                 let token_symbol = TokenSymbol::try_from(token_symbol)
-                    .map_err(BasicFungibleFaucetError::InvalidTokenSymbol)?;
+                    .map_err(FungibleFaucetError::InvalidTokenSymbol)?;
                 let decimals = decimals.as_int().try_into().map_err(|_| {
-                    BasicFungibleFaucetError::TooManyDecimals {
+                    FungibleFaucetError::TooManyDecimals {
                         actual: decimals.as_int(),
                         max: Self::MAX_DECIMALS,
                     }
@@ -115,7 +115,7 @@ impl BasicFungibleFaucet {
             }
         }
 
-        Err(BasicFungibleFaucetError::NoAvailableInterface)
+        Err(FungibleFaucetError::NoAvailableInterface)
     }
 }
 
@@ -133,7 +133,7 @@ impl From<BasicFungibleFaucet> for AccountComponent {
 }
 
 impl TryFrom<Account> for BasicFungibleFaucet {
-    type Error = BasicFungibleFaucetError;
+    type Error = FungibleFaucetError;
 
     fn try_from(account: Account) -> Result<Self, Self::Error> {
         let account_interface = AccountInterface::from(&account);
@@ -182,7 +182,7 @@ pub fn create_basic_fungible_faucet(
         .with_component(auth_component)
         .with_component(
             BasicFungibleFaucet::new(symbol, decimals, max_supply)
-                .map_err(AccountError::BasicFungibleFaucetError)?,
+                .map_err(AccountError::FungibleFaucetError)?,
         )
         .build()?;
 
@@ -196,7 +196,7 @@ pub fn create_basic_fungible_faucet(
 mod tests {
     use assert_matches::assert_matches;
     use miden_objects::{
-        BasicFungibleFaucetError, Digest, FieldElement, ONE, Word, ZERO,
+        Digest, FieldElement, FungibleFaucetError, ONE, Word, ZERO,
         block::BlockHeader,
         crypto::dsa::rpo_falcon512::{self, PublicKey},
         digest,
@@ -295,6 +295,6 @@ mod tests {
         let err = BasicFungibleFaucet::try_from(invalid_faucet_account)
             .err()
             .expect("basic fungible faucet creation should fail");
-        assert_matches!(err, BasicFungibleFaucetError::NoAvailableInterface);
+        assert_matches!(err, FungibleFaucetError::NoAvailableInterface);
     }
 }
