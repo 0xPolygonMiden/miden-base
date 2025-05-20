@@ -26,9 +26,9 @@ miden-stdlib = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+assert_matches = { workspace = true }
 miden-objects = { workspace = true, features = ["testing"] }
 vm-processor = { workspace = true, features = ["testing"] }
-assert_matches = { workspace = true }
 
 [build-dependencies]
 assembly = { workspace = true }
