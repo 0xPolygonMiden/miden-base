@@ -20,7 +20,7 @@ pub use builder::AccountBuilder;
 pub mod code;
 pub use code::{AccountCode, procedure::AccountProcedureInfo};
 
-mod component;
+pub mod component;
 pub use component::{
     AccountComponent, AccountComponentMetadata, AccountComponentTemplate, FeltRepresentation,
     InitStorageData, MapEntry, MapRepresentation, PlaceholderTypeRequirement, StorageEntry,
