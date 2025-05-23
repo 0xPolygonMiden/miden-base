@@ -22,6 +22,7 @@ mod test_fpi;
 mod test_note;
 mod test_prologue;
 mod test_tx;
+mod test_link_map;
 
 // HELPER MACROS
 // ================================================================================================

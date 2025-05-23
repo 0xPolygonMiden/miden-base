@@ -1,0 +1,39 @@
+use.std::collections::smt
+
+#! TODO: Docs
+#!
+#! Inputs:  [map_ptr]
+#! Outputs: []
+export.new
+  push.15321474589252129342.17373224439259377994.15071539326562317628.3312677166725950353
+  # => [EMPTY_SMT_ROOT, map_ptr]
+
+  movup.4 mem_storew dropw
+  # => []
+end
+
+#! TODO: Docs
+#!
+#! Inputs:  [map_ptr, KEY, NEW_VALUE]
+#! Outputs: [OLD_VALUE]
+export.set.1
+  # store map ptr for later
+  dup loc_store.0
+  # => [map_ptr, KEY, NEW_VALUE]
+
+  # load map root from ptr
+  padw movup.4 mem_loadw
+  # => [MAP_ROOT, KEY, NEW_VALUE]
+
+  swapw.2
+  # => [NEW_VALUE, KEY, MAP_ROOT]
+
+  exec.smt::set
+  # => [OLD_VALUE, NEW_MAP_ROOT]
+
+  swapw loc_load.0
+  # => [map_ptr, NEW_MAP_ROOT, OLD_VALUE]
+
+  mem_storew dropw
+  # => [OLD_VALUE]
+end
