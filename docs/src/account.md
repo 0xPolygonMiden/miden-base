@@ -65,9 +65,9 @@ An `Account` ID can be encoded in different formats:
 ### Code
 
 > [!Note]
-> A collection of functions defining the `Account`'s programmable interface.
+> A collection of functions defining the `Account`’s programmable interface.
 
-Every Miden `Account` is essentially a smart contract. The `Code` component defines the account's functions, which can be invoked through both [Note scripts](note.md#script) and [transaction scripts](transaction.md#inputs). Key characteristics include:
+Every Miden `Account` is essentially a smart contract. The `Code` component defines the account’s functions, which can be invoked through both [Note scripts](note.md#script) and [transaction scripts](transaction.md#inputs). Key characteristics include:
 
 - **Mutable access:** Only the `Account`'s own functions can modify its storage and vault. All state changes—such as updating storage slots, incrementing the nonce, or transferring assets—must occur through these functions.
 - **Function commitment:** Each function can be called by its [MAST](https://0xMiden.github.io/miden-vm/user_docs/assembly/main.html) root. The root represents the underlying code tree as a 32-byte commitment. This ensures integrity, i.e., the caller calls what he expects.
@@ -117,20 +117,20 @@ Throughout its lifetime, an `Account` progresses through various phases:
 
 - **Creation and Deployment:** Initialization of the `Account` on the network.  
 - **Active Operation:** Continuous state updates via `Account` functions that modify the storage, nonce, and vault.
-- **Termination or Deactivation:** Optional, depending on the contract's design and governance model.
+- **Termination or Deactivation:** Optional, depending on the contract’s design and governance model.
 
 ### Account creation
 
 For an `Account` to be recognized by the network, it must exist in the [account database](state.md#account-database) maintained by Miden node(s).
 
-However, a user can locally create a new `Account` ID before it's recognized network-wide. The typical process might be:
+However, a user can locally create a new `Account` ID before it’s recognized network-wide. The typical process might be:
 
 1. Alice generates a new `Account` ID locally (according to the desired `Account` type) using the Miden client.
 2. The Miden client checks with a Miden node to ensure the ID does not already exist.
 3. Alice shares the new ID with Bob (for example, to receive assets).
 4. Bob executes a transaction, creating a note containing assets for Alice.
-5. Alice consumes Bob's note in her own transaction to claim the asset.
-6. Depending on the `Account`'s storage mode and transaction type, the operator receives the new `Account` ID and, if all conditions are met, includes it in the `Account` database.
+5. Alice consumes Bob’s note in her own transaction to claim the asset.
+6. Depending on the `Account`’s storage mode and transaction type, the operator receives the new `Account` ID and, if all conditions are met, includes it in the `Account` database.
 
 ## Additional information
 
@@ -155,13 +155,13 @@ Type and mutability are encoded in the two most significant bits of the account'
 Users can choose whether their accounts are stored publicly or privately. The preference is encoded in the third and forth most significant bits of the account's [ID](#id):
 
 - **Public Accounts:**
-  The account's state is stored on-chain, similar to how accounts are stored in public blockchains like Ethereum.
+  The account’s state is stored on-chain, similar to how accounts are stored in public blockchains like Ethereum.
 
 - **Network `Account`s:**
-  The account's state is stored on-chain, just like **public** accounts. Additionally, the network will monitor this account for any public notes targeted at it and attempt to create network transactions against the account, which consume the notes. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be network accounts.
+  The account’s state is stored on-chain, just like **public** accounts. Additionally, the network will monitor this account for any public notes targeted at it and attempt to create network transactions against the account, which consume the notes. Contracts that rely on a shared, publicly accessible state (e.g., a DEX) should be network accounts.
 
 - **Private Accounts:**
-  Only a commitment (hash) to the account's state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.
+  Only a commitment (hash) to the account’s state is stored on-chain. This mode is suitable for users who prioritize privacy or plan to store a large amount of data in their `Account`. To interact with a private `Account`, a user must have knowledge of its interface.
 
 The storage mode is chosen during `Account` creation, it cannot be changed later.
 
