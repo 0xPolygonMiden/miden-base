@@ -2,6 +2,8 @@
 
 ## 0.10.0 (TBD)
 
+- Implement map in transaction kernel library (#1396).
+
 ## 0.9.0 (2025-05-20)
 
 ### Features
