@@ -71,6 +71,9 @@ fn new_set_get() -> anyhow::Result<()> {
           # for now we only assert that a value is returned
           push.MAP_PTR exec.link_map::compute_commitment
           # => [MAP_COMMITMENT]
+
+          dropw
+          # => []
       end
     "#;
 
